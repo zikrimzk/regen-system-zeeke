@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Dashboard | ReGen powered by Zeeke</title>
+  <link rel="stylesheet" href="/css/main.css?v=20260724d">
+  <link rel="stylesheet" href="/css/dashboard.css?v=20260724d">
+</head>
+<body class="dashboard-page">
+  <div id="toast-container"></div>
+  <div id="page-loader"><div class="spinner"></div><p></p></div>
+
+  <nav class="topbar">
+    <a href="/dashboard" class="topbar-brand">
+      <div class="topbar-logo-mark" aria-hidden="true">R</div>
+      <div class="topbar-brand-name"><strong>ReGen</strong><small>powered by Zeeke</small></div>
+    </a>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-user account-menu">
+      <button type="button" class="account-menu-toggle" id="account-menu-toggle" aria-expanded="false" aria-haspopup="menu">
+        <span class="topbar-avatar" id="topbar-avatar">U</span>
+        <span class="topbar-user-name" id="topbar-user-name">User</span>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="account-menu-panel hidden" id="account-menu-panel" role="menu">
+        <button type="button" class="account-menu-item" id="account-menu-logout" role="menuitem">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
+          Log out
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dashboard-content">
+    <div class="dash-page-header">
+      <div>
+        <h1 class="dash-page-title">Resume Dashboard</h1>
+      </div>
+    </div>
+
+    <div id="resume-home" aria-live="polite"></div>
+  </main>
+
+  <script src="/js/api.js?v=20260723b"></script>
+  <script src="/js/dashboard.js?v=20260723b"></script>
+</body>
+</html>

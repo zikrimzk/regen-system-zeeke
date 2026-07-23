@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | ReGen powered by Zeeke</title>
+  <link rel="stylesheet" href="/css/main.css?v=20260724d">
+  <link rel="stylesheet" href="/css/auth.css?v=20260724d">
+</head>
+<body class="auth-page">
+  <div id="toast-container"></div>
+  <div id="page-loader"><div class="spinner"></div><p></p></div>
+
+  <header class="auth-header">
+    <div class="auth-header-logo" aria-hidden="true">R</div>
+    <div class="auth-header-title"><strong>ReGen</strong><small>powered by Zeeke</small></div>
+  </header>
+
+  <main class="auth-body">
+    <div class="auth-card auth-card-wide">
+      <h1 class="auth-card-title">Create an account</h1>
+      <p class="auth-card-subtitle">Enter your account details.</p>
+
+      <form id="register-form" class="auth-form" novalidate>
+        <div id="register-error" class="auth-error-box"></div>
+
+        <div class="auth-form-row">
+          <div class="auth-form-group">
+            <label class="auth-label" for="firstName">First Name <span class="text-danger">*</span></label>
+            <input type="text" id="firstName" class="auth-input" placeholder="e.g. John" maxlength="100" required>
+          </div>
+          <div class="auth-form-group">
+            <label class="auth-label" for="lastName">Last Name <span class="text-danger">*</span></label>
+            <input type="text" id="lastName" class="auth-input" placeholder="e.g. Doe" maxlength="100" required>
+          </div>
+        </div>
+
+        <div class="auth-form-row">
+          <div class="auth-form-group">
+            <label class="auth-label" for="email">Email <span class="text-danger">*</span></label>
+            <input type="email" id="email" class="auth-input" placeholder="name@company.com" maxlength="200" required>
+          </div>
+          <div class="auth-form-group">
+            <label class="auth-label" for="phone">Phone Number</label>
+            <input type="tel" id="phone" class="auth-input" placeholder="e.g. 012-3456789" maxlength="30">
+          </div>
+        </div>
+
+        <div class="auth-form-row">
+          <div class="auth-form-group">
+            <label class="auth-label" for="registerCountry">Country</label>
+            <select id="registerCountry" class="auth-input auth-select">
+              <option value="Malaysia">Malaysia</option>
+            </select>
+          </div>
+          <div class="auth-form-group" id="register-state-group">
+            <label class="auth-label" for="registerState">State <span class="text-danger">*</span></label>
+            <select id="registerState" class="auth-input auth-select" required>
+              <option value="">Select state</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="auth-form-group" id="register-postcode-group">
+          <label class="auth-label" for="registerPostcode">Postcode <span class="text-danger">*</span></label>
+          <input type="text" id="registerPostcode" class="auth-input" placeholder="e.g. 50000" maxlength="5" inputmode="numeric" autocomplete="postal-code" required>
+          <div class="auth-field-error" id="register-postcode-error">Postcode must match the selected Malaysian state.</div>
+        </div>
+
+        <hr class="auth-divider">
+
+        <div class="auth-form-row">
+          <div class="auth-form-group">
+            <label class="auth-label" for="password">Password <span class="text-danger">*</span></label>
+            <div class="auth-password-wrap">
+              <input type="password" id="password" class="auth-input" placeholder="Password" required minlength="8">
+              <button type="button" class="auth-password-toggle" tabindex="-1">Show</button>
+            </div>
+            <div class="pwd-strength">
+              <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwd-fill"></div></div>
+              <div class="pwd-strength-label" id="pwd-label">Min 8 characters</div>
+            </div>
+          </div>
+          <div class="auth-form-group">
+            <label class="auth-label" for="confirmPassword">Confirm Password <span class="text-danger">*</span></label>
+            <div class="auth-password-wrap">
+              <input type="password" id="confirmPassword" class="auth-input" placeholder="Confirm password" required>
+              <button type="button" class="auth-password-toggle" tabindex="-1">Show</button>
+            </div>
+            <div class="auth-field-error" id="match-error">Passwords do not match</div>
+          </div>
+        </div>
+
+        <button type="submit" class="auth-submit-btn" id="register-btn">Create Account</button>
+
+        <div class="auth-link-row">
+          Already have an account? <a href="/login">Log in here</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="/js/api.js?v=20260723b"></script>
+  <script src="/js/lookups.js?v=20260723a"></script>
+  <script src="/js/auth.js?v=20260723b"></script>
+</body>
+</html>
