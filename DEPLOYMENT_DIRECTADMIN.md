@@ -40,12 +40,20 @@ Nama database dan username DirectAdmin selalunya mempunyai prefix akaun, contohn
 
 Gunakan FTP account yang hanya mempunyai akses kepada folder website ini jika DirectAdmin membenarkannya.
 
-Folder production biasanya salah satu daripada:
+`FTP_SERVER_DIR` ialah path **relatif kepada folder pertama selepas login FTP**, bukan absolute Linux path. Jangan masukkan `/home/username/...`.
 
-- `/domains/appnest.my/public_html/` untuk akaun FTP utama; atau
-- `/public_html/` untuk FTP account yang root-nya sudah berada dalam folder domain.
+Nilainya biasanya salah satu daripada:
 
-Pastikan nilai sebenar dengan melihat folder pertama yang muncul selepas login melalui FileZilla. Folder yang mengandungi `public_html` menentukan nilai `FTP_SERVER_DIR`.
+- `./` jika selepas login FTP anda terus nampak `index.php`, `login.html` atau kandungan `public_html`; atau
+- `domains/regen.zeeke.appnest.my/public_html/` jika selepas login anda nampak folder `domains`.
+
+Contoh yang **salah**:
+
+```text
+/home/appnestm/domains/regen.zeeke.appnest.my/public_html/
+```
+
+Leading slash dan bahagian `/home/appnestm` akan menyebabkan action mencipta folder `home/appnestm/...` di dalam root FTP.
 
 Gunakan FTPS explicit pada port 21 jika hosting menyokongnya. Jangan simpan password FTP atau database dalam repository.
 
@@ -68,7 +76,7 @@ Dalam environment `production`, tambah secrets berikut:
 | `FTP_SERVER` | hostname FTP daripada hosting |
 | `FTP_USERNAME` | username FTP |
 | `FTP_PASSWORD` | password FTP |
-| `FTP_SERVER_DIR` | folder `public_html` yang tepat, dengan `/` di hujung |
+| `FTP_SERVER_DIR` | path relatif seperti `./` atau `domains/regen.zeeke.appnest.my/public_html/` |
 
 Kemudian tambah environment variables jika nilai lalai tidak sesuai:
 
