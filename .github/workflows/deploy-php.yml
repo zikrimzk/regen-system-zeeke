@@ -1,0 +1,97 @@
+name: Deploy PHP to DirectAdmin
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: curl, dom, fileinfo, gd, intl, mbstring, pdo_mysql, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate PHP
+        run: |
+          composer validate --strict
+          find php public scripts -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Build FTP release
+        env:
+          DEPLOY_APP_URL: ${{ secrets.APP_URL }}
+          DEPLOY_DB_HOST: ${{ secrets.DB_HOST }}
+          DEPLOY_DB_PORT: ${{ secrets.DB_PORT }}
+          DEPLOY_DB_NAME: ${{ secrets.DB_NAME }}
+          DEPLOY_DB_USER: ${{ secrets.DB_USER }}
+          DEPLOY_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          mkdir -p .release/_app .release/vendor
+          cp -R public/. .release/
+          cp -R php/. .release/_app/
+          cp -R vendor/. .release/vendor/
+          cp php/.htaccess .release/vendor/.htaccess
+          php -r '
+            $map = [
+              "APP_ENV" => "production",
+              "APP_URL" => getenv("DEPLOY_APP_URL"),
+              "DB_HOST" => getenv("DEPLOY_DB_HOST"),
+              "DB_PORT" => getenv("DEPLOY_DB_PORT") ?: "3306",
+              "DB_NAME" => getenv("DEPLOY_DB_NAME"),
+              "DB_USER" => getenv("DEPLOY_DB_USER"),
+              "DB_PASSWORD" => getenv("DEPLOY_DB_PASSWORD"),
+              "SESSION_NAME" => "regen_sid",
+              "SESSION_TTL" => "86400",
+            ];
+            foreach (["APP_URL", "DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"] as $key) {
+              if (!is_string($map[$key]) || $map[$key] === "") {
+                fwrite(STDERR, "Missing deployment secret: {$key}\n");
+                exit(1);
+              }
+            }
+            file_put_contents(
+              ".release/_app/config.local.php",
+              "<?php\ndeclare(strict_types=1);\n\nreturn " . var_export($map, true) . ";\n"
+            );
+          '
+          test -f .release/index.php
+          test -f .release/_app/bootstrap.php
+          test -f .release/vendor/autoload.php
+          test -f .release/_app/config.local.php
+
+      - name: Deploy release through FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ vars.FTP_PORT || 21 }}
+          local-dir: ./.release/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config.local.example.php

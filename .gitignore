@@ -2,3 +2,8 @@ node_modules/
 uploads/
 .env
 *.log
+vendor/
+.release/
+php/config.local.php
+tmp/
+output/
