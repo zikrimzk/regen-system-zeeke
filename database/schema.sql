@@ -6,11 +6,24 @@ CREATE TABLE IF NOT EXISTS users (
   first_name   VARCHAR(100) NOT NULL,
   last_name    VARCHAR(100) NOT NULL,
   email        VARCHAR(200) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255) NULL,
   phone        VARCHAR(30)  DEFAULT '',
   address      VARCHAR(500) DEFAULT '',
   created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_identities (
+  id               BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id          INT          NOT NULL,
+  provider         VARCHAR(32)  NOT NULL,
+  provider_subject VARCHAR(255) NOT NULL,
+  email_at_link    VARCHAR(200) NOT NULL,
+  created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_user_identities_provider_subject (provider, provider_subject),
+  UNIQUE KEY uq_user_identities_user_provider (user_id, provider),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS resumes (

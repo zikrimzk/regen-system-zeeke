@@ -39,11 +39,76 @@ final class UserRepository
         ];
     }
 
+    /**
+     * @param array{
+     *   subject: string,
+     *   email: string,
+     *   firstName: string,
+     *   lastName: string
+     * } $identity
+     * @return array<string, mixed>
+     */
+    public function createFromGoogle(array $identity): array
+    {
+        $this->db->beginTransaction();
+        try {
+            $statement = $this->db->prepare(
+                'INSERT INTO users (first_name, last_name, email, password_hash, phone, address)
+                 VALUES (?, ?, ?, NULL, ?, ?)'
+            );
+            $statement->execute([
+                trim($identity['firstName']),
+                trim($identity['lastName']),
+                mb_strtolower(trim($identity['email'])),
+                '',
+                '',
+            ]);
+            $userId = (int) $this->db->lastInsertId();
+            $this->insertIdentity(
+                $userId,
+                'google',
+                $identity['subject'],
+                $identity['email']
+            );
+            $this->db->commit();
+
+            return [
+                'id' => $userId,
+                'first_name' => $identity['firstName'],
+                'last_name' => $identity['lastName'],
+                'email' => $identity['email'],
+                'phone' => '',
+                'address' => '',
+            ];
+        } catch (\Throwable $error) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $error;
+        }
+    }
+
     /** @return array<string, mixed>|null */
     public function findByEmail(string $email): ?array
     {
         $statement = $this->db->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
         $statement->execute([mb_strtolower(trim($email))]);
+        $row = $statement->fetch();
+        return is_array($row) ? $row : null;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findByIdentity(string $provider, string $subject): ?array
+    {
+        $statement = $this->db->prepare(
+            'SELECT users.*
+             FROM user_identities
+             INNER JOIN users ON users.id = user_identities.user_id
+             WHERE user_identities.provider = ?
+               AND user_identities.provider_subject = ?
+             LIMIT 1'
+        );
+        $statement->execute([$provider, $subject]);
         $row = $statement->fetch();
         return is_array($row) ? $row : null;
     }
@@ -67,6 +132,11 @@ final class UserRepository
         return (bool) $statement->fetchColumn();
     }
 
+    public function linkGoogleIdentity(int $userId, string $subject, string $email): void
+    {
+        $this->insertIdentity($userId, 'google', $subject, $email);
+    }
+
     /** @param array<string, mixed> $user */
     public function verifyPassword(string $plainText, array $user): bool
     {
@@ -86,5 +156,23 @@ final class UserRepository
             ]);
         }
         return $valid;
+    }
+
+    private function insertIdentity(
+        int $userId,
+        string $provider,
+        string $subject,
+        string $email
+    ): void {
+        $statement = $this->db->prepare(
+            'INSERT INTO user_identities (user_id, provider, provider_subject, email_at_link)
+             VALUES (?, ?, ?, ?)'
+        );
+        $statement->execute([
+            $userId,
+            $provider,
+            trim($subject),
+            mb_strtolower(trim($email)),
+        ]);
     }
 }

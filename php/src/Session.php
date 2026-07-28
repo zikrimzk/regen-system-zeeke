@@ -5,6 +5,8 @@ namespace ReGen;
 
 final class Session
 {
+    private const GOOGLE_LINK_TTL = 600;
+
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
@@ -54,6 +56,60 @@ final class Session
             . ' '
             . (string) ($user['last_name'] ?? $user['lastName'] ?? '')
         );
+    }
+
+    /**
+     * @param array{
+     *   subject: string,
+     *   email: string,
+     *   firstName: string,
+     *   lastName: string
+     * } $identity
+     */
+    public static function rememberPendingGoogleIdentity(array $identity): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['pendingGoogleIdentity'] = [
+            'subject' => (string) $identity['subject'],
+            'email' => (string) $identity['email'],
+            'firstName' => (string) $identity['firstName'],
+            'lastName' => (string) $identity['lastName'],
+            'expiresAt' => time() + self::GOOGLE_LINK_TTL,
+        ];
+    }
+
+    /**
+     * @return array{
+     *   subject: string,
+     *   email: string,
+     *   firstName: string,
+     *   lastName: string
+     * }|null
+     */
+    public static function pendingGoogleIdentity(): ?array
+    {
+        $pending = $_SESSION['pendingGoogleIdentity'] ?? null;
+        if (
+            !is_array($pending)
+            || (int) ($pending['expiresAt'] ?? 0) < time()
+            || trim((string) ($pending['subject'] ?? '')) === ''
+            || !filter_var((string) ($pending['email'] ?? ''), FILTER_VALIDATE_EMAIL)
+        ) {
+            self::clearPendingGoogleIdentity();
+            return null;
+        }
+
+        return [
+            'subject' => (string) $pending['subject'],
+            'email' => (string) $pending['email'],
+            'firstName' => (string) ($pending['firstName'] ?? ''),
+            'lastName' => (string) ($pending['lastName'] ?? ''),
+        ];
+    }
+
+    public static function clearPendingGoogleIdentity(): void
+    {
+        unset($_SESSION['pendingGoogleIdentity']);
     }
 
     public static function destroy(): void

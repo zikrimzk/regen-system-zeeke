@@ -148,7 +148,7 @@ Assert-True ($pdf.Headers['Content-Type'] -eq 'application/pdf' -and $signature 
 $rename = Invoke-JsonRequest -Method PATCH -Path "/api/dashboard/$resumeId/title" -Body @{ title = 'Renamed Resume' }
 Assert-True $rename.success 'resume rename'
 
-$logout = Invoke-JsonRequest -Method GET -Path '/api/auth/logout'
+$logout = Invoke-JsonRequest -Method POST -Path '/api/auth/logout'
 Assert-True $logout.success 'logout'
 
 Write-Output "PHP HTTP smoke test passed (resume ID: $resumeId, PDF bytes: $($pdfBytes.Length))."

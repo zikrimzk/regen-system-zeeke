@@ -41,7 +41,7 @@ const Api = (() => {
   // ── Auth ──────────────────────────────────────────────────────
   const login    = (data) => _fetch('/api/auth/login', { method: 'POST', body: JSON.stringify(data) });
   const register = (data) => _fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) });
-  const logout   = () => _fetch('/api/auth/logout');
+  const logout   = () => _fetch('/api/auth/logout', { method: 'POST' });
   const getMe    = () => _fetch('/api/auth/me');
 
   // ── Dashboard ─────────────────────────────────────────────────

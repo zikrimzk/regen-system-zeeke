@@ -47,6 +47,7 @@ jobs:
           DEPLOY_DB_NAME: ${{ secrets.DB_NAME }}
           DEPLOY_DB_USER: ${{ secrets.DB_USER }}
           DEPLOY_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DEPLOY_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
           mkdir -p .release/_app .release/vendor
           cp -R public/. .release/
@@ -64,8 +65,9 @@ jobs:
               "DB_PASSWORD" => getenv("DEPLOY_DB_PASSWORD"),
               "SESSION_NAME" => "regen_sid",
               "SESSION_TTL" => "86400",
+              "GOOGLE_CLIENT_ID" => getenv("DEPLOY_GOOGLE_CLIENT_ID"),
             ];
-            foreach (["APP_URL", "DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"] as $key) {
+            foreach (["APP_URL", "DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "GOOGLE_CLIENT_ID"] as $key) {
               if (!is_string($map[$key]) || $map[$key] === "") {
                 fwrite(STDERR, "Missing deployment secret: {$key}\n");
                 exit(1);

@@ -46,6 +46,7 @@ final class Config
             'db.password' => (string) $read('DB_PASSWORD', ''),
             'session.name' => (string) $read('SESSION_NAME', 'regen_sid'),
             'session.ttl' => max(900, (int) $read('SESSION_TTL', 86400)),
+            'google.client_id' => trim((string) $read('GOOGLE_CLIENT_ID', '')),
             'lookup.user_agent' => (string) $read(
                 'LOOKUP_USER_AGENT',
                 'ReGenByZeeke/1.0 (institution lookup)'

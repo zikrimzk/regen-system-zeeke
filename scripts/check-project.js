@@ -29,6 +29,9 @@ const personal = fs.readFileSync(path.join(root, 'public/js/sections/personal.js
 const stepper = fs.readFileSync(path.join(root, 'public/js/stepper.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'public/js/dashboard.js'), 'utf8');
 const auth = fs.readFileSync(path.join(root, 'public/js/auth.js'), 'utf8');
+const phpApplication = fs.readFileSync(path.join(root, 'php/src/Application.php'), 'utf8');
+const googleIdentity = fs.readFileSync(path.join(root, 'php/src/GoogleIdentityService.php'), 'utf8');
+const schema = fs.readFileSync(path.join(root, 'database/schema.sql'), 'utf8');
 const publicFiles = walk(path.join(root, 'public'))
   .filter(file => /\.(?:html|js|css)$/.test(file))
   .map(file => fs.readFileSync(file, 'utf8'))
@@ -52,6 +55,26 @@ if (!dashboard.includes('requestFullscreen') || !dashboard.includes('fullscreenc
 }
 if (!auth.includes('let countryInput = null;') || !auth.includes('validateRegistrationPostcode = function')) {
   failures.push('Registration location fields are not available to the submit handler.');
+}
+if (
+  !auth.includes('/api/auth/google/config')
+  || !auth.includes('https://accounts.google.com/gsi/client')
+  || !publicFiles.includes('id="google-auth"')
+) {
+  failures.push('Google Identity Services is not wired into the authentication pages.');
+}
+if (
+  !phpApplication.includes("'/api/auth/google'")
+  || !googleIdentity.includes('verifyIdToken')
+  || !googleIdentity.includes('validCsrfToken')
+) {
+  failures.push('Server-side Google credential verification is incomplete.');
+}
+if (
+  !schema.includes('CREATE TABLE IF NOT EXISTS user_identities')
+  || !schema.includes('provider_subject')
+) {
+  failures.push('Google identity persistence is missing from the database schema.');
 }
 if (/>\s*Remove\s*<\/button>/i.test(publicFiles)) {
   failures.push('A text-only Remove button remains in the interface.');

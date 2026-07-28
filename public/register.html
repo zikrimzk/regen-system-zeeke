@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register | ReGen powered by Zeeke</title>
   <link rel="stylesheet" href="/css/main.css?v=20260724d">
-  <link rel="stylesheet" href="/css/auth.css?v=20260724d">
+  <link rel="stylesheet" href="/css/auth.css?v=20260728b">
 </head>
 <body class="auth-page">
   <div id="toast-container"></div>
@@ -19,7 +19,12 @@
   <main class="auth-body">
     <div class="auth-card auth-card-wide">
       <h1 class="auth-card-title">Create an account</h1>
-      <p class="auth-card-subtitle">Enter your account details.</p>
+      <p class="auth-card-subtitle">Start your resume workspace in seconds.</p>
+
+      <div class="google-auth-block" id="google-auth" data-page="register" hidden>
+        <div class="google-button-shell" id="google-button-shell" aria-live="polite"></div>
+        <div class="auth-choice-divider"><span>or register with email</span></div>
+      </div>
 
       <form id="register-form" class="auth-form" novalidate>
         <div id="register-error" class="auth-error-box"></div>
@@ -100,8 +105,8 @@
     </div>
   </main>
 
-  <script src="/js/api.js?v=20260723b"></script>
+  <script src="/js/api.js?v=20260728b"></script>
   <script src="/js/lookups.js?v=20260723a"></script>
-  <script src="/js/auth.js?v=20260723b"></script>
+  <script src="/js/auth.js?v=20260728b"></script>
 </body>
 </html>

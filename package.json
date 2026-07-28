@@ -10,7 +10,9 @@
     "smoke": "node scripts/smoke-test.js",
     "smoke:registration": "node scripts/registration-smoke-test.js",
     "smoke:responsive": "node scripts/responsive-smoke-test.js",
-    "smoke:pdf": "node scripts/pdf-smoke-test.js"
+    "smoke:pdf": "node scripts/pdf-smoke-test.js",
+    "smoke:google-auth": "php scripts/smoke-php-google-auth.php",
+    "smoke:google-auth-db": "php scripts/smoke-php-google-auth-db.php"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

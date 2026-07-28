@@ -12,6 +12,7 @@ final class Application
     private ResumeRepository $resumes;
     private LookupService $lookups;
     private PdfService $pdf;
+    private GoogleIdentityService $google;
 
     public function __construct(
         private readonly PDO $db,
@@ -21,6 +22,9 @@ final class Application
         $this->resumes = new ResumeRepository($db);
         $this->lookups = new LookupService(sys_get_temp_dir() . '/regen-lookups');
         $this->pdf = new PdfService();
+        $this->google = new GoogleIdentityService(
+            (string) Config::get('google.client_id', '')
+        );
     }
 
     public function run(): never
@@ -38,7 +42,13 @@ final class Application
         if ($path === '/api/auth/register' && $method === 'POST') {
             $this->register();
         }
-        if ($path === '/api/auth/logout' && $method === 'GET') {
+        if ($path === '/api/auth/google/config' && $method === 'GET') {
+            $this->googleConfig();
+        }
+        if ($path === '/api/auth/google' && $method === 'POST') {
+            $this->googleLogin();
+        }
+        if ($path === '/api/auth/logout' && $method === 'POST') {
             Session::destroy();
             Http::json(['success' => true]);
         }
@@ -137,10 +147,37 @@ final class Application
         if ($user === null || !$this->users->verifyPassword($password, $user)) {
             Http::json(['success' => false, 'message' => 'Invalid email or password.'], 401);
         }
+
+        $googleLinked = false;
+        $pendingGoogle = Session::pendingGoogleIdentity();
+        if ($pendingGoogle !== null) {
+            if (hash_equals($email, mb_strtolower($pendingGoogle['email']))) {
+                try {
+                    $this->users->linkGoogleIdentity(
+                        (int) $user['id'],
+                        $pendingGoogle['subject'],
+                        $pendingGoogle['email']
+                    );
+                    $googleLinked = true;
+                } catch (PDOException $error) {
+                    Session::clearPendingGoogleIdentity();
+                    if ((string) $error->getCode() === '23000') {
+                        Http::json([
+                            'success' => false,
+                            'message' => 'This ReGen account or Google account is already linked elsewhere.',
+                        ], 409);
+                    }
+                    throw $error;
+                }
+            }
+            Session::clearPendingGoogleIdentity();
+        }
+
         Session::establish($user);
         Http::json([
             'success' => true,
             'authenticated' => true,
+            'googleLinked' => $googleLinked,
             'user' => [
                 'id' => (int) $user['id'],
                 'firstName' => (string) $user['first_name'],
@@ -203,6 +240,84 @@ final class Application
         Http::json(['success' => true, 'authenticated' => true, 'user' => $user], 201);
     }
 
+    private function googleConfig(): never
+    {
+        $loginUri = $this->googleLoginUri();
+        Http::json([
+            'success' => true,
+            'enabled' => $this->google->enabled() && $loginUri !== '',
+            'clientId' => $this->google->enabled()
+                ? (string) Config::get('google.client_id', '')
+                : '',
+            'loginUri' => $loginUri,
+        ]);
+    }
+
+    private function googleLogin(): never
+    {
+        RateLimiter::enforce('google-login', RateLimiter::clientIdentity(), 60, 900);
+        $returnPage = (string) ($_POST['state'] ?? '') === 'register'
+            ? '/register'
+            : '/login';
+
+        if (!$this->google->enabled() || $this->googleLoginUri() === '') {
+            $this->googleFailureRedirect($returnPage, 'unavailable');
+        }
+
+        if (!GoogleIdentityService::validCsrfToken(
+            (string) ($_COOKIE['g_csrf_token'] ?? ''),
+            (string) ($_POST['g_csrf_token'] ?? '')
+        )) {
+            $this->googleFailureRedirect($returnPage, 'request');
+        }
+
+        $identity = $this->google->verify((string) ($_POST['credential'] ?? ''));
+        if ($identity === null) {
+            $this->googleFailureRedirect($returnPage, 'invalid');
+        }
+
+        try {
+            $user = $this->users->findByIdentity('google', $identity['subject']);
+            if ($user !== null) {
+                Session::clearPendingGoogleIdentity();
+                Session::establish($user);
+                Http::redirect('/dashboard', 303);
+            }
+
+            $existingUser = $this->users->findByEmail($identity['email']);
+            if ($existingUser !== null) {
+                Session::rememberPendingGoogleIdentity($identity);
+                Http::redirect('/login?google_link=1', 303);
+            }
+
+            try {
+                $user = $this->users->createFromGoogle($identity);
+            } catch (PDOException $error) {
+                if ((string) $error->getCode() !== '23000') {
+                    throw $error;
+                }
+
+                // A simultaneous sign-in may have created the same account.
+                $user = $this->users->findByIdentity('google', $identity['subject']);
+                if ($user === null) {
+                    $existingUser = $this->users->findByEmail($identity['email']);
+                    if ($existingUser !== null) {
+                        Session::rememberPendingGoogleIdentity($identity);
+                        Http::redirect('/login?google_link=1', 303);
+                    }
+                    throw $error;
+                }
+            }
+
+            Session::clearPendingGoogleIdentity();
+            Session::establish($user);
+            Http::redirect('/dashboard', 303);
+        } catch (\Throwable $error) {
+            error_log('[Google Auth Error] ' . $error::class . ': ' . $error->getMessage());
+            $this->googleFailureRedirect($returnPage, 'server');
+        }
+    }
+
     private function me(): never
     {
         $this->requireAuth();
@@ -216,6 +331,27 @@ final class Application
             'user' => $user,
             'userName' => (string) ($_SESSION['userName'] ?? ''),
         ]);
+    }
+
+    private function googleLoginUri(): string
+    {
+        $appUrl = rtrim((string) Config::get('app.url', ''), '/');
+        if (
+            $appUrl === ''
+            || !filter_var($appUrl, FILTER_VALIDATE_URL)
+            || !in_array((string) parse_url($appUrl, PHP_URL_SCHEME), ['http', 'https'], true)
+        ) {
+            return '';
+        }
+        return $appUrl . '/api/auth/google';
+    }
+
+    private function googleFailureRedirect(string $returnPage, string $code): never
+    {
+        $page = in_array($returnPage, ['/login', '/register'], true)
+            ? $returnPage
+            : '/login';
+        Http::redirect($page . '?google_error=' . rawurlencode($code), 303);
     }
 
     private function listDashboard(): never

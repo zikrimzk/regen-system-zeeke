@@ -11,4 +11,5 @@ return [
     'DB_PASSWORD' => 'replace-with-a-strong-password',
     'SESSION_NAME' => 'regen_sid',
     'SESSION_TTL' => '86400',
+    'GOOGLE_CLIENT_ID' => 'replace-with-your-web-client-id.apps.googleusercontent.com',
 ];
