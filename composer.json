@@ -11,7 +11,7 @@
     "ext-mbstring": "*",
     "ext-pdo": "*",
     "dompdf/dompdf": "^3.1",
-    "google/apiclient": "^2.19"
+    "google/auth": "^1.53"
   },
   "autoload": {
     "psr-4": {

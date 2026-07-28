@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace ReGen;
 
-use Google\Client as GoogleClient;
+use Google\Auth\AccessToken;
 
 final class GoogleIdentityService
 {
@@ -45,8 +45,9 @@ final class GoogleIdentityService
         }
 
         try {
-            $payload = (new GoogleClient(['client_id' => $this->clientId]))
-                ->verifyIdToken($credential);
+            $payload = (new AccessToken())->verify($credential, [
+                'audience' => $this->clientId,
+            ]);
         } catch (\Throwable) {
             return null;
         }

@@ -39,6 +39,13 @@ jobs:
       - name: Install production dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
+      - name: Guard deploy dependency size
+        run: |
+          if [[ -d vendor/google/apiclient-services ]]; then
+            echo "::error::google/apiclient-services is too large for this FTPS deployment. Use google/auth for Google sign-in."
+            exit 1
+          fi
+
       - name: Build FTP release
         env:
           DEPLOY_APP_URL: ${{ secrets.APP_URL }}

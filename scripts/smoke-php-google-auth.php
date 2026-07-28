@@ -13,8 +13,8 @@ function assertGoogleAuth(bool $condition, string $message): void
 }
 
 assertGoogleAuth(
-    class_exists(\Google\Client::class),
-    'the official Google PHP client is unavailable'
+    class_exists(\Google\Auth\AccessToken::class),
+    'the official Google authentication library is unavailable'
 );
 
 $disabled = new GoogleIdentityService('');

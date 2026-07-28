@@ -65,7 +65,8 @@ if (
 }
 if (
   !phpApplication.includes("'/api/auth/google'")
-  || !googleIdentity.includes('verifyIdToken')
+  || !googleIdentity.includes('AccessToken')
+  || !googleIdentity.includes("'audience' => $this->clientId")
   || !googleIdentity.includes('validCsrfToken')
 ) {
   failures.push('Server-side Google credential verification is incomplete.');
