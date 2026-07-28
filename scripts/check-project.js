@@ -29,6 +29,7 @@ const personal = fs.readFileSync(path.join(root, 'public/js/sections/personal.js
 const stepper = fs.readFileSync(path.join(root, 'public/js/stepper.js'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'public/js/dashboard.js'), 'utf8');
 const auth = fs.readFileSync(path.join(root, 'public/js/auth.js'), 'utf8');
+const publicIndex = fs.readFileSync(path.join(root, 'public/index.php'), 'utf8');
 const phpApplication = fs.readFileSync(path.join(root, 'php/src/Application.php'), 'utf8');
 const googleIdentity = fs.readFileSync(path.join(root, 'php/src/GoogleIdentityService.php'), 'utf8');
 const schema = fs.readFileSync(path.join(root, 'database/schema.sql'), 'utf8');
@@ -70,6 +71,15 @@ if (
   || !googleIdentity.includes('validCsrfToken')
 ) {
   failures.push('Server-side Google credential verification is incomplete.');
+}
+const productionBootstrap = publicIndex.indexOf("__DIR__ . '/_app/bootstrap.php'");
+const developmentBootstrap = publicIndex.indexOf("dirname(__DIR__) . '/php/bootstrap.php'");
+if (
+  productionBootstrap === -1
+  || developmentBootstrap === -1
+  || productionBootstrap > developmentBootstrap
+) {
+  failures.push('Production must prefer the deployed _app bootstrap over legacy PHP files.');
 }
 if (
   !schema.includes('CREATE TABLE IF NOT EXISTS user_identities')

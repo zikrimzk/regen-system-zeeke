@@ -89,6 +89,8 @@ jobs:
           test -f .release/_app/bootstrap.php
           test -f .release/vendor/autoload.php
           test -f .release/_app/config.local.php
+          php -l .release/index.php
+          php -l .release/_app/config.local.php
 
       - name: Validate FTP destination
         env:

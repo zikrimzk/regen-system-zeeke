@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 $bootstrapCandidates = [
-    dirname(__DIR__) . '/php/bootstrap.php',
     __DIR__ . '/_app/bootstrap.php',
+    dirname(__DIR__) . '/php/bootstrap.php',
 ];
 
 foreach ($bootstrapCandidates as $bootstrap) {
