@@ -29,9 +29,15 @@ final class Application
 
     public function run(): never
     {
-        Http::requireSameOriginForMutation();
         $method = Http::method();
         $path = Http::path();
+
+        // Google Identity Services submits the redirect credential to this
+        // endpoint. googleLogin() applies Google's required double-submit
+        // cookie CSRF check before verifying the signed ID token.
+        if (!($method === 'POST' && $path === '/api/auth/google')) {
+            Http::requireSameOriginForMutation();
+        }
 
         if ($method === 'GET' && $path === '/api/health') {
             $this->health();

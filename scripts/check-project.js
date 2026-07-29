@@ -66,6 +66,7 @@ if (
 }
 if (
   !phpApplication.includes("'/api/auth/google'")
+  || !phpApplication.includes("!($method === 'POST' && $path === '/api/auth/google')")
   || !googleIdentity.includes('AccessToken')
   || !googleIdentity.includes("'audience' => $this->clientId")
   || !googleIdentity.includes('validCsrfToken')
