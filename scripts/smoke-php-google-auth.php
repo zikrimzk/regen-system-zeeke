@@ -16,6 +16,10 @@ assertGoogleAuth(
     class_exists(\Google\Auth\AccessToken::class),
     'the official Google authentication library is unavailable'
 );
+assertGoogleAuth(
+    class_exists(\phpseclib3\Crypt\RSA::class),
+    'the RSA verifier required for Google ID tokens is unavailable'
+);
 
 $disabled = new GoogleIdentityService('');
 $configured = new GoogleIdentityService(
