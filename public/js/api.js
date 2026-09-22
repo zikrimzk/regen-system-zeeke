@@ -2,17 +2,24 @@
  * api.js — Frontend API Client for v2
  */
 const Api = (() => {
+  let csrfToken = '';
 
   async function _fetch(url, { timeoutMs = 15000, ...options } = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      const method = String(options.method || 'GET').toUpperCase();
+      const hasBody = options.body !== undefined && options.body !== null;
+      const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
       const res = await fetch(url, {
         ...options,
         credentials: 'same-origin',
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
+          ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+          ...(!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken
+            ? { 'X-CSRF-Token': csrfToken }
+            : {}),
           ...(options.headers || {})
         }
       });
@@ -23,7 +30,16 @@ const Api = (() => {
       } catch (err) {
         data = { success: false, message: res.ok ? 'Invalid server response.' : 'Server request failed.' };
       }
+      if (typeof data.csrfToken === 'string' && data.csrfToken) csrfToken = data.csrfToken;
       if (!res.ok && data.success !== false) data.success = false;
+      const isPublicAuthRequest = [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/auth/email-verification/',
+      ].some(prefix => url.startsWith(prefix));
+      if (res.status === 401 && !isPublicAuthRequest) {
+        window.dispatchEvent(new CustomEvent('regen:session-expired'));
+      }
       return { ...data, status: res.status };
     } catch (err) {
       console.error('API Error:', err);
@@ -41,6 +57,17 @@ const Api = (() => {
   // ── Auth ──────────────────────────────────────────────────────
   const login    = (data) => _fetch('/api/auth/login', { method: 'POST', body: JSON.stringify(data) });
   const register = (data) => _fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(data) });
+  const getRecaptchaConfig = () => _fetch('/api/auth/recaptcha/config', { timeoutMs: 8000 });
+  const verifyEmail = (token) => _fetch('/api/auth/email-verification/verify', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+    timeoutMs: 12000,
+  });
+  const resendEmailVerification = (data) => _fetch('/api/auth/email-verification/resend', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    timeoutMs: 12000,
+  });
   const logout   = () => _fetch('/api/auth/logout', { method: 'POST' });
   const getMe    = () => _fetch('/api/auth/me');
 
@@ -59,16 +86,30 @@ const Api = (() => {
   const saveSection = (section, data) => _fetch(`/api/resume/${_resumeId}/section`, {
     method: 'POST', body: JSON.stringify({ section, data })
   });
+  const getAIStatus = () => _fetch('/api/ai/status', { timeoutMs: 8000 });
+  const suggestResumeSection = (data) => _fetch(`/api/resume/${_resumeId}/ai-suggest`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    timeoutMs: 34000,
+  });
+  const getAtsReviewState = (resumeId = _resumeId) => _fetch(`/api/resume/${resumeId}/ats-review`, {
+    method: 'GET',
+    timeoutMs: 10000,
+  });
+  const generateAtsReview = (resumeId = _resumeId) => _fetch(`/api/resume/${resumeId}/ats-review`, {
+    method: 'POST',
+    body: '{}',
+    timeoutMs: 34000,
+  });
 
   const uploadPhoto = async (file) => {
     const formData = new FormData();
     formData.append('photo', file);
-    try {
-      const res = await fetch(`/api/resume/${_resumeId}/photo`, { method: 'POST', body: formData });
-      return await res.json();
-    } catch (e) {
-      return { success: false };
-    }
+    return _fetch(`/api/resume/${_resumeId}/photo`, {
+      method: 'POST',
+      body: formData,
+      timeoutMs: 25000,
+    });
   };
   const deletePhoto = () => _fetch(`/api/resume/${_resumeId}/photo`, { method: 'DELETE' });
 
@@ -80,7 +121,10 @@ const Api = (() => {
       const res = await fetch(`/api/pdf/${_resumeId}/preview-data`, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         body: JSON.stringify({ resumeData }),
       });
       if (!res.ok) return { success: false, html: '' };
@@ -129,13 +173,19 @@ const Api = (() => {
   }
 
   return {
-    login, register, logout, getMe,
+    login, register, getRecaptchaConfig, verifyEmail, resendEmailVerification, logout, getMe,
     listResumes, createResume, renameResume, deleteResume,
     setResumeId, getResumeId,
     getResume, saveSection, uploadPhoto, deletePhoto,
+    getAIStatus, suggestResumeSection, getAtsReviewState, generateAtsReview,
     previewUrl, pdfUrl, previewDraft, downloadPdf,
   };
 })();
+
+window.addEventListener('regen:session-expired', () => {
+  if (['/login', '/register', '/verify-email'].includes(window.location.pathname)) return;
+  window.location.replace('/login?expired=1');
+}, { once: true });
 
 window.ReGenIcons = (() => {
   const paths = {
@@ -146,6 +196,7 @@ window.ReGenIcons = (() => {
     arrowLeft: '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
     check: '<path d="m5 12 4 4L19 6"/>',
     retry: '<path d="M20 6v5h-5"/><path d="M19 11a7 7 0 1 0 1 5"/>',
+    sparkles: '<path d="m12 3 1.2 3.3L16.5 7.5l-3.3 1.2L12 12l-1.2-3.3-3.3-1.2 3.3-1.2z"/><path d="m18.5 13 0.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path d="m6 13 1.1 2.9L10 17l-2.9 1.1L6 21l-1.1-2.9L2 17l2.9-1.1z"/>',
     eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/>',
     eyeOff: '<path d="m3 3 18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.2 3.1"/><path d="M6.2 6.2C3.5 8 2 12 2 12s3.5 7 10 7a10.8 10.8 0 0 0 3-.4"/>',
   };
@@ -219,7 +270,19 @@ window.ZeekeSafe = (() => {
       if (typeof text !== 'string') return;
       event.preventDefault();
       const cleaned = cleanText(text, { multiline: el.tagName === 'TEXTAREA' });
-      el.setRangeText(cleaned, el.selectionStart, el.selectionEnd, 'end');
+      const type = String(el.type || '').toLowerCase();
+      const supportsSelection = el.tagName === 'TEXTAREA'
+        || ['text', 'search', 'tel', 'url'].includes(type);
+      if (
+        supportsSelection
+        && typeof el.setRangeText === 'function'
+        && Number.isInteger(el.selectionStart)
+        && Number.isInteger(el.selectionEnd)
+      ) {
+        el.setRangeText(cleaned, el.selectionStart, el.selectionEnd, 'end');
+      } else {
+        el.value = cleaned;
+      }
       autoGrow(el);
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }, true);

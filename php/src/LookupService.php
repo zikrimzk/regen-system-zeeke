@@ -5,7 +5,7 @@ namespace ReGen;
 
 final class LookupService
 {
-    private const HIPO_URL = 'http://universities.hipolabs.com/search';
+    private const HIPO_URL = 'https://universities.hipolabs.com/search';
     private const WIKIDATA_URL = 'https://query.wikidata.org/sparql';
     private const CACHE_TTL = 43200;
 
@@ -71,7 +71,8 @@ final class LookupService
             'name' => $query,
             ...($country !== 'Worldwide' ? ['country' => $country] : []),
         ]);
-        $hipo = $this->fetchJson(self::HIPO_URL . '?' . $params, 5);
+        $deadline = microtime(true) + 6.0;
+        $hipo = $this->fetchJson(self::HIPO_URL . '?' . $params, 4);
         $results = [];
         if (is_array($hipo)) {
             foreach (array_slice($hipo, 0, 12) as $item) {
@@ -91,7 +92,15 @@ final class LookupService
             }
         }
 
-        $wikidata = $this->wikidataInstitutions($query, $country);
+        $wikidata = [];
+        $remainingSeconds = (int) floor($deadline - microtime(true));
+        if (count($results) < 8 && $remainingSeconds >= 1) {
+            $wikidata = $this->wikidataInstitutions(
+                $query,
+                $country,
+                min(3, $remainingSeconds)
+            );
+        }
         $results = $this->uniqueBy($results, $wikidata, 'name', 18);
         $this->writeCache($key, $results);
         return $results;
@@ -143,7 +152,11 @@ final class LookupService
     }
 
     /** @return list<array<string, string>> */
-    private function wikidataInstitutions(string $query, string $country): array
+    private function wikidataInstitutions(
+        string $query,
+        string $country,
+        int $timeoutSeconds = 7,
+    ): array
     {
         $safe = self::sparqlString(mb_strtolower($query));
         $countryId = self::COUNTRIES[$country] ?? '';
@@ -167,7 +180,7 @@ SELECT DISTINCT ?item ?itemLabel ?countryLabel ?adminLabel WHERE {
 }
 LIMIT 12
 SPARQL;
-        $data = $this->fetchWikidata($sparql);
+        $data = $this->fetchWikidata($sparql, $timeoutSeconds);
         $results = [];
         foreach ($data as $row) {
             $name = self::binding($row, 'itemLabel');
@@ -232,10 +245,10 @@ SPARQL;
     }
 
     /** @return list<array<string, mixed>> */
-    private function fetchWikidata(string $query): array
+    private function fetchWikidata(string $query, int $timeoutSeconds = 7): array
     {
         $url = self::WIKIDATA_URL . '?' . http_build_query(['format' => 'json', 'query' => $query]);
-        $data = $this->fetchJson($url, 7);
+        $data = $this->fetchJson($url, max(1, min(7, $timeoutSeconds)));
         $rows = $data['results']['bindings'] ?? [];
         return is_array($rows) ? array_values(array_filter($rows, 'is_array')) : [];
     }
@@ -251,8 +264,8 @@ SPARQL;
         }
         curl_setopt_array($curl, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 2,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_TIMEOUT => $timeoutSeconds,
             CURLOPT_HTTPHEADER => [
@@ -263,7 +276,12 @@ SPARQL;
         $body = curl_exec($curl);
         $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         curl_close($curl);
-        if (!is_string($body) || $status < 200 || $status >= 300) {
+        if (
+            !is_string($body)
+            || strlen($body) > 1024 * 1024
+            || $status < 200
+            || $status >= 300
+        ) {
             return null;
         }
         return json_decode($body, true);

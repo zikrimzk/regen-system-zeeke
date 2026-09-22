@@ -15,7 +15,7 @@ final class Sanitizer
         return in_array($section, self::ALLOWED_SECTIONS, true);
     }
 
-    public static function cleanText(mixed $value, bool $multiline = false, int $max = 20000): string
+    public static function cleanText(mixed $value, bool $multiline = false, int $max = 5000): string
     {
         $text = is_scalar($value) ? (string) $value : '';
         if (class_exists(\Normalizer::class)) {
@@ -52,7 +52,7 @@ final class Sanitizer
             return [];
         }
         $result = [];
-        foreach ($value as $item) {
+        foreach (array_slice($value, 0, 50) as $item) {
             $lines = explode("\n", self::cleanText($item, true));
             foreach ($lines as $line) {
                 $clean = self::cleanText($line);
@@ -166,7 +166,7 @@ final class Sanitizer
     {
         $data = is_array($data) ? $data : [];
         $custom = [];
-        foreach (is_array($data['custom'] ?? null) ? $data['custom'] : [] as $item) {
+        foreach (array_slice(is_array($data['custom'] ?? null) ? $data['custom'] : [], 0, 20) as $item) {
             $item = is_array($item) ? $item : [];
             $row = [
                 'label' => self::cleanText($item['label'] ?? ''),
@@ -213,7 +213,7 @@ final class Sanitizer
             return [];
         }
         $result = [];
-        foreach ($data as $entry) {
+        foreach (array_slice($data, 0, 50) as $entry) {
             $mapped = $mapper(is_array($entry) ? $entry : []);
             $hasValue = false;
             array_walk_recursive($mapped, static function (mixed $value) use (&$hasValue): void {

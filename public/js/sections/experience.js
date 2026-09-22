@@ -45,7 +45,7 @@ const ExperienceSection = (() => {
         <div class="entry-card-header">
           <div class="entry-card-num">${entries.length + 1}</div>
           <div class="entry-card-title">Experience Entry</div>
-          <button type="button" class="entry-delete-btn" onclick="ExperienceSection.removeEntry(${id})" aria-label="Remove experience" title="Remove experience">${ReGenIcons.icon('trash')}</button>
+          <button type="button" class="entry-delete-btn" aria-label="Remove experience" title="Remove experience">${ReGenIcons.icon('trash')}</button>
         </div>
         <div class="form-section">
           <div class="form-row">
@@ -82,7 +82,7 @@ const ExperienceSection = (() => {
               <label class="form-label">End Date <span class="req">*</span></label>
               <input type="month" class="form-input exp-end" value="${isCurrent ? '' : esc(data.endDate)}" ${isCurrent ? 'disabled' : ''} required>
               <div class="check-row">
-                <input type="checkbox" class="exp-current" id="exp-curr-${id}" ${isCurrent ? 'checked' : ''} onchange="ExperienceSection.toggleCurrent(this, 'exp-${id}')">
+                <input type="checkbox" class="exp-current" id="exp-curr-${id}" ${isCurrent ? 'checked' : ''}>
                 <label for="exp-curr-${id}">I currently work here</label>
               </div>
             </div>
@@ -93,12 +93,12 @@ const ExperienceSection = (() => {
               ${bullets.map(b => `
                 <div class="list-item-row">
                   <span class="list-item-num">-</span>
-                  <textarea class="list-item-input exp-bullet-input" rows="2" maxlength="320" placeholder="e.g. Led a team of 5 engineers to deliver...">${esc(b)}</textarea>
-                  <button type="button" class="list-item-remove" onclick="this.parentElement.remove()" aria-label="Remove responsibility" title="Remove responsibility">${ReGenIcons.icon('trash')}</button>
+                  <textarea class="list-item-input exp-bullet-input" rows="1" maxlength="320" placeholder="e.g. Led a team of 5 engineers to deliver...">${esc(b)}</textarea>
+                  <button type="button" class="list-item-remove" aria-label="Remove responsibility" title="Remove responsibility">${ReGenIcons.icon('trash')}</button>
                 </div>
               `).join('')}
             </div>
-            <button type="button" class="btn btn-secondary btn-sm mt-sm" onclick="ExperienceSection.addBullet(${id})">${ReGenIcons.icon('add')} Add Bullet</button>
+            <button type="button" class="btn btn-secondary btn-sm mt-sm add-bullet-btn">${ReGenIcons.icon('add')} Add Bullet</button>
           </div>
         </div>
       </div>
@@ -123,6 +123,12 @@ const ExperienceSection = (() => {
     const card = document.getElementById(`exp-${id}`);
     const country = card.querySelector('.exp-country');
     const location = card.querySelector('.exp-loc');
+    card.querySelector('.entry-delete-btn')?.addEventListener('click', () => removeEntry(id));
+    card.querySelector('.exp-current')?.addEventListener('change', (event) => {
+      toggleCurrent(event.currentTarget, `exp-${id}`);
+    });
+    card.querySelector('.add-bullet-btn')?.addEventListener('click', () => addBullet(id));
+    bindBulletRemoveButtons(card);
     country.addEventListener('change', () => {
       location.innerHTML = locationOptions(country.value, '');
       location.dispatchEvent(new Event('change', { bubbles: true }));
@@ -151,12 +157,22 @@ const ExperienceSection = (() => {
     container.insertAdjacentHTML('beforeend', `
       <div class="list-item-row">
         <span class="list-item-num">-</span>
-        <textarea class="list-item-input exp-bullet-input" rows="2" maxlength="320" placeholder="Responsibility or achievement..."></textarea>
-        <button type="button" class="list-item-remove" onclick="this.parentElement.remove()" aria-label="Remove responsibility" title="Remove responsibility">${ReGenIcons.icon('trash')}</button>
+        <textarea class="list-item-input exp-bullet-input" rows="1" maxlength="320" placeholder="Add a responsibility..."></textarea>
+        <button type="button" class="list-item-remove" aria-label="Remove responsibility" title="Remove responsibility">${ReGenIcons.icon('trash')}</button>
       </div>
     `);
-    const inputs = container.querySelectorAll('.exp-bullet-input');
-    inputs[inputs.length - 1].focus();
+    const row = container.lastElementChild;
+    window.ZeekeForm?.bind(row);
+    const input = row?.querySelector('.exp-bullet-input');
+    bindBulletRemoveButtons(container);
+    input?.focus();
+  }
+
+  function bindBulletRemoveButtons(scope) {
+    scope.querySelectorAll('.list-item-remove:not([data-bound])').forEach((button) => {
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => button.closest('.list-item-row')?.remove());
+    });
   }
 
   function toggleCurrent(checkbox, parentId) {

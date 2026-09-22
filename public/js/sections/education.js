@@ -55,7 +55,7 @@ const EducationSection = (() => {
         <div class="entry-card-header">
           <div class="entry-card-num">${entries.length + 1}</div>
           <div class="entry-card-title">Education Entry</div>
-          <button type="button" class="entry-delete-btn" onclick="EducationSection.removeEntry(${id})" aria-label="Remove education" title="Remove education">${ReGenIcons.icon('trash')}</button>
+          <button type="button" class="entry-delete-btn" aria-label="Remove education" title="Remove education">${ReGenIcons.icon('trash')}</button>
         </div>
         <div class="form-section">
           <div class="form-row">
@@ -99,7 +99,7 @@ const EducationSection = (() => {
               <label class="form-label">End Date <span class="req">*</span></label>
               <input type="month" class="form-input edu-end" value="${isCurrent ? '' : esc(data.endDate)}" ${isCurrent ? 'disabled' : ''} required>
               <div class="check-row">
-                <input type="checkbox" class="edu-current" id="edu-curr-${id}" ${isCurrent ? 'checked' : ''} onchange="EducationSection.toggleCurrent(this, 'edu-${id}')">
+                <input type="checkbox" class="edu-current" id="edu-curr-${id}" ${isCurrent ? 'checked' : ''}>
                 <label for="edu-curr-${id}">Currently studying here</label>
               </div>
             </div>
@@ -191,6 +191,10 @@ const EducationSection = (() => {
     const inst = card.querySelector('.edu-inst');
     const country = card.querySelector('.edu-country');
     const cgpa = card.querySelector('.edu-cgpa');
+    card.querySelector('.entry-delete-btn')?.addEventListener('click', () => removeEntry(id));
+    card.querySelector('.edu-current')?.addEventListener('change', (event) => {
+      toggleCurrent(event.currentTarget, `edu-${id}`);
+    });
     const debouncedSearch = ZeekeLookups.debounce(() => updateInstitutionSuggestions(card), 420);
 
     inst.addEventListener('input', () => {

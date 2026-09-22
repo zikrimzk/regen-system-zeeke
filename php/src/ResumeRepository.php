@@ -154,6 +154,29 @@ final class ResumeRepository
         return $statement->rowCount() > 0;
     }
 
+    /** @param array<string, mixed> $review */
+    public function saveAtsReview(int $resumeId, int $userId, array $review): bool
+    {
+        $statement = $this->db->prepare(
+            'UPDATE resumes
+             SET resume_data = JSON_SET(resume_data, \'$._regenReview\', JSON_EXTRACT(?, \'$\'))
+             WHERE id = ? AND user_id = ?
+               AND id = (
+                 SELECT active.primary_id FROM (
+                   SELECT id AS primary_id FROM resumes
+                   WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1
+                 ) AS active
+               )'
+        );
+        $statement->execute([
+            self::encode($review),
+            $resumeId,
+            $userId,
+            $userId,
+        ]);
+        return $statement->rowCount() > 0;
+    }
+
     /** @param array<string, mixed> $user
      *  @return array<string, mixed>
      */

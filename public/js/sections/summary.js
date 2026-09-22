@@ -12,7 +12,7 @@ const SummarySection = (() => {
       <div class="form-body form-section">
         <div class="form-group form-group-full">
           <label class="form-label" for="s-summary">Summary <span class="req">*</span></label>
-          <textarea id="s-summary" class="form-textarea" style="min-height:160px;" placeholder="Graduate software engineer with experience building..." maxlength="1200" data-counter="1200" data-minlength="50" required></textarea>
+          <textarea id="s-summary" class="form-textarea summary-textarea" rows="4" data-max-height="240" placeholder="Graduate software engineer with experience building..." maxlength="1200" data-counter="1200" data-minlength="50" required></textarea>
           <div class="form-hint">Use 2-4 concise sentences covering your experience, strongest skills, and career focus.</div>
           <div class="form-error">Summary is required if not skipping.</div>
         </div>

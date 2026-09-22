@@ -1,7 +1,7 @@
 const BULLET_RE = /^[\s>]*(?:[•●○◦▪▫■□‣⁃*]|[-–—]{1,2}|\d{1,3}[.)]|[a-zA-Z][.)])\s+/u;
 const CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200D\uFEFF]/g;
 
-function cleanText(value, { multiline = false } = {}) {
+function cleanText(value, { multiline = false, maxLength = 5000 } = {}) {
   const normalized = String(value || '')
     .normalize('NFKC')
     .replace(CONTROL_RE, '')
@@ -13,7 +13,8 @@ function cleanText(value, { multiline = false } = {}) {
     .map(line => line.replace(BULLET_RE, '').replace(/[ ]{2,}/g, ' ').trim())
     .filter(Boolean);
 
-  return multiline ? lines.join('\n') : lines.join(' ').replace(/[ ]{2,}/g, ' ').trim();
+  const cleaned = multiline ? lines.join('\n') : lines.join(' ').replace(/[ ]{2,}/g, ' ').trim();
+  return cleaned.slice(0, Math.max(0, maxLength));
 }
 
 function asArray(value) {
@@ -21,14 +22,14 @@ function asArray(value) {
 }
 
 function cleanBullets(value) {
-  return asArray(value)
+  return asArray(value).slice(0, 50)
     .flatMap(item => cleanText(item, { multiline: true }).split('\n'))
     .map(item => cleanText(item))
     .filter(Boolean);
 }
 
 function cleanEntryList(value, mapper) {
-  return asArray(value).map(mapper).filter(item => Object.values(item).some(Boolean));
+  return asArray(value).slice(0, 50).map(mapper).filter(item => Object.values(item).some(Boolean));
 }
 
 function firstNonEmptyArray(...values) {
@@ -83,7 +84,7 @@ function sanitizeSection(section, data) {
         software: cleanText(data.software),
         technical: cleanText(data.technical),
         language: cleanText(data.language),
-        custom: asArray(data.custom).map(item => ({
+        custom: asArray(data.custom).slice(0, 20).map(item => ({
           label: cleanText(item?.label),
           value: cleanText(item?.value),
         })).filter(item => item.label || item.value),

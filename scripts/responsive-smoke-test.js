@@ -48,6 +48,9 @@ async function auditPage(page, route, viewport, { label = route, prepare } = {})
   await page.setViewport(viewport);
   await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle0' });
   if (prepare) await prepare(page);
+  await page.waitForFunction(() => (
+    !document.querySelector('#page-loader')?.classList.contains('active')
+  ));
   await delay(250);
 
   const metrics = await page.evaluate(() => {
@@ -146,6 +149,102 @@ async function auditPage(page, route, viewport, { label = route, prepare } = {})
   return { route, viewport: viewport.name, screenshotPath, ...metrics };
 }
 
+async function auditDynamicTextarea(page, resumeId, {
+  section,
+  listSelector,
+  inputSelector,
+  descriptionSelector = '',
+}) {
+  const phoneViewport = viewports.find(viewport => viewport.name === 'phone-390');
+  await page.setViewport(phoneViewport);
+  await page.goto(`${baseUrl}/builder?id=${resumeId}&section=${section}`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector(`${listSelector} .entry-card .add-bullet-btn`);
+
+  if (descriptionSelector) {
+    const descriptionTag = await page.$eval(descriptionSelector, element => element.tagName);
+    if (descriptionTag !== 'TEXTAREA') {
+      throw new Error(`${section} short description must render as a textarea.`);
+    }
+  }
+
+  const initialCount = await page.$$eval(inputSelector, fields => fields.length);
+  await page.click(`${listSelector} .entry-card .add-bullet-btn`);
+  await page.waitForFunction(
+    (selector, count) => document.querySelectorAll(selector).length === count + 1,
+    {},
+    inputSelector,
+    initialCount
+  );
+
+  const measureLast = selector => page.$$eval(selector, (fields) => {
+    const field = fields[fields.length - 1];
+    const rect = field.getBoundingClientRect();
+    return {
+      height: Math.round(rect.height),
+      overflowY: getComputedStyle(field).overflowY,
+    };
+  });
+
+  const immediate = await measureLast(inputSelector);
+  await delay(100);
+  const settled = await measureLast(inputSelector);
+  await page.$$eval(inputSelector, (fields) => fields[fields.length - 1].focus());
+  await page.keyboard.type(
+    'Implemented a responsive workflow and reduced repeated manual processing across the team.'
+  );
+  const typed = await measureLast(inputSelector);
+
+  if (Math.abs(immediate.height - settled.height) > 2) {
+    throw new Error(`${section} bullet height shifted after insertion (${immediate.height}px to ${settled.height}px).`);
+  }
+  if (typed.height + 1 < settled.height) {
+    throw new Error(`${section} bullet shrank after typing (${settled.height}px to ${typed.height}px).`);
+  }
+  if (settled.height > 52 || typed.height > 120) {
+    throw new Error(`${section} bullet height exceeded its compact limits (${settled.height}px / ${typed.height}px).`);
+  }
+}
+
+async function auditEmptyEntryStates(page, resumeId) {
+  const states = [
+    { section: 'education', selector: '#edu-list', copy: 'No education entries added.' },
+    { section: 'experience', selector: '#exp-list', copy: 'No work experience entries added.' },
+    { section: 'projects', selector: '#proj-list', copy: 'No project entries added.' },
+    { section: 'extracurricular', selector: '#extra-list', copy: 'No activity entries added.' },
+    { section: 'achievements', selector: '#ach-list', copy: 'No achievement entries added.' },
+    { section: 'certifications', selector: '#cert-list', copy: 'No certification entries added.' },
+    { section: 'references', selector: '#ref-list', copy: 'No reference entries added.' },
+  ];
+
+  const phoneViewport = viewports.find(viewport => viewport.name === 'phone-360');
+  await page.setViewport(phoneViewport);
+
+  for (const state of states) {
+    await page.goto(
+      `${baseUrl}/builder?id=${resumeId}&section=${state.section}`,
+      { waitUntil: 'networkidle0' }
+    );
+    await page.waitForSelector(state.selector);
+    await page.waitForFunction(() => (
+      !document.querySelector('#page-loader')?.classList.contains('active')
+    ));
+    const copy = await page.$eval(state.selector, (element) => (
+      getComputedStyle(element, '::before').content.replace(/^["']|["']$/g, '')
+    ));
+    if (copy !== state.copy) {
+      throw new Error(
+        `${state.section} empty state is "${copy || 'missing'}"; expected "${state.copy}".`
+      );
+    }
+    if (state.section === 'references') {
+      await page.screenshot({
+        path: path.join(outputDir, 'empty-references-phone-360.png'),
+        fullPage: true,
+      });
+    }
+  }
+}
+
 async function run() {
   fs.mkdirSync(outputDir, { recursive: true });
   await waitForServer();
@@ -207,6 +306,8 @@ async function run() {
     if (!resume.success || !resume.data?.id) {
       throw new Error('Responsive test resume could not be created.');
     }
+
+    await auditEmptyEntryStates(page, resume.data.id);
 
     const sectionFixtures = {
       personal: {
@@ -297,6 +398,18 @@ async function run() {
       return response.ok;
     }, resume.data.id);
     if (!photoResult) throw new Error('Responsive profile-photo fixture could not be saved.');
+
+    await auditDynamicTextarea(page, resume.data.id, {
+      section: 'experience',
+      listSelector: '#exp-list',
+      inputSelector: '.exp-bullet-input',
+    });
+    await auditDynamicTextarea(page, resume.data.id, {
+      section: 'projects',
+      listSelector: '#proj-list',
+      inputSelector: '.proj-bullet-input',
+      descriptionSelector: '.proj-desc',
+    });
 
     for (const viewport of viewports) {
       results.push(await auditPage(page, '/dashboard', viewport));

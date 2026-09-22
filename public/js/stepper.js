@@ -20,14 +20,41 @@ const Stepper = (() => {
   let _liveSaveTimer = null;
   let _liveSaveInFlight = false;
   let _lastLivePayload = '';
+  let _saveIndicatorTimer = null;
 
   async function init(savedData) {
     _data = savedData || {};
     const requestedSection = new URLSearchParams(window.location.search).get('section');
     const requestedIndex = _steps.findIndex(step => step.id === requestedSection);
     if (requestedIndex >= 0) _currentIndex = requestedIndex;
+    bindSectionPicker();
     renderTrack();
     await showStep(_currentIndex);
+  }
+
+  function bindSectionPicker() {
+    const toggle = document.getElementById('stepper-sections-toggle');
+    const track = document.getElementById('stepper-track');
+    if (!toggle || !track || toggle.dataset.bound === 'true') return;
+    toggle.dataset.bound = 'true';
+    toggle.addEventListener('click', () => {
+      const open = !track.classList.contains('is-open');
+      track.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', (event) => {
+      if (!track.classList.contains('is-open')) return;
+      if (track.contains(event.target) || toggle.contains(event.target)) return;
+      closeSectionPicker();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeSectionPicker();
+    });
+  }
+
+  function closeSectionPicker() {
+    document.getElementById('stepper-track')?.classList.remove('is-open');
+    document.getElementById('stepper-sections-toggle')?.setAttribute('aria-expanded', 'false');
   }
 
   function renderTrack() {
@@ -43,46 +70,53 @@ const Stepper = (() => {
       else if (i < _currentIndex) css += ' done';
       
       return `
-        <div class="${css}" data-idx="${i}">
-          <div class="step-bubble"><span class="step-num">${i + 1}</span></div>
-          <div class="step-label">${s.label}</div>
-        </div>
-      `;
+        <button type="button" class="${css}" data-idx="${i}" role="tab"
+          aria-selected="${i === _currentIndex}" aria-controls="step-content"
+          ${i === _currentIndex ? 'aria-current="step"' : ''}>
+          <span class="step-bubble"><span class="step-num">${i < _currentIndex ? ReGenIcons.icon('check') : i + 1}</span></span>
+          <span class="step-label">${s.label}</span>
+        </button>`;
     }).join('');
 
     const pct = ((_currentIndex + 1) / _steps.length) * 100;
     if (fill) fill.style.width = `${pct}%`;
-    if (lbl) lbl.textContent = `Step ${_currentIndex + 1} of ${_steps.length}`;
+    if (lbl) lbl.textContent = `${String(_currentIndex + 1).padStart(2, '0')} / ${_steps.length} · ${_steps[_currentIndex].label}`;
 
-    // Click on done steps to navigate back
-    track.querySelectorAll('.step-item.done').forEach(el => {
+    track.querySelectorAll('.step-item:not(.active)').forEach(el => {
       el.addEventListener('click', async () => {
         if (!await saveCurrentStep()) return;
         _currentIndex = parseInt(el.dataset.idx);
+        closeSectionPicker();
         renderTrack();
         await showStep(_currentIndex);
       });
     });
 
     const trackEl = document.querySelector('.stepper-track');
-    if (trackEl) {
-      const activeEl = trackEl.querySelector('.active');
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
+    const activeEl = trackEl?.querySelector('.active');
+    if (trackEl && activeEl && trackEl.scrollWidth > trackEl.clientWidth) {
+      const left = activeEl.offsetLeft - ((trackEl.clientWidth - activeEl.offsetWidth) / 2);
+      trackEl.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
     }
   }
 
-  function showSaveIndicator() {
+  function showSaveIndicator(state = 'saved') {
     const el = document.getElementById('save-indicator');
     if (el) {
+      clearTimeout(_saveIndicatorTimer);
+      el.className = `save-indicator is-${state}`;
+      const label = el.querySelector('.save-label');
+      if (label) label.textContent = state === 'saving' ? 'Saving changes…' : 'All changes saved';
       el.style.opacity = '1';
-      setTimeout(() => { el.style.opacity = '0'; }, 2000);
+      if (state === 'saved') {
+        _saveIndicatorTimer = setTimeout(() => { el.style.opacity = '0.72'; }, 1800);
+      }
     }
   }
 
   async function persistStep(step, data, { showLoading = true, refreshPreview = true } = {}) {
     if (showLoading) App.showLoader();
+    else showSaveIndicator('saving');
     const res = await Api.saveSection(step.id, data);
     if (showLoading) App.hideLoader();
 
@@ -93,7 +127,7 @@ const Stepper = (() => {
 
     _data[step.id] = data;
     if (refreshPreview) Preview.refreshNow();
-    showSaveIndicator();
+    showSaveIndicator('saved');
     return true;
   }
 
@@ -134,7 +168,7 @@ const Stepper = (() => {
   function scheduleLiveSave() {
     updateDraftPreview();
     clearTimeout(_liveSaveTimer);
-    _liveSaveTimer = setTimeout(runLiveSave, 650);
+    _liveSaveTimer = setTimeout(runLiveSave, 1000);
   }
 
   function getCurrentPreviewData(content, step) {
@@ -218,13 +252,19 @@ const Stepper = (() => {
 
     const html = step.module.render(idx + 1);
     content.innerHTML = html;
+    content.scrollTo({ top: 0, behavior: 'auto' });
 
     const skipBtn = content.querySelector('.skip-btn');
-    if (skipBtn) skipBtn.addEventListener('click', skip);
+    if (skipBtn) {
+      const textNode = Array.from(skipBtn.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+      if (textNode) textNode.textContent = 'Skip ';
+      skipBtn.addEventListener('click', skip);
+    }
 
     step.module.attachEvents(_data[step.id]);
     window.ZeekeForm?.bind(content);
     window.ZeekeSafe?.refreshTextareas(content);
+    window.ReGenAI?.bind(content, step.id);
     _lastLivePayload = '';
     content.addEventListener('input', scheduleLiveSave);
     content.addEventListener('change', scheduleLiveSave);
@@ -232,13 +272,15 @@ const Stepper = (() => {
 
     const btnBack = document.getElementById('btn-back');
     const btnNext = document.getElementById('btn-next');
+    const navBar = document.querySelector('.nav-bar');
     
-    if (btnBack) btnBack.style.visibility = idx === 0 ? 'hidden' : 'visible';
+    navBar?.classList.toggle('is-first-step', idx === 0);
+    if (btnBack) btnBack.hidden = idx === 0;
     if (btnNext) {
       if (idx === _steps.length - 1) {
         btnNext.innerHTML = `Finish ${ReGenIcons.icon('check')}`;
       } else {
-        btnNext.innerHTML = `Next Step ${ReGenIcons.icon('arrowRight')}`;
+        btnNext.innerHTML = `Next ${ReGenIcons.icon('arrowRight')}`;
       }
     }
   }

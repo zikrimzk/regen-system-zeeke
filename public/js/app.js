@@ -32,36 +32,54 @@ const App = (() => {
     const content = document.getElementById('step-content');
     const navBar  = document.querySelector('.nav-bar');
     const stepperWrap = document.getElementById('stepper-wrap');
+    const builder = document.querySelector('.builder-left');
 
     if (stepperWrap) stepperWrap.classList.add('hidden');
     if (navBar)  navBar.classList.add('hidden');
+    builder?.classList.add('is-final');
 
     if (content) {
       const previewSrc = `${Api.previewUrl()}?t=${Date.now()}`;
       content.innerHTML = `
         <div class="final-screen" role="main">
           <div class="final-layout">
-            <div class="final-panel">
-              <div class="final-icon">
-                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              </div>
-              <div>
-                <h2 class="final-title">Resume Ready</h2>
+            <div class="final-sidebar">
+              <section class="final-panel">
+                <div class="final-ready-row">
+                  <div class="final-icon">
+                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  </div>
+                  <div>
+                    <p class="final-eyebrow">Final step</p>
+                    <h2 class="final-title">Resume review</h2>
+                  </div>
+                </div>
                 <p class="text-muted mt-sm">
-                  Review the final A4 layout before downloading your PDF.
+                  Review recommendations and the saved A4 layout before downloading.
                 </p>
-              </div>
-              <div class="final-actions mt-md">
+              </section>
+
+              <section class="ats-review-card" id="ats-review-card" aria-live="polite" aria-busy="true">
+                <div class="ats-review-loading">
+                  <span class="ai-spinner" aria-hidden="true"></span>
+                  <div>
+                    <strong>Loading ATS checks</strong>
+                    <p>This local check does not use a ReGen AI Token.</p>
+                  </div>
+                </div>
+              </section>
+
+              <div class="final-actions">
                 <button type="button" class="btn btn-primary btn-lg w-full" id="btn-download-pdf">
                   <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
                   Download PDF
                 </button>
-                <div style="display:flex;gap:var(--sp-sm);margin-top:var(--sp-md);">
-                  <button type="button" class="btn btn-ghost flex-1" id="btn-back-to-edit">
+                <div class="final-secondary-actions">
+                  <button type="button" class="btn btn-secondary flex-1" id="btn-back-to-edit">
                     <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
-                    Back to Edit
+                    Edit resume
                   </button>
-                  <a href="/dashboard" class="btn btn-ghost flex-1">
+                  <a href="/dashboard" class="btn btn-secondary flex-1">
                     <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/></svg>
                     Dashboard
                   </a>
@@ -72,12 +90,21 @@ const App = (() => {
               <div class="final-preview-header">Final Resume Preview</div>
               <div class="final-preview-stage">
                 <div class="final-preview-page-shell" id="final-preview-page-shell">
-                  <iframe class="final-preview-frame" src="${previewSrc}" title="Final Resume Preview"></iframe>
+                  <iframe class="final-preview-frame" title="Final Resume Preview" sandbox="allow-same-origin" tabindex="-1" draggable="false"></iframe>
                 </div>
               </div>
             </div>
           </div>
         </div>`;
+
+      const finalFrame = content.querySelector('.final-preview-frame');
+      const finalStage = content.querySelector('.final-preview-stage');
+      const finalProtection = window.PreviewProtection?.register({
+        iframe: finalFrame,
+        container: finalStage,
+        isActive: () => finalStage?.isConnected === true,
+      });
+      finalProtection?.obscure('Loading protected preview...');
 
       document.getElementById('btn-download-pdf')?.addEventListener('click', async (e) => {
         const res = await Api.downloadPdf(e.currentTarget);
@@ -85,12 +112,30 @@ const App = (() => {
       });
 
       document.getElementById('btn-back-to-edit')?.addEventListener('click', async () => {
+        finalProtection?.deactivate();
         if (stepperWrap) stepperWrap.classList.remove('hidden');
         if (navBar) navBar.classList.remove('hidden');
+        builder?.classList.remove('is-final');
         await Stepper.back();
       });
 
-      document.querySelector('.final-preview-frame')?.addEventListener('load', syncFinalPreviewHeight);
+      finalFrame?.addEventListener('load', syncFinalPreviewHeight);
+      if (finalFrame && window.PreviewProtection) {
+        finalStage?.setAttribute('aria-busy', 'true');
+        window.PreviewProtection.loadUrl(finalFrame, previewSrc, {
+          shouldCommit: () => finalFrame.isConnected,
+        }).then((result) => {
+          if (!finalFrame.isConnected) return;
+          finalStage?.removeAttribute('aria-busy');
+          if (!result.success) {
+            finalProtection?.obscure(result.message || 'Preview is temporarily unavailable.');
+            App.showToast(result.message || 'Preview is temporarily unavailable.', 'error');
+            return;
+          }
+          finalProtection?.activate();
+        });
+      }
+      loadAtsReviewState();
       requestAnimationFrame(() => {
         syncFinalPreviewHeight();
         fitFinalPreview();
@@ -98,7 +143,218 @@ const App = (() => {
       setTimeout(syncFinalPreviewHeight, 350);
     }
 
-    Preview.refreshNow();
+  }
+
+  async function loadAtsReviewState() {
+    const card = document.getElementById('ats-review-card');
+    if (!card) return;
+    card.setAttribute('aria-busy', 'true');
+    const result = await Api.getAtsReviewState();
+    if (result.quota) window.ReGenAI?.setQuota(result.quota);
+    if (!card.isConnected) return;
+
+    if (!result.success || !result.review) {
+      card.setAttribute('aria-busy', 'false');
+      card.innerHTML = `
+        <div class="ats-review-error">
+          <strong>ATS review is temporarily unavailable</strong>
+          <p></p>
+          <button type="button" class="btn btn-secondary btn-sm" id="ats-review-state-retry">Try again</button>
+        </div>`;
+      card.querySelector('p').textContent = result.message || 'You can still review and download your resume.';
+      document.getElementById('ats-review-state-retry')?.addEventListener('click', loadAtsReviewState);
+      return;
+    }
+    renderAtsReview(result.review, {
+      aiEnabled: result.aiEnabled === true,
+      quota: result.quota || null,
+    });
+  }
+
+  async function requestAtsReview() {
+    const card = document.getElementById('ats-review-card');
+    const button = document.getElementById('ats-review-generate');
+    const status = card?.querySelector('.ats-review-action-status');
+    if (!card || !button || button.disabled) return;
+
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="ai-spinner" aria-hidden="true"></span><span>Generating comment...</span>';
+    card.setAttribute('aria-busy', 'true');
+    if (status) {
+      status.textContent = 'ReGen is reviewing the current resume.';
+      status.className = 'ats-review-action-status';
+    }
+
+    const result = await Api.generateAtsReview();
+    if (result.quota) window.ReGenAI?.setQuota(result.quota);
+    if (!card.isConnected) return;
+    if (!result.success || !result.review) {
+      card.setAttribute('aria-busy', 'false');
+      button.disabled = false;
+      button.innerHTML = originalHtml;
+      if (status) {
+        status.textContent = result.message || 'The comment could not be generated. Your local ATS checks are still available.';
+        status.className = 'ats-review-action-status is-error';
+      }
+      return;
+    }
+
+    renderAtsReview(result.review, {
+      aiEnabled: result.aiEnabled === true,
+      revealAi: result.review.aiEnhanced === true,
+      cached: result.cached === true,
+      quota: result.quota || null,
+    });
+    if (result.generationFailed === true) {
+      const nextStatus = document.querySelector('.ats-review-action-status');
+      if (nextStatus) {
+        nextStatus.textContent = result.quotaExceeded === true
+          ? quotaLimitMessage(result.quota)
+          : 'ReGen could not generate the comment this time. You can try again when ready.';
+        nextStatus.className = 'ats-review-action-status is-error';
+      }
+    }
+  }
+
+  function quotaLimitMessage(quota) {
+    const limit = Math.max(1, Number(quota?.limit) || 15);
+    const date = quota?.resetAt ? new Date(quota.resetAt) : null;
+    const reset = date && !Number.isNaN(date.getTime())
+      ? date.toLocaleString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+        })
+      : 'the next reset';
+    return `You have used all ${limit} ReGen AI Tokens for this 24-hour period. More tokens will be available on ${reset}.`;
+  }
+
+  function renderAtsReview(
+    review,
+    { aiEnabled = true, revealAi = false, cached = false, quota = null } = {}
+  ) {
+    const card = document.getElementById('ats-review-card');
+    if (!card) return;
+    const score = Math.max(0, Math.min(100, Number(review.score) || 0));
+    const level = score >= 85 ? 'excellent' : score >= 70 ? 'strong' : score >= 55 ? 'developing' : 'attention';
+    const recommendations = Array.isArray(review.recommendations) ? review.recommendations.slice(0, 4) : [];
+    const strengths = Array.isArray(review.strengths) ? review.strengths.slice(0, 3) : [];
+    const savedComment = String(review.savedComment || '').trim();
+    const hasSavedComment = review.hasSavedAiComment === true && savedComment !== '';
+    const showAiComment = revealAi
+      && review.aiEnhanced === true
+      && String(review.comment || '').trim() !== '';
+
+    card.setAttribute('aria-busy', 'false');
+    card.innerHTML = `
+      <div class="ats-review-head">
+        <div class="ats-score ats-score-${level}" role="img" aria-label="ATS readiness score ${score} out of 100">
+          <strong></strong>
+          <span>/100</span>
+        </div>
+        <div class="ats-review-title">
+          <p class="final-eyebrow">ReGen ATS check</p>
+          <h3></h3>
+          <span class="ats-review-mode"></span>
+        </div>
+      </div>
+      <p class="ats-review-comment"></p>
+      <div class="ats-strengths" aria-label="Resume strengths"></div>
+      <div class="ats-priorities">
+        <h4>${recommendations.length ? 'Priority improvements' : 'Ready to tailor'}</h4>
+        <ol></ol>
+      </div>
+      <div class="ats-review-request">
+        <div class="ats-review-request-copy">
+          <strong></strong>
+          <p></p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm ats-review-action"></button>
+        <span class="ats-review-action-status" role="status"></span>
+      </div>
+      <p class="ats-disclaimer">This is guidance, not a guarantee of how every employer's ATS will score a resume.</p>`;
+
+    card.querySelector('.ats-score strong').textContent = String(score);
+    card.querySelector('.ats-review-title h3').textContent = `${review.label || 'ATS review'} readiness`;
+    card.querySelector('.ats-review-mode').textContent = showAiComment
+      ? (cached ? 'Saved ReGen AI review - no new token used' : 'Reviewed with ReGen AI')
+      : 'Local ATS checks - no ReGen AI Token used';
+    card.querySelector('.ats-review-comment').textContent = showAiComment
+      ? review.comment
+      : review.summary || review.comment || '';
+
+    const strengthWrap = card.querySelector('.ats-strengths');
+    strengths.forEach((strength) => {
+      const chip = document.createElement('span');
+      chip.textContent = `✓ ${strength}`;
+      strengthWrap.appendChild(chip);
+    });
+    if (!strengths.length) strengthWrap.remove();
+
+    const list = card.querySelector('.ats-priorities ol');
+    const items = recommendations.length
+      ? recommendations
+      : ['Tailor the role title and skill keywords to each job description before applying.'];
+    items.forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      list.appendChild(li);
+    });
+
+    const request = card.querySelector('.ats-review-request');
+    const requestTitle = request.querySelector('strong');
+    const requestCopy = request.querySelector('p');
+    const action = request.querySelector('.ats-review-action');
+
+    if (showAiComment) {
+      requestTitle.textContent = cached ? 'Saved comment loaded' : 'Comment saved for later';
+      requestCopy.textContent = cached
+        ? 'This comment was reused without using another ReGen AI Token.'
+        : 'Returning to this unchanged resume will not generate the comment again.';
+      action.remove();
+      return;
+    }
+
+    if (hasSavedComment) {
+      requestTitle.textContent = 'Saved ReGen comment available';
+      requestCopy.textContent = 'View the saved comment without using another ReGen AI Token.';
+      action.id = 'ats-review-view-saved';
+      action.textContent = 'View saved comment';
+      action.addEventListener('click', () => {
+        card.querySelector('.ats-review-comment').textContent = savedComment;
+        card.querySelector('.ats-review-mode').textContent = 'Saved ReGen AI review - no new token used';
+        requestTitle.textContent = 'Saved comment loaded';
+        requestCopy.textContent = 'No ReGen AI Token was used.';
+        action.remove();
+      }, { once: true });
+      return;
+    }
+
+    if (!aiEnabled) {
+      requestTitle.textContent = 'ReGen AI comment unavailable';
+      requestCopy.textContent = 'Local ATS checks remain available without AI.';
+      action.remove();
+      return;
+    }
+
+    if (quota?.exhausted === true || Number(quota?.remaining) === 0) {
+      requestTitle.textContent = 'Daily ReGen AI Token limit reached';
+      requestCopy.textContent = quotaLimitMessage(quota);
+      action.remove();
+      return;
+    }
+
+    const reviewNeedsUpdate = review.hasPriorReview === true && review.isCurrent === false;
+    requestTitle.textContent = reviewNeedsUpdate
+      ? 'ReGen comment needs an update'
+      : 'Want a concise ReGen comment?';
+    const requestCountCopy = quota ? ` ${Number(quota.remaining) || 0} ReGen AI Tokens remain.` : '';
+    requestCopy.textContent = (reviewNeedsUpdate
+      ? 'Your resume or review checks changed. Generate a new comment only when you are ready.'
+      : 'This runs only when you choose and the result is saved for later.') + requestCountCopy;
+    action.id = 'ats-review-generate';
+    action.innerHTML = `${ReGenIcons.icon('sparkles')} Generate ReGen comment`;
+    action.addEventListener('click', requestAtsReview);
   }
 
   function syncFinalPreviewHeight() {
@@ -180,6 +436,9 @@ const App = (() => {
       });
     }
     await Stepper.init(resumeData);
+    if (params.get('review') === '1') {
+      showFinalScreen();
+    }
 
     // Back / Next nav
     document.getElementById('btn-back')?.addEventListener('click', () => Stepper.back());

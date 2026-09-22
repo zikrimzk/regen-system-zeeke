@@ -5,6 +5,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $email = "php-smoke-$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())@example.test"
+$script:csrfToken = ''
 
 function Invoke-JsonRequest {
     param(
@@ -17,13 +18,22 @@ function Invoke-JsonRequest {
         Uri = "$BaseUrl$Path"
         Method = $Method
         WebSession = $session
-        Headers = @{ Accept = 'application/json' }
+        Headers = @{
+            Accept = 'application/json'
+        }
+    }
+    if ($script:csrfToken -and $Method -notin @('GET', 'HEAD', 'OPTIONS')) {
+        $parameters.Headers['X-CSRF-Token'] = $script:csrfToken
     }
     if ($null -ne $Body) {
         $parameters.ContentType = 'application/json'
         $parameters.Body = $Body | ConvertTo-Json -Depth 12 -Compress
     }
-    return Invoke-RestMethod @parameters
+    $response = Invoke-RestMethod @parameters
+    if ($response.PSObject.Properties.Name -contains 'csrfToken' -and $response.csrfToken) {
+        $script:csrfToken = [string]$response.csrfToken
+    }
+    return $response
 }
 
 function Assert-True {
@@ -46,9 +56,14 @@ $register = Invoke-JsonRequest -Method POST -Path '/api/auth/register' -Body @{
     confirmPassword = 'Testing123!'
 }
 Assert-True ($register.success -and $register.authenticated) 'registration and session'
+$script:csrfToken = [string]$register.csrfToken
+Assert-True ($script:csrfToken.Length -eq 64) 'CSRF token issued after authentication'
 
 $me = Invoke-JsonRequest -Method GET -Path '/api/auth/me'
 Assert-True ($me.success -and $me.user.email -eq $email) 'authenticated user'
+
+$aiStatus = Invoke-JsonRequest -Method GET -Path '/api/ai/status'
+Assert-True ($aiStatus.success -and $null -ne $aiStatus.enabled) 'authenticated AI availability check'
 
 $locations = Invoke-JsonRequest -Method GET -Path '/api/lookups/locations?q=Kuala&country=Malaysia'
 Assert-True ($locations.success -and $locations.results.Count -gt 0) 'local location lookup'
@@ -104,6 +119,28 @@ $skills = Invoke-JsonRequest -Method POST -Path "/api/resume/$resumeId/section" 
 }
 Assert-True $skills.success 'skills section save'
 
+$atsState = Invoke-JsonRequest -Method GET -Path "/api/resume/$resumeId/ats-review"
+Assert-True (
+    $atsState.success `
+        -and $atsState.review.score -ge 0 `
+        -and $atsState.review.score -le 100 `
+        -and $atsState.review.aiEnhanced -eq $false
+) 'read-only ATS state'
+
+$ats = Invoke-JsonRequest -Method POST -Path "/api/resume/$resumeId/ats-review" -Body @{}
+Assert-True (
+    $ats.success `
+        -and $ats.review.score -ge 0 `
+        -and $ats.review.score -le 100 `
+        -and $ats.review.checks.Count -ge 8
+) 'ATS readiness review'
+
+$savedAtsState = Invoke-JsonRequest -Method GET -Path "/api/resume/$resumeId/ats-review"
+Assert-True (
+    $savedAtsState.success `
+        -and $savedAtsState.review.score -eq $ats.review.score
+) 'ATS state remains available without regeneration'
+
 $resume = Invoke-JsonRequest -Method GET -Path "/api/resume/$resumeId"
 Assert-True ($resume.success -and $resume.data.personal.fullName -eq 'Nur Aisyah Binti Rahman') 'resume reload'
 
@@ -118,6 +155,7 @@ $sessionCookie = $session.Cookies.GetCookies([Uri]$BaseUrl) |
 Assert-True ($null -ne $sessionCookie) 'PHP session cookie'
 $photoResponse = curl.exe -sS `
     -b "$($sessionCookie.Name)=$($sessionCookie.Value)" `
+    -H "X-CSRF-Token: $script:csrfToken" `
     -F "photo=@$photoPath;type=image/png" `
     "$BaseUrl/api/resume/$resumeId/photo" | ConvertFrom-Json
 Assert-True ($photoResponse.success -and $photoResponse.photoBase64.StartsWith('data:image/png;base64,')) 'photo upload'
@@ -135,6 +173,7 @@ $draft = Invoke-WebRequest -UseBasicParsing `
     -Uri "$BaseUrl/api/pdf/$resumeId/preview-data" `
     -Method POST `
     -WebSession $session `
+    -Headers @{ 'X-CSRF-Token' = $script:csrfToken } `
     -ContentType 'application/json' `
     -Body (@{ resumeData = @{ summary = 'Unsaved preview draft text.' } } | ConvertTo-Json -Depth 5 -Compress)
 Assert-True ($draft.StatusCode -eq 200 -and $draft.Content.Contains('Unsaved preview draft text.')) 'draft preview'

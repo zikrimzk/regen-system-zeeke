@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#102f4f">
+  <meta name="description" content="Manage, review, and download your ReGen resume.">
   <title>Resume Dashboard | ReGen powered by Zeeke</title>
-  <link rel="stylesheet" href="/css/main.css?v=20260724d">
-  <link rel="stylesheet" href="/css/dashboard.css?v=20260724d">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css?v=20260730e">
+  <link rel="stylesheet" href="/css/dashboard.css?v=20260801a">
+  <link rel="stylesheet" href="/css/preview-protection.css?v=20260801c">
 </head>
 <body class="dashboard-page">
   <div id="toast-container"></div>
@@ -14,7 +19,7 @@
   <nav class="topbar">
     <a href="/dashboard" class="topbar-brand">
       <div class="topbar-logo-mark" aria-hidden="true">R</div>
-      <div class="topbar-brand-name"><strong>ReGen</strong><small>powered by Zeeke</small></div>
+      <div class="topbar-brand-name"><strong>ReGen</strong><small>Resume management system</small></div>
     </a>
     <div class="topbar-spacer"></div>
     <div class="topbar-user account-menu">
@@ -33,16 +38,42 @@
   </nav>
 
   <main class="dashboard-content">
-    <div class="dash-page-header">
+    <header class="dash-page-header">
       <div>
-        <h1 class="dash-page-title">Resume Dashboard</h1>
+        <p class="dash-page-eyebrow">Resume management</p>
+        <h1 class="dash-page-title">Resume</h1>
       </div>
-    </div>
+      <p class="dash-page-status" id="dashboard-page-status">Loading resume status...</p>
+    </header>
+
+    <section class="dashboard-ai-token-card" id="dashboard-ai-token-card" aria-live="polite">
+      <div class="dashboard-loading-inline"><div class="spinner"></div><span>Loading ReGen AI Tokens...</span></div>
+    </section>
 
     <div id="resume-home" aria-live="polite"></div>
   </main>
 
-  <script src="/js/api.js?v=20260723b"></script>
-  <script src="/js/dashboard.js?v=20260723b"></script>
+  <div class="dashboard-preview-modal hidden" id="dashboard-preview-modal" role="dialog" aria-modal="true" aria-labelledby="dashboard-preview-title">
+    <div class="dashboard-preview-dialog">
+      <div class="dashboard-preview-header">
+        <div>
+          <p>Saved document</p>
+          <h2 id="dashboard-preview-title">Resume preview</h2>
+        </div>
+        <button type="button" class="btn btn-secondary btn-icon" id="dashboard-preview-close" aria-label="Close preview">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="dashboard-preview-stage" id="dashboard-preview-stage">
+        <div class="dashboard-preview-shell" id="dashboard-preview-shell">
+          <iframe id="dashboard-preview-frame" title="Saved resume preview" sandbox="allow-same-origin" tabindex="-1" draggable="false"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js?v=20260801e"></script>
+  <script src="/js/preview-protection.js?v=20260801c"></script>
+  <script src="/js/dashboard.js?v=20260801e"></script>
 </body>
 </html>

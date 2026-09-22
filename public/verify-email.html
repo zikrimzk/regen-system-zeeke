@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#102f4f">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Verify your ReGen account email.">
+  <title>Verify email | ReGen powered by Zeeke</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css?v=20260730e">
+  <link rel="stylesheet" href="/css/auth.css?v=20260801d">
+</head>
+<body class="auth-page auth-verification-page">
+  <header class="auth-header">
+    <div class="auth-header-logo" aria-hidden="true">R</div>
+    <div class="auth-header-title"><strong>ReGen</strong><small>Resume management system</small></div>
+  </header>
+
+  <main class="auth-body">
+    <section class="auth-intro" aria-label="ReGen account security">
+      <div class="auth-system-lockup">
+        <span class="auth-system-index">R / 02</span>
+        <div>
+          <strong>ReGen</strong>
+          <span>Account verification</span>
+        </div>
+      </div>
+      <div class="auth-system-visual" aria-hidden="true">
+        <div class="auth-system-sheet auth-verification-visual">
+          <span class="auth-envelope-line"></span>
+          <span class="auth-envelope-line is-short"></span>
+          <span class="auth-envelope-seal">R</span>
+        </div>
+      </div>
+      <div class="auth-system-meta">
+        <span>Powered by Zeeke</span>
+        <span>Secure account access</span>
+      </div>
+    </section>
+
+    <section class="auth-card" id="email-verification" aria-labelledby="verification-title">
+      <div class="auth-status-mark" id="verification-mark" aria-hidden="true">@</div>
+      <p class="auth-card-eyebrow" id="verification-eyebrow">Email verification</p>
+      <h1 class="auth-card-title" id="verification-title" tabindex="-1">Check your email</h1>
+      <p class="auth-card-subtitle auth-verification-copy" id="verification-description">
+        We sent a verification link to your email. Open it to finish creating your account.
+      </p>
+      <p class="auth-verification-email" id="verification-email" hidden></p>
+
+      <div class="auth-verification-action" id="verification-confirm" hidden>
+        <p>This link is ready. Confirm below to verify your email address.</p>
+        <button type="button" class="auth-submit-btn" id="verify-email-btn">Verify email</button>
+      </div>
+
+      <div class="auth-inline-status" id="verification-status" role="status" aria-live="polite" hidden></div>
+
+      <form class="auth-resend-form" id="verification-resend-form" novalidate hidden>
+        <div class="auth-form-group">
+          <label class="auth-label" for="verification-email-input">Email</label>
+          <input
+            type="email"
+            id="verification-email-input"
+            class="auth-input"
+            placeholder="name@company.com"
+            maxlength="200"
+            autocomplete="email"
+            required
+          >
+        </div>
+        <button type="submit" class="auth-secondary-btn" id="resend-verification-btn">Resend verification email</button>
+
+        <p class="auth-recaptcha-note" id="verification-recaptcha-status" role="status" aria-live="polite" hidden>
+          <span>Protected by reCAPTCHA.</span> Google's
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          and
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+          apply.
+        </p>
+      </form>
+
+      <div class="auth-verification-links">
+        <a href="/login" id="verification-login-link">Back to sign in</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/api.js?v=20260801e"></script>
+  <script src="/js/auth.js?v=20260801d"></script>
+</body>
+</html>

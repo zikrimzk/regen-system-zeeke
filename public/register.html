@@ -3,23 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#102f4f">
+  <meta name="description" content="Create an account for the ReGen resume management system.">
   <title>Register | ReGen powered by Zeeke</title>
-  <link rel="stylesheet" href="/css/main.css?v=20260724d">
-  <link rel="stylesheet" href="/css/auth.css?v=20260728b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css?v=20260730e">
+  <link rel="stylesheet" href="/css/auth.css?v=20260801d">
 </head>
-<body class="auth-page">
+<body class="auth-page auth-register-page">
   <div id="toast-container"></div>
   <div id="page-loader"><div class="spinner"></div><p></p></div>
 
   <header class="auth-header">
     <div class="auth-header-logo" aria-hidden="true">R</div>
-    <div class="auth-header-title"><strong>ReGen</strong><small>powered by Zeeke</small></div>
+    <div class="auth-header-title"><strong>ReGen</strong><small>Resume management system</small></div>
   </header>
 
   <main class="auth-body">
+    <section class="auth-intro" aria-label="ReGen resume management system">
+      <div class="auth-system-lockup">
+        <span class="auth-system-index">R / 01</span>
+        <div>
+          <strong>ReGen</strong>
+          <span>Resume Management System</span>
+        </div>
+      </div>
+      <div class="auth-system-visual" aria-hidden="true">
+        <div class="auth-system-sheet">
+          <div class="auth-system-sheet-head"><span></span><span></span></div>
+          <div class="auth-system-sheet-line is-long"></div>
+          <div class="auth-system-sheet-line"></div>
+          <div class="auth-system-sheet-line is-short"></div>
+          <div class="auth-system-sheet-grid"><span></span><span></span><span></span></div>
+          <div class="auth-system-sheet-line is-long"></div>
+          <div class="auth-system-sheet-line"></div>
+        </div>
+      </div>
+      <div class="auth-system-meta">
+        <span>Powered by Zeeke</span>
+        <span>Account registration</span>
+      </div>
+    </section>
+
     <div class="auth-card auth-card-wide">
-      <h1 class="auth-card-title">Create an account</h1>
-      <p class="auth-card-subtitle">Start your resume workspace in seconds.</p>
+      <p class="auth-card-eyebrow">Account registration</p>
+      <h1 class="auth-card-title">Create account</h1>
+      <p class="auth-card-subtitle">Enter your details below.</p>
 
       <div class="google-auth-block" id="google-auth" data-page="register" hidden>
         <div class="google-button-shell" id="google-button-shell" aria-live="polite"></div>
@@ -29,6 +59,7 @@
       <form id="register-form" class="auth-form" novalidate>
         <div id="register-error" class="auth-error-box"></div>
 
+        <div class="auth-section-label"><span>01</span> Profile</div>
         <div class="auth-form-row">
           <div class="auth-form-group">
             <label class="auth-label" for="firstName">First Name <span class="text-danger">*</span></label>
@@ -43,7 +74,7 @@
         <div class="auth-form-row">
           <div class="auth-form-group">
             <label class="auth-label" for="email">Email <span class="text-danger">*</span></label>
-            <input type="email" id="email" class="auth-input" placeholder="name@company.com" maxlength="200" required>
+            <input type="email" id="email" class="auth-input" placeholder="name@company.com" maxlength="200" autocomplete="email" required>
           </div>
           <div class="auth-form-group">
             <label class="auth-label" for="phone">Phone Number</label>
@@ -51,6 +82,7 @@
           </div>
         </div>
 
+        <div class="auth-section-label"><span>02</span> Location</div>
         <div class="auth-form-row">
           <div class="auth-form-group">
             <label class="auth-label" for="registerCountry">Country</label>
@@ -72,31 +104,39 @@
           <div class="auth-field-error" id="register-postcode-error">Postcode must match the selected Malaysian state.</div>
         </div>
 
-        <hr class="auth-divider">
+        <div class="auth-section-label"><span>03</span> Password</div>
 
         <div class="auth-form-row">
           <div class="auth-form-group">
             <label class="auth-label" for="password">Password <span class="text-danger">*</span></label>
             <div class="auth-password-wrap">
-              <input type="password" id="password" class="auth-input" placeholder="Password" required minlength="8">
-              <button type="button" class="auth-password-toggle" tabindex="-1">Show</button>
+              <input type="password" id="password" class="auth-input" placeholder="Use 10 or more characters" required minlength="10" maxlength="128" autocomplete="new-password">
+              <button type="button" class="auth-password-toggle" aria-label="Show password">Show</button>
             </div>
             <div class="pwd-strength">
               <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwd-fill"></div></div>
-              <div class="pwd-strength-label" id="pwd-label">Min 8 characters</div>
+              <div class="pwd-strength-label" id="pwd-label">Use at least 10 characters</div>
             </div>
           </div>
           <div class="auth-form-group">
             <label class="auth-label" for="confirmPassword">Confirm Password <span class="text-danger">*</span></label>
             <div class="auth-password-wrap">
-              <input type="password" id="confirmPassword" class="auth-input" placeholder="Confirm password" required>
-              <button type="button" class="auth-password-toggle" tabindex="-1">Show</button>
+              <input type="password" id="confirmPassword" class="auth-input" placeholder="Repeat your password" required maxlength="128" autocomplete="new-password">
+              <button type="button" class="auth-password-toggle" aria-label="Show password">Show</button>
             </div>
             <div class="auth-field-error" id="match-error">Passwords do not match</div>
           </div>
         </div>
 
-        <button type="submit" class="auth-submit-btn" id="register-btn">Create Account</button>
+        <button type="submit" class="auth-submit-btn" id="register-btn">Create account</button>
+
+        <p class="auth-recaptcha-note" id="register-recaptcha-status" role="status" aria-live="polite" hidden>
+          <span>Protected by reCAPTCHA.</span> Google's
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          and
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+          apply.
+        </p>
 
         <div class="auth-link-row">
           Already have an account? <a href="/login">Log in here</a>
@@ -105,8 +145,8 @@
     </div>
   </main>
 
-  <script src="/js/api.js?v=20260728b"></script>
+  <script src="/js/api.js?v=20260801e"></script>
   <script src="/js/lookups.js?v=20260723a"></script>
-  <script src="/js/auth.js?v=20260728b"></script>
+  <script src="/js/auth.js?v=20260801d"></script>
 </body>
 </html>

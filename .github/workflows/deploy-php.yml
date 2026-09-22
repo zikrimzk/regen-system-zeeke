@@ -23,13 +23,43 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v6
 
-      - name: Prepare committed application files
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, fileinfo, json, mbstring, pdo_mysql
+          coverage: none
+
+      - name: Set up Node.js checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
+
+      - name: Validate and test release
+        run: |
+          composer validate --strict
+          find php scripts -name '*.php' -print0 | xargs -0 -n1 php -l
+          npm run check
+          php scripts/smoke-php-pdf.php
+          php scripts/smoke-php-ai.php
+          php scripts/smoke-php-ats.php
+          php scripts/smoke-php-google-auth.php
+          php scripts/smoke-php-recaptcha.php
+          php scripts/smoke-php-email-verification.php
+
+      - name: Prepare release files
         run: |
           mkdir -p .release/_app
           cp -R public/. .release/
           cp -R php/. .release/_app/
+          cp -R vendor .release/_app/vendor
           test -f .release/index.php
           test -f .release/_app/bootstrap.php
+          test -f .release/_app/vendor/autoload.php
 
       - name: Validate FTP destination
         env:
@@ -67,8 +97,6 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
-            vendor/**
-            **/vendor/**
             uploads/**
             **/uploads/**
             **/.env*

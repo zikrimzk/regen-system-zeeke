@@ -199,21 +199,6 @@ function buildHtml(resume) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=800">
 <title>Resume</title>
-<script>
-  function scaleFit() {
-    var w = window.innerWidth;
-    var scale = w / 800;
-    if (scale < 1) {
-      document.body.style.transform = 'scale(' + scale + ')';
-      document.body.style.transformOrigin = 'top left';
-      document.body.style.width = '800px';
-    } else {
-      document.body.style.transform = 'none';
-    }
-  }
-  window.addEventListener('resize', scaleFit);
-  window.addEventListener('DOMContentLoaded', scaleFit);
-</script>
 <style>
   @page {
     size: A4;

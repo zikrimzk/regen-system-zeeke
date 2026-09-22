@@ -1,0 +1,72 @@
+.preview-protection-surface {
+  position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.preview-protection-surface iframe {
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.preview-protection-surface::after {
+  content: attr(data-preview-protection-message);
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #e7ecef;
+  color: #425a6e;
+  font: 600 13px/1.5 "Aptos", "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms ease;
+}
+
+.preview-protection-surface.is-preview-obscured::after {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preview-protection-surface.is-preview-obscured iframe {
+  visibility: hidden;
+}
+
+html.preview-document-protected,
+html.preview-document-protected body {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+html.preview-document-protected img {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+}
+
+html.preview-document-protected.preview-document-obscured body {
+  visibility: hidden !important;
+}
+
+@media print {
+  .preview-protection-surface iframe,
+  html.preview-document-protected body {
+    visibility: hidden !important;
+  }
+
+  .preview-protection-surface::after {
+    content: "Preview unavailable in print.";
+    opacity: 1 !important;
+    background: #fff;
+    color: #000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-protection-surface::after { transition: none; }
+}

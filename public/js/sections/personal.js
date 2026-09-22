@@ -31,7 +31,7 @@ const PersonalSection = (() => {
             </div>
           </div>
           <div class="photo-upload-controls">
-            <input type="file" id="photo-upload" accept="image/jpeg, image/png, image/webp" class="hidden">
+            <input type="file" id="photo-upload" accept="image/jpeg, image/png" class="hidden">
             <div class="photo-actions">
               <button type="button" class="btn btn-secondary btn-sm" id="photo-choose-btn">${ReGenIcons.icon('upload')} Choose Photo</button>
               <button type="button" class="btn btn-danger btn-sm btn-icon hidden" id="remove-photo-btn" aria-label="Remove photo" title="Remove photo">${ReGenIcons.icon('trash')}</button>
@@ -153,14 +153,14 @@ const PersonalSection = (() => {
       const file = e.target.files[0];
       if (!file) return;
 
-      if (!file.type.startsWith('image/')) {
-        App.showToast('Please choose an image file.', 'error');
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        App.showToast('Please choose a JPG or PNG photo.', 'error');
         fileInput.value = '';
         return;
       }
 
-      if (file.size > 8 * 1024 * 1024) {
-        App.showToast('Photo is too large. Please choose an image below 8MB.', 'error');
+      if (file.size > 5 * 1024 * 1024) {
+        App.showToast('Photo is too large. Please choose an image below 5MB.', 'error');
         fileInput.value = '';
         return;
       }
@@ -270,12 +270,14 @@ const PersonalSection = (() => {
   }
 
   async function preparePhoto(file) {
-    if ((file.type === 'image/jpeg' || file.type === 'image/png') && file.size <= 2 * 1024 * 1024) {
+    if (file.type === 'image/jpeg' && file.size <= 450 * 1024) {
       return file;
     }
 
-    const bitmap = await createImageBitmap(file);
-    const maxSide = 1200;
+    const bitmap = typeof createImageBitmap === 'function'
+      ? await createImageBitmap(file)
+      : await loadImage(file);
+    const maxSide = 900;
     const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
@@ -286,10 +288,10 @@ const PersonalSection = (() => {
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close?.();
 
-    let quality = 0.9;
+    let quality = 0.88;
     let blob = await canvasToBlob(canvas, quality);
-    while (blob.size > 2 * 1024 * 1024 && quality > 0.55) {
-      quality -= 0.1;
+    while (blob.size > 600 * 1024 && quality > 0.5) {
+      quality -= 0.08;
       blob = await canvasToBlob(canvas, quality);
     }
 
@@ -299,6 +301,22 @@ const PersonalSection = (() => {
   function canvasToBlob(canvas, quality) {
     return new Promise((resolve) => {
       canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+    });
+  }
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(image);
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Photo could not be decoded.'));
+      };
+      image.src = url;
     });
   }
 

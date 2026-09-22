@@ -11,8 +11,14 @@
     "smoke:registration": "node scripts/registration-smoke-test.js",
     "smoke:responsive": "node scripts/responsive-smoke-test.js",
     "smoke:pdf": "node scripts/pdf-smoke-test.js",
+    "smoke:ai": "php scripts/smoke-php-ai.php",
+    "smoke:ai-quota": "php scripts/smoke-php-ai-quota.php",
+    "smoke:ats": "php scripts/smoke-php-ats.php",
     "smoke:google-auth": "php scripts/smoke-php-google-auth.php",
-    "smoke:google-auth-db": "php scripts/smoke-php-google-auth-db.php"
+    "smoke:google-auth-db": "php scripts/smoke-php-google-auth-db.php",
+    "smoke:recaptcha": "php scripts/smoke-php-recaptcha.php",
+    "smoke:email-verification": "php scripts/smoke-php-email-verification.php",
+    "smoke:email-verification-db": "php scripts/smoke-php-email-verification-db.php"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -49,7 +49,9 @@ const SkillsSection = (() => {
             <div class="skill-cat-desc">${cat.desc}</div>
           </div>
         </div>
-        <input type="text" id="${cat.id}" class="form-input" data-comma-list="true" maxlength="500" placeholder="${cat.placeholder}">
+        <div class="skill-input-wrap">
+          <input type="text" id="${cat.id}" class="form-input" data-comma-list="true" maxlength="500" placeholder="${cat.placeholder}">
+        </div>
       </div>
     `;
   }
@@ -103,16 +105,21 @@ const SkillsSection = (() => {
             <label class="form-label" for="sk-custom-label-${id}">Skill Type</label>
             <input type="text" id="sk-custom-label-${id}" class="form-input custom-skill-label" list="skill-type-options" value="${esc(data.label)}" placeholder="Select or type a skill type" maxlength="80">
           </div>
-          <button type="button" class="entry-delete-btn" onclick="SkillsSection.removeCustomSkill(${id})" aria-label="Remove skill type" title="Remove skill type">${ReGenIcons.icon('trash')}</button>
+          <button type="button" class="entry-delete-btn" aria-label="Remove skill type" title="Remove skill type">${ReGenIcons.icon('trash')}</button>
         </div>
-        <input type="text" id="sk-custom-val-${id}" class="form-input custom-skill-value" data-comma-list="true" value="${esc(data.value)}" placeholder="e.g. Canva, layout design, brand guidelines" maxlength="500">
+        <div class="skill-input-wrap">
+          <input type="text" id="sk-custom-val-${id}" class="form-input custom-skill-value" data-comma-list="true"
+            value="${esc(data.value)}" placeholder="e.g. Canva, layout design, brand guidelines" maxlength="500">
+        </div>
       </div>
     `);
 
     const labelInput = document.getElementById(`sk-custom-label-${id}`);
     const valInput = document.getElementById(`sk-custom-val-${id}`);
     const icon = document.getElementById(`icon-${id}`);
-    window.ZeekeForm?.bind(document.getElementById(`custom-skill-${id}`));
+    const card = document.getElementById(`custom-skill-${id}`);
+    card.querySelector('.entry-delete-btn')?.addEventListener('click', () => removeCustomSkill(id));
+    window.ZeekeForm?.bind(card);
 
     labelInput.addEventListener('input', (e) => {
       icon.textContent = (e.target.value || 'A').slice(0, 1).toUpperCase();

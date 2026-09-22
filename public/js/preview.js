@@ -9,6 +9,8 @@ const Preview = (() => {
   let zoom = 1;
   let draftTimer = null;
   let lastDraftPayload = '';
+  let protection = null;
+  let frameRevision = 0;
 
   const MIN_ZOOM = 0.3;
   const MAX_ZOOM = 1.4;
@@ -20,6 +22,11 @@ const Preview = (() => {
     iframe = document.getElementById('preview-iframe-modal');
     modal = document.getElementById('preview-modal');
     shell = document.getElementById('preview-page-shell');
+    protection = window.PreviewProtection?.register({
+      iframe,
+      container: modal?.querySelector('.preview-stage'),
+      isActive: () => !modal?.classList.contains('hidden'),
+    });
 
     const closeBtn = document.getElementById('close-preview-modal');
     const openBtns = [document.getElementById('preview-open-top')].filter(Boolean);
@@ -47,6 +54,7 @@ const Preview = (() => {
   function open() {
     modal?.classList.remove('hidden');
     document.body.classList.add('preview-open');
+    protection?.activate();
     refreshNow({ force: true });
     if (typeof Stepper !== 'undefined' && typeof Stepper.getDraftResume === 'function') {
       renderDraft(Stepper.getDraftResume());
@@ -55,8 +63,11 @@ const Preview = (() => {
   }
 
   function close() {
+    frameRevision += 1;
+    clearTimeout(draftTimer);
     modal?.classList.add('hidden');
     document.body.classList.remove('preview-open');
+    protection?.deactivate();
   }
 
   function setZoom(value) {
@@ -79,17 +90,27 @@ const Preview = (() => {
     setZoom(fit);
   }
 
-  function refreshNow({ force = false } = {}) {
-    if (!iframe) return;
+  async function refreshNow({ force = false } = {}) {
+    if (!iframe || !window.PreviewProtection) return;
     const url = Api.previewUrl();
     const nextUrl = `${url}?t=${Date.now()}`;
-    if (force || !hasLoaded || !iframe.src.includes(url)) {
-      iframe.removeAttribute('srcdoc');
-      iframe.src = nextUrl;
+    if (force || !hasLoaded || !modal?.classList.contains('hidden')) {
+      const revision = ++frameRevision;
+      const result = await window.PreviewProtection.loadUrl(iframe, nextUrl, {
+        shouldCommit: () => revision === frameRevision,
+      });
+      if (revision !== frameRevision || result.stale) return;
+      if (!result.success) {
+        if (!modal?.classList.contains('hidden') && typeof App !== 'undefined') {
+          App.showToast(result.message || 'Preview is temporarily unavailable.', 'error');
+        }
+        return;
+      }
       hasLoaded = true;
-    } else if (!modal?.classList.contains('hidden')) {
-      iframe.removeAttribute('srcdoc');
-      iframe.src = nextUrl;
+      requestAnimationFrame(() => {
+        syncFrameHeight();
+        fitToStage();
+      });
     }
   }
 
@@ -113,18 +134,18 @@ const Preview = (() => {
   }
 
   function renderDraft(resumeData) {
-    if (!iframe || modal?.classList.contains('hidden')) return;
+    if (!iframe || !window.PreviewProtection || modal?.classList.contains('hidden')) return;
 
     const payload = JSON.stringify(resumeData || {});
     if (payload === lastDraftPayload) return;
     lastDraftPayload = payload;
 
     clearTimeout(draftTimer);
+    const revision = ++frameRevision;
     draftTimer = setTimeout(async () => {
       const res = await Api.previewDraft(resumeData);
-      if (!res.success) return;
-      iframe.removeAttribute('src');
-      iframe.srcdoc = res.html;
+      if (!res.success || revision !== frameRevision) return;
+      window.PreviewProtection.setFrameHtml(iframe, res.html);
       hasLoaded = true;
       requestAnimationFrame(() => {
         syncFrameHeight();

@@ -36,10 +36,13 @@ const AchievementsSection = (() => {
     container.innerHTML = list.map((val, i) => `
       <div class="list-item-row">
         <span class="list-item-num">-</span>
-        <textarea class="list-item-input ach-input" rows="2" maxlength="320" placeholder="e.g. 1st Runner Up - National Hackathon 2023">${esc(val)}</textarea>
-        <button type="button" class="list-item-remove" onclick="AchievementsSection.removeItem(${i})" aria-label="Remove achievement" title="Remove achievement">${ReGenIcons.icon('trash')}</button>
+        <textarea class="list-item-input ach-input" rows="1" maxlength="320" placeholder="e.g. 1st Runner Up - National Hackathon 2023">${esc(val)}</textarea>
+        <button type="button" class="list-item-remove" data-index="${i}" aria-label="Remove achievement" title="Remove achievement">${ReGenIcons.icon('trash')}</button>
       </div>
     `).join('');
+    container.querySelectorAll('.list-item-remove').forEach((button) => {
+      button.addEventListener('click', () => removeItem(Number(button.dataset.index)));
+    });
   }
 
   function removeItem(idx) {

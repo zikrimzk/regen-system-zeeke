@@ -1,6 +1,21 @@
 const db = require('../config/db');
 
 let indexesEnsured = false;
+const RETRYABLE_WRITE_ERRORS = new Set(['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT']);
+
+async function withWriteRetry(operation, maxAttempts = 4) {
+  let retryDelayMs = 25;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (err) {
+      if (!RETRYABLE_WRITE_ERRORS.has(err.code) || attempt === maxAttempts) throw err;
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+      retryDelayMs *= 2;
+    }
+  }
+  throw new Error('Database write retry exhausted.');
+}
 
 function seedLocation(address = '') {
   const value = String(address || '').trim();
@@ -165,12 +180,12 @@ async function getResumeById(id, userId) {
 async function saveSection(resumeId, userId, section, data) {
   // Use JSON_SET to update just the section
   const path = `$.${section}`;
-  const [result] = await db.execute(
+  const [result] = await withWriteRetry(() => db.execute(
     `UPDATE resumes SET resume_data = JSON_SET(resume_data, ?, CAST(? AS JSON)), updated_at = NOW()
      WHERE id = ? AND user_id = ?
        AND id = (SELECT active.primary_id FROM (SELECT id AS primary_id FROM resumes WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1) AS active)`,
     [path, JSON.stringify(data), resumeId, userId, userId]
-  );
+  ));
   return result.affectedRows > 0;
 }
 
@@ -178,7 +193,7 @@ async function saveSection(resumeId, userId, section, data) {
  * Save personal fields while preserving a photo written by another request.
  */
 async function savePersonalSection(resumeId, userId, data) {
-  const [result] = await db.execute(
+  const [result] = await withWriteRetry(() => db.execute(
     `UPDATE resumes
      SET resume_data = JSON_SET(
        resume_data,
@@ -192,12 +207,12 @@ async function savePersonalSection(resumeId, userId, data) {
      WHERE id = ? AND user_id = ?
        AND id = (SELECT active.primary_id FROM (SELECT id AS primary_id FROM resumes WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1) AS active)`,
     [JSON.stringify(data), resumeId, userId, userId]
-  );
+  ));
   return result.affectedRows > 0;
 }
 
 async function updatePersonalPhoto(resumeId, userId, photoBase64 = '') {
-  const [result] = await db.execute(
+  const [result] = await withWriteRetry(() => db.execute(
     `UPDATE resumes
      SET resume_data = JSON_SET(
        resume_data,
@@ -208,7 +223,7 @@ async function updatePersonalPhoto(resumeId, userId, photoBase64 = '') {
      WHERE id = ? AND user_id = ?
        AND id = (SELECT active.primary_id FROM (SELECT id AS primary_id FROM resumes WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1) AS active)`,
     [photoBase64, resumeId, userId, userId]
-  );
+  ));
   return result.affectedRows > 0;
 }
 
@@ -216,12 +231,12 @@ async function updatePersonalPhoto(resumeId, userId, photoBase64 = '') {
  * Update resume title.
  */
 async function updateTitle(resumeId, userId, title) {
-  const [result] = await db.execute(
+  const [result] = await withWriteRetry(() => db.execute(
     `UPDATE resumes SET title = ?, updated_at = NOW()
      WHERE id = ? AND user_id = ?
        AND id = (SELECT active.primary_id FROM (SELECT id AS primary_id FROM resumes WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1) AS active)`,
     [title, resumeId, userId, userId]
-  );
+  ));
   return result.affectedRows > 0;
 }
 

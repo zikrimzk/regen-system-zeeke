@@ -3,10 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#102f4f">
+  <meta name="description" content="Edit resume details in the ReGen resume management system.">
   <title>Resume Editor | ReGen powered by Zeeke</title>
-  <link rel="stylesheet" href="/css/main.css?v=20260724d">
-  <link rel="stylesheet" href="/css/stepper.css?v=20260724d">
-  <link rel="stylesheet" href="/css/form.css?v=20260724d">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/main.css?v=20260730e">
+  <link rel="stylesheet" href="/css/stepper.css?v=20260730f">
+  <link rel="stylesheet" href="/css/form.css?v=20260801a">
+  <link rel="stylesheet" href="/css/preview-protection.css?v=20260801c">
 </head>
 <body class="builder-page">
   <div id="toast-container"></div>
@@ -15,7 +20,7 @@
   <nav class="topbar">
     <a href="/dashboard" class="topbar-brand">
       <div class="topbar-logo-mark" aria-hidden="true">R</div>
-      <div class="topbar-brand-name"><strong>ReGen</strong><small>powered by Zeeke</small></div>
+      <div class="topbar-brand-name"><strong>ReGen</strong><small>Resume editor</small></div>
     </a>
     <div class="topbar-spacer"></div>
     <div class="topbar-user">
@@ -23,9 +28,6 @@
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></svg>
         Preview
       </button>
-      <a href="/dashboard" class="btn btn-ghost btn-sm btn-icon dashboard-command" aria-label="Dashboard" title="Dashboard">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/></svg>
-      </a>
       <div class="account-menu">
         <button type="button" class="account-menu-toggle" id="account-menu-toggle" aria-expanded="false" aria-haspopup="menu">
           <span class="topbar-avatar" id="topbar-avatar">U</span>
@@ -45,8 +47,17 @@
   <div class="builder-layout">
     <div class="builder-left">
       <div id="stepper-wrap">
+        <div class="stepper-sidebar-head">
+          <p class="stepper-eyebrow">Resume editor</p>
+          <h1>Sections</h1>
+          <p class="stepper-sidebar-copy">Select a section to edit.</p>
+        </div>
         <div class="stepper-meta">
-          <div class="stepper-step-label" id="progress-label">Step 1 of 10</div>
+          <div class="stepper-step-label" id="progress-label">01 / 10 · Personal</div>
+          <button type="button" class="stepper-sections-toggle" id="stepper-sections-toggle" aria-expanded="false" aria-controls="stepper-track">
+            Sections
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
         </div>
         <div class="progress-bar">
           <div id="progress-fill"></div>
@@ -57,18 +68,18 @@
       <main id="step-content" role="main"></main>
 
       <div class="nav-bar">
-        <button type="button" class="btn btn-secondary" id="btn-back" style="visibility:hidden;">
+        <button type="button" class="btn btn-secondary" id="btn-back">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
           Back
         </button>
         <div class="builder-nav-center">
-          <div id="save-indicator">
+          <div id="save-indicator" class="save-indicator is-saved">
             <span class="save-dot"></span>
-            Changes saved
+            <span class="save-label">All changes saved</span>
           </div>
         </div>
         <button type="button" class="btn btn-primary" id="btn-next">
-          Next Step
+          Next
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
         </button>
       </div>
@@ -79,7 +90,7 @@
     <div class="preview-modal-box">
       <div class="preview-modal-header">
         <div>
-          <h3 class="preview-modal-title">Resume Preview</h3>
+          <h3 class="preview-modal-title">Resume preview</h3>
           <p class="preview-modal-subtitle">A4 document view</p>
         </div>
         <div class="preview-tools" aria-label="Preview zoom controls">
@@ -99,27 +110,29 @@
       </div>
       <div class="preview-stage">
         <div class="preview-page-shell" id="preview-page-shell">
-          <iframe id="preview-iframe-modal" title="Resume Preview"></iframe>
+          <iframe id="preview-iframe-modal" title="Resume Preview" sandbox="allow-same-origin" tabindex="-1" draggable="false"></iframe>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="/js/api.js?v=20260723b"></script>
-  <script src="/js/lookups.js?v=20260723a"></script>
-  <script src="/js/form-assist.js?v=20260723a"></script>
-  <script src="/js/sections/personal.js?v=20260723a"></script>
-  <script src="/js/sections/summary.js?v=20260723a"></script>
-  <script src="/js/sections/education.js?v=20260723a"></script>
-  <script src="/js/sections/experience.js?v=20260723a"></script>
-  <script src="/js/sections/projects.js?v=20260723a"></script>
-  <script src="/js/sections/extracurricular.js?v=20260723a"></script>
-  <script src="/js/sections/skills.js?v=20260723a"></script>
-  <script src="/js/sections/achievements.js?v=20260723a"></script>
-  <script src="/js/sections/certifications.js?v=20260723a"></script>
-  <script src="/js/sections/references.js?v=20260723a"></script>
-  <script src="/js/preview.js?v=20260723c"></script>
-  <script src="/js/stepper.js?v=20260723a"></script>
-  <script src="/js/app.js?v=20260723c"></script>
+  <script src="/js/api.js?v=20260801e"></script>
+  <script src="/js/ai-enhance.js?v=20260801d"></script>
+  <script src="/js/lookups.js?v=20260730b"></script>
+  <script src="/js/form-assist.js?v=20260730c"></script>
+  <script src="/js/sections/personal.js?v=20260730b"></script>
+  <script src="/js/sections/summary.js?v=20260730c"></script>
+  <script src="/js/sections/education.js?v=20260730b"></script>
+  <script src="/js/sections/experience.js?v=20260730c"></script>
+  <script src="/js/sections/projects.js?v=20260730c"></script>
+  <script src="/js/sections/extracurricular.js?v=20260730c"></script>
+  <script src="/js/sections/skills.js?v=20260730e"></script>
+  <script src="/js/sections/achievements.js?v=20260730c"></script>
+  <script src="/js/sections/certifications.js?v=20260730c"></script>
+  <script src="/js/sections/references.js?v=20260730b"></script>
+  <script src="/js/preview-protection.js?v=20260801c"></script>
+  <script src="/js/preview.js?v=20260801c"></script>
+  <script src="/js/stepper.js?v=20260731a"></script>
+  <script src="/js/app.js?v=20260801f"></script>
 </body>
 </html>

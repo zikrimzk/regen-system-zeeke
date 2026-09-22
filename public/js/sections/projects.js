@@ -32,7 +32,7 @@ const ProjectsSection = (() => {
         <div class="entry-card-header">
           <div class="entry-card-num">${entries.length + 1}</div>
           <div class="entry-card-title">Project Entry</div>
-          <button type="button" class="entry-delete-btn" onclick="ProjectsSection.removeEntry(${id})" aria-label="Remove project" title="Remove project">${ReGenIcons.icon('trash')}</button>
+          <button type="button" class="entry-delete-btn" aria-label="Remove project" title="Remove project">${ReGenIcons.icon('trash')}</button>
         </div>
         <div class="form-section">
           <div class="form-row">
@@ -47,7 +47,7 @@ const ProjectsSection = (() => {
           </div>
           <div class="form-group form-group-full">
             <label class="form-label">Short Description</label>
-            <input type="text" class="form-input proj-desc" value="${esc(data.description)}" placeholder="e.g. Developed a full-stack web application for resume creation." maxlength="260">
+            <textarea class="form-textarea form-textarea-compact proj-desc" rows="3" data-max-height="150" placeholder="e.g. Developed a full-stack web application for resume creation." maxlength="260">${esc(data.description)}</textarea>
           </div>
           <div class="form-group form-group-full">
             <label class="form-label">Key Details & Technologies</label>
@@ -55,12 +55,12 @@ const ProjectsSection = (() => {
               ${bullets.map(b => `
                 <div class="list-item-row">
                   <span class="list-item-num">-</span>
-                  <textarea class="list-item-input proj-bullet-input" rows="2" maxlength="320" placeholder="e.g. Used React, Node.js, and MongoDB">${esc(b)}</textarea>
-                  <button type="button" class="list-item-remove" onclick="this.parentElement.remove()" aria-label="Remove project detail" title="Remove project detail">${ReGenIcons.icon('trash')}</button>
+                  <textarea class="list-item-input proj-bullet-input" rows="1" maxlength="320" placeholder="e.g. Used React, Node.js, and MongoDB">${esc(b)}</textarea>
+                  <button type="button" class="list-item-remove" aria-label="Remove project detail" title="Remove project detail">${ReGenIcons.icon('trash')}</button>
                 </div>
               `).join('')}
             </div>
-            <button type="button" class="btn btn-secondary btn-sm mt-sm" onclick="ProjectsSection.addBullet(${id})">${ReGenIcons.icon('add')} Add Bullet</button>
+            <button type="button" class="btn btn-secondary btn-sm mt-sm add-bullet-btn">${ReGenIcons.icon('add')} Add Bullet</button>
           </div>
         </div>
       </div>
@@ -82,7 +82,11 @@ const ProjectsSection = (() => {
     const id = Date.now() + Math.floor(Math.random()*1000);
     entries.push(id);
     document.getElementById('proj-list').insertAdjacentHTML('beforeend', renderForm(id, data));
-    window.ZeekeForm?.bind(document.getElementById(`proj-${id}`));
+    const card = document.getElementById(`proj-${id}`);
+    card.querySelector('.entry-delete-btn')?.addEventListener('click', () => removeEntry(id));
+    card.querySelector('.add-bullet-btn')?.addEventListener('click', () => addBullet(id));
+    bindBulletRemoveButtons(card);
+    window.ZeekeForm?.bind(card);
     updateNumbers();
   }
 
@@ -106,12 +110,22 @@ const ProjectsSection = (() => {
     container.insertAdjacentHTML('beforeend', `
       <div class="list-item-row">
         <span class="list-item-num">-</span>
-        <textarea class="list-item-input proj-bullet-input" rows="2" maxlength="320" placeholder="Project detail or technology used..."></textarea>
-        <button type="button" class="list-item-remove" onclick="this.parentElement.remove()" aria-label="Remove project detail" title="Remove project detail">${ReGenIcons.icon('trash')}</button>
+        <textarea class="list-item-input proj-bullet-input" rows="1" maxlength="320" placeholder="Add a project detail..."></textarea>
+        <button type="button" class="list-item-remove" aria-label="Remove project detail" title="Remove project detail">${ReGenIcons.icon('trash')}</button>
       </div>
     `);
-    const inputs = container.querySelectorAll('.proj-bullet-input');
-    inputs[inputs.length - 1].focus();
+    const row = container.lastElementChild;
+    window.ZeekeForm?.bind(row);
+    const input = row?.querySelector('.proj-bullet-input');
+    bindBulletRemoveButtons(container);
+    input?.focus();
+  }
+
+  function bindBulletRemoveButtons(scope) {
+    scope.querySelectorAll('.list-item-remove:not([data-bound])').forEach((button) => {
+      button.dataset.bound = 'true';
+      button.addEventListener('click', () => button.closest('.list-item-row')?.remove());
+    });
   }
 
   function getData() {

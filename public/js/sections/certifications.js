@@ -36,10 +36,13 @@ const CertificationsSection = (() => {
     container.innerHTML = list.map((val, i) => `
       <div class="list-item-row">
         <span class="list-item-num">-</span>
-        <textarea class="list-item-input cert-input" rows="2" maxlength="320" placeholder="e.g. AWS Certified Solutions Architect - Amazon Web Services, 2026">${esc(val)}</textarea>
-        <button type="button" class="list-item-remove" onclick="CertificationsSection.removeItem(${i})" aria-label="Remove certification" title="Remove certification">${ReGenIcons.icon('trash')}</button>
+        <textarea class="list-item-input cert-input" rows="1" maxlength="320" placeholder="e.g. AWS Certified Solutions Architect - Amazon Web Services, 2026">${esc(val)}</textarea>
+        <button type="button" class="list-item-remove" data-index="${i}" aria-label="Remove certification" title="Remove certification">${ReGenIcons.icon('trash')}</button>
       </div>
     `).join('');
+    container.querySelectorAll('.list-item-remove').forEach((button) => {
+      button.addEventListener('click', () => removeItem(Number(button.dataset.index)));
+    });
   }
 
   function removeItem(idx) {

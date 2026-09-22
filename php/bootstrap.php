@@ -16,7 +16,13 @@ $autoloadCandidates = [
 $autoloadLoaded = false;
 foreach ($autoloadCandidates as $autoload) {
     if (is_file($autoload)) {
-        require $autoload;
+        $loader = require $autoload;
+        if (
+            is_object($loader)
+            && method_exists($loader, 'addPsr4')
+        ) {
+            $loader->addPsr4('ReGen\\', __DIR__ . '/src', true);
+        }
         $autoloadLoaded = true;
         break;
     }
@@ -34,7 +40,6 @@ if (!$autoloadLoaded) {
 
 Config::load($projectRoot);
 Http::applySecurityHeaders();
-Session::start();
 
 set_exception_handler(static function (Throwable $error): void {
     error_log('[ReGen PHP Error] ' . $error);
@@ -48,6 +53,12 @@ set_exception_handler(static function (Throwable $error): void {
         ], 500);
     }
 });
+
+Session::start(
+    (string) Config::get('session.driver', 'files') === 'database'
+        ? Database::connection()
+        : null
+);
 
 if (Http::contentLength() > 8 * 1024 * 1024) {
     Http::json(['success' => false, 'message' => 'Request is too large.'], 413);

@@ -141,9 +141,24 @@ window.ZeekeForm = (() => {
     counter.textContent = `${el.value.length}/${max}`;
   }
 
+  function resizeTextarea(el) {
+    if (!el?.matches?.('textarea')) return;
+    const isListItem = el.classList.contains('list-item-input');
+    const maxHeight = Number(el.dataset.maxHeight) || (isListItem ? 112 : 220);
+    el.style.height = 'auto';
+    const minHeight = Number.parseFloat(getComputedStyle(el).minHeight) || 0;
+    const contentHeight = Math.max(minHeight, el.scrollHeight);
+    el.style.height = `${Math.min(contentHeight, maxHeight)}px`;
+    el.style.overflowY = contentHeight > maxHeight ? 'auto' : 'hidden';
+  }
+
   function bindField(el) {
     if (bound.has(el)) return;
     bound.add(el);
+    if (el.matches('textarea')) {
+      resizeTextarea(el);
+      el.addEventListener('input', () => resizeTextarea(el));
+    }
     if (el.type === 'tel') {
       if (el.value.trim()) el.value = ZeekeLookups.formatPhone(el.value, countryFor(el));
       el.addEventListener('blur', () => {
@@ -184,6 +199,8 @@ window.ZeekeForm = (() => {
   }
 
   function bind(root = document) {
+    window.ReGenAI?.bind(root);
+    if (root.matches?.('input, select, textarea')) bindField(root);
     root.querySelectorAll('input, select, textarea').forEach(bindField);
   }
 
@@ -201,5 +218,5 @@ window.ZeekeForm = (() => {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 
-  return { bind, validateScope, validateField, setError, normalizeUrl };
+  return { bind, validateScope, validateField, setError, normalizeUrl, resizeTextarea };
 })();

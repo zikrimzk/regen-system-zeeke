@@ -31,7 +31,7 @@ const ReferencesSection = (() => {
         <div class="entry-card-header">
           <div class="entry-card-num">${entries.length + 1}</div>
           <div class="entry-card-title">Reference Entry</div>
-          <button type="button" class="entry-delete-btn" onclick="ReferencesSection.removeEntry(${id})" aria-label="Remove reference" title="Remove reference">${ReGenIcons.icon('trash')}</button>
+          <button type="button" class="entry-delete-btn" aria-label="Remove reference" title="Remove reference">${ReGenIcons.icon('trash')}</button>
         </div>
         <div class="form-section">
           <div class="form-row">
@@ -75,8 +75,8 @@ const ReferencesSection = (() => {
     }
 
     document.getElementById('btn-add-ref').addEventListener('click', () => {
-      if (entries.length >= 4) {
-        App.showToast('Maximum 4 references allowed.', 'error');
+      if (entries.length >= 2) {
+        App.showToast('Maximum 2 references allowed.', 'error');
         return;
       }
       addEntry();
@@ -87,7 +87,9 @@ const ReferencesSection = (() => {
     const id = Date.now() + Math.floor(Math.random()*1000);
     entries.push(id);
     document.getElementById('ref-list').insertAdjacentHTML('beforeend', renderForm(id, data));
-    window.ZeekeForm?.bind(document.getElementById(`ref-${id}`));
+    const card = document.getElementById(`ref-${id}`);
+    card.querySelector('.entry-delete-btn')?.addEventListener('click', () => removeEntry(id));
+    window.ZeekeForm?.bind(card);
     updateNumbers();
   }
 
