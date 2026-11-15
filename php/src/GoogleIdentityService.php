@@ -47,14 +47,10 @@ final class GoogleIdentityService
         try {
             $payload = (new AccessToken())->verify($credential, [
                 'audience' => $this->clientId,
+                'throwException' => true,
             ]);
         } catch (\Throwable $error) {
-            error_log(
-                '[Google Identity Verification Error] '
-                . $error::class
-                . ': '
-                . $error->getMessage()
-            );
+            ErrorReporter::report($error, 'google.verify');
             return null;
         }
 

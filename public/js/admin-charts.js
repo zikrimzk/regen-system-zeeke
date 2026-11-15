@@ -1,0 +1,22 @@
+/* Small, dependency-free charts. Underlying values stay readable by assistive tools. */
+window.ReGenAdminCharts=(()=>{
+  const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function line(rows,series,label,maxValue=null){
+    const width=720,height=220,left=44,right=18,top=18,bottom=32;
+    const maximum=maxValue||Math.max(1,...rows.flatMap(row=>series.map(s=>Number(row[s.key])||0)));
+    const x=i=>left+i*(width-left-right)/Math.max(1,rows.length-1);
+    const y=value=>height-bottom-(Number(value)||0)/maximum*(height-top-bottom);
+    const grid=[0,.25,.5,.75,1].map(f=>`<g><line x1="${left}" x2="${width-right}" y1="${y(maximum*f)}" y2="${y(maximum*f)}"/><text x="${left-10}" y="${y(maximum*f)+4}" text-anchor="end">${Number((maximum*f).toFixed(1))}</text></g>`).join('');
+    const axes=rows.filter((_,i)=>i===0||i===rows.length-1||i%Math.max(1,Math.ceil(rows.length/6))===0).map(row=>`<text x="${x(rows.indexOf(row))}" y="${height-7}" text-anchor="middle">${safe(row.day?.slice(5)||row.label)}</text>`).join('');
+    const paths=series.map((s,index)=>`<g class="chart-series chart-series-${index}"><polyline points="${rows.map((row,i)=>`${x(i)},${y(row[s.key])}`).join(' ')}"/>${rows.map((row,i)=>`<circle cx="${x(i)}" cy="${y(row[s.key])}" r="${rows.length>20?2.5:4}" tabindex="0"><title>${safe(row.day||row.label)}: ${safe(s.name)} ${Number(row[s.key]||0)}</title></circle>`).join('')}</g>`).join('');
+    return `<figure class="insight-chart"><figcaption class="chart-legend">${series.map((s,i)=>`<span><i class="legend-${i}"></i>${safe(s.name)}</span>`).join('')}</figcaption>${rows.length?`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${safe(label)}"><title>${safe(label)}</title><g class="chart-grid">${grid}${axes}</g>${paths}</svg>`:'<p class="chart-empty">No observations in this period.</p>'}<details class="chart-values"><summary>View chart values</summary><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Date</th>${series.map(s=>`<th>${safe(s.name)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr><td>${safe(row.day||row.label)}</td>${series.map(s=>`<td>${Number(row[s.key]||0)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details></figure>`;
+  }
+  function ring(items,label){const total=items.reduce((sum,item)=>sum+Number(item.value),0);let offset=0;return `<figure class="insight-ring"><svg viewBox="0 0 160 160" role="img" aria-label="${safe(label)}"><title>${safe(label)}</title><circle class="ring-track" cx="80" cy="80" r="61"/>${items.map((item,i)=>{const share=total?Number(item.value)/total*100:0;const result=`<circle class="ring-segment ring-${i}" cx="80" cy="80" r="61" pathLength="100" stroke-dasharray="${share} ${100-share}" stroke-dashoffset="${-offset}"><title>${safe(item.label)}: ${Number(item.value)}</title></circle>`;offset+=share;return result;}).join('')}<text x="80" y="79" class="ring-total" text-anchor="middle">${total.toLocaleString()}</text><text x="80" y="98" text-anchor="middle">total</text></svg><figcaption>${items.map((item,i)=>`<div><span><i class="legend-${i}"></i>${safe(item.label)}</span><strong>${Number(item.value).toLocaleString()}</strong></div>`).join('')}</figcaption></figure>`;}
+  function paginate(container,selector='tbody>tr',size=10){
+    if(!container||container.dataset.paginated)return;const items=[...container.querySelectorAll(selector)];if(items.length<=size)return;
+    container.dataset.paginated='true';let page=1;const nav=document.createElement('nav');nav.className='admin-pagination local-pagination';nav.setAttribute('aria-label','List pages');container.after(nav);
+    const render=()=>{items.forEach((row,index)=>row.hidden=index<(page-1)*size||index>=page*size);nav.innerHTML=`<button type="button" class="btn btn-secondary" data-prev ${page<=1?'disabled':''}>Previous</button><span>Page ${page} of ${Math.ceil(items.length/size)} · ${items.length} records</span><button type="button" class="btn btn-secondary" data-next ${page*size>=items.length?'disabled':''}>Next</button>`;nav.querySelector('[data-prev]').onclick=()=>{page--;render();};nav.querySelector('[data-next]').onclick=()=>{page++;render();};};render();
+  }
+  function paginateTables(root){root.querySelectorAll('.admin-table-wrap').forEach(container=>{if(!container.closest('section')?.querySelector('.admin-pagination:not(.local-pagination)'))paginate(container);});}
+  return {line,ring,paginate,paginateTables};
+})();

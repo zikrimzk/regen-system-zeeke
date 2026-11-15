@@ -9,7 +9,7 @@ window.ReGenAI = (() => {
     'certifications',
   ]);
   const LABELS = {
-    summary: 'professional summary',
+    summary: 'opening profile',
     experience: 'work experience',
     projects: 'projects',
     extracurricular: 'activities',
@@ -32,10 +32,7 @@ window.ReGenAI = (() => {
   }
 
   function bulletData(scope, selector) {
-    return Array.from(scope.querySelectorAll(selector)).map((field, index) => ({
-      index,
-      text: clean(field.value, true),
-    }));
+    return ReGenPoints.lines(scope.querySelector(selector)?.value || '').map((text, index) => ({index, text}));
   }
 
   function buildSectionData(root, section) {
@@ -59,7 +56,6 @@ window.ReGenAI = (() => {
           index,
           title: clean(value('.proj-title', card)),
           type: clean(value('.proj-type', card)),
-          description: clean(value('.proj-desc', card), true),
           bullets: bulletData(card, '.proj-bullet-input'),
         })),
       };
@@ -89,15 +85,12 @@ window.ReGenAI = (() => {
     }
     const selector = section === 'achievements' ? '.ach-input' : '.cert-input';
     return {
-      items: Array.from(root.querySelectorAll(selector)).map((field, index) => ({
-        index,
-        text: clean(field.value, true),
-      })),
+      items: bulletData(root, selector),
     };
   }
 
   function formatReset(resetAt) {
-    if (!resetAt) return 'The 24-hour token limit starts with your first use';
+    if (!resetAt) return 'The token limit window starts with your first use';
     const date = new Date(resetAt);
     if (Number.isNaN(date.getTime())) return 'Reset time unavailable';
     return `Resets ${date.toLocaleString(undefined, {
@@ -112,17 +105,16 @@ window.ReGenAI = (() => {
 
   function requestLabel(quota) {
     if (!quota) return 'ReGen AI usage details unavailable';
-    const limit = Math.max(1, Math.floor(Number(quota.limit) || 15));
-    const remaining = Math.max(0, Math.min(limit, Math.floor(Number(quota.remaining) || 0)));
-    return `${remaining} of ${limit} ReGen AI Tokens remaining`;
+    const remaining = Math.max(0, Math.floor(Number(quota.remaining) || 0));
+    return `${remaining} tokens`;
   }
 
   function exhaustedMessage(quota) {
-    const limit = Math.max(1, Number(quota?.limit) || 15);
+    if(quota?.renewable===false)return 'This action needs more tokens than your allowance contains. Your AI allowance does not renew automatically. Saved tokens are used after base tokens.';
     const reset = quota?.resetAt
       ? formatReset(quota.resetAt).replace(/^Resets /, '')
-      : 'when the next 24-hour window begins';
-    return `You have reached the ${limit} ReGen AI Token limit. Tokens reset ${reset}.`;
+      : 'when the next token window begins';
+    return `This action needs more tokens than are available. Your AI allowance renews ${reset}. Saved tokens are used after base tokens.`;
   }
 
   async function loadStatus({ force = false } = {}) {
@@ -136,15 +128,18 @@ window.ReGenAI = (() => {
           loaded: true,
           enabled: result.success === true && result.enabled === true,
           quota: result.quota || null,
+          costs: result.costs || {}, assistance: result.assistance || {},
         };
         if (result.success !== true) statusPromise = null;
         document.querySelectorAll('.ai-section-assist').forEach(updateCard);
+        window.dispatchEvent(new CustomEvent('regen:ai-status', { detail: availability }));
         return availability;
       })
       .catch(() => {
         availability = { loaded: true, enabled: false, quota: null };
         statusPromise = null;
         document.querySelectorAll('.ai-section-assist').forEach(updateCard);
+        window.dispatchEvent(new CustomEvent('regen:ai-status', { detail: availability }));
         return availability;
       });
     return statusPromise;
@@ -154,11 +149,12 @@ window.ReGenAI = (() => {
     if (!quota) return;
     availability.quota = quota;
     document.querySelectorAll('.ai-section-assist').forEach(updateCard);
+        window.dispatchEvent(new CustomEvent('regen:ai-status', { detail: availability }));
     if (broadcast) {
       try {
         localStorage.setItem(QUOTA_SYNC_KEY, JSON.stringify({ quota, at: Date.now() }));
       } catch (error) {
-        // Status remains correct in this tab when storage is unavailable.
+        // STATUS REMAINS CORRECT IN THIS TAB WHEN STORAGE IS UNAVAILABLE.
       }
     }
   }
@@ -178,9 +174,9 @@ window.ReGenAI = (() => {
       && Number.isFinite(Number(availability.quota?.remaining));
     if (token) {
       token.textContent = !availability.loaded
-        ? 'Checking ReGen AI availability...'
+        ? 'Checking…'
         : !availability.enabled
-          ? 'ReGen AI assistance unavailable'
+          ? 'AI unavailable'
           : requestLabel(availability.quota);
     }
     if (refill) {
@@ -189,21 +185,27 @@ window.ReGenAI = (() => {
         : !availability.enabled
           ? 'Try again later'
           : hasQuota
-            ? formatReset(availability.quota.resetAt)
+            ? (availability.quota.renewable===false?'Fixed base allowance':formatReset(availability.quota.resetAt))
             : 'Usage details are temporarily unavailable';
     }
-    const exhausted = hasQuota && Number(availability.quota.remaining) <= 0;
-    const disabled = !availability.loaded || !availability.enabled || exhausted;
+    const cost = Number(availability.quota?.costs?.refine ?? availability.costs?.refine ?? 1);
+    window.ReGenTokens?.setAiCosts({refine:cost});
+    const access = window.ReGenTokens?.getPrice('ai_refine')?.accessState;
+    const needsPackage = access === 'locked' || access === 'exhausted';
+    const exhausted = access !== 'included' && hasQuota && Number(availability.quota.remaining) < cost;
+    const disabled = card.getAttribute('aria-busy') === 'true'
+      || (!needsPackage && (!availability.loaded || !availability.enabled || exhausted));
     if (button && button.dataset.loading !== 'true') button.disabled = disabled;
     if (regenerate && regenerate.dataset.loading !== 'true') regenerate.disabled = disabled;
     if (button) {
       button.title = !availability.loaded
-        ? 'Checking ReGen AI availability...'
+        ? 'Checking…'
         : !availability.enabled
           ? 'ReGen AI assistance is temporarily unavailable'
           : exhausted
             ? exhaustedMessage(availability.quota)
-            : 'Uses one ReGen AI Token.';
+            : `Uses ${cost} Token${cost === 1 ? '' : 's'} on success. Errors cost nothing.`;
+      if (button.dataset.loading !== 'true') window.ReGenTokens?.bind(button,'ai_refine','Refine');
     }
   }
 
@@ -223,7 +225,7 @@ window.ReGenAI = (() => {
     });
     button.innerHTML = loading
       ? '<span class="ai-spinner" aria-hidden="true"></span><span>Creating suggestions...</span>'
-      : `${ReGenIcons.icon('sparkles')} <span>Improve this section</span>`;
+      : `${ReGenIcons.icon('writing')} <span>Refine</span>`;
     card.setAttribute('aria-busy', String(loading));
     if (!loading) updateCard(card);
   }
@@ -244,7 +246,24 @@ window.ReGenAI = (() => {
     const before = clean(field?.value, field?.tagName === 'TEXTAREA');
     const next = clean(after, field?.tagName === 'TEXTAREA');
     if (!field || !next || before === next) return null;
-    return { label, before, after: next, apply: () => setField(field, next) };
+    return { label, before, after: next, apply: () => {
+      if (field.isConnected && clean(field.value, field.tagName === 'TEXTAREA') === before) setField(field, next);
+    } };
+  }
+
+  function pointChange(label, field, index, after) {
+    if (!field) return null;
+    const before = ReGenPoints.lines(field.value)[index];
+    const next = clean(after);
+    if (!before || !next || before === next) return null;
+    return {label, before, after:next, apply:() => {
+      const lines = ReGenPoints.lines(field.value);
+      // DO NOT OVERWRITE A POINT EDITED WHILE AN AI SUGGESTION WAS PENDING.
+      if (lines[index] !== before) return;
+      lines[index] = next;
+      field.value = ReGenPoints.format(lines);
+      field.dispatchEvent(new Event('input', {bubbles:true}));
+    }};
   }
 
   function collectChanges(root, section, suggestion) {
@@ -269,19 +288,11 @@ window.ReGenAI = (() => {
       (suggestion.entries || []).forEach((entry) => {
         const card = cards[Number(entry.index)];
         if (!card) return;
-        if (section === 'projects' && entry.description) {
-          const item = change(
-            `${sectionLabel} ${Number(entry.index) + 1} · Description`,
-            card.querySelector('.proj-desc'),
-            entry.description
-          );
-          if (item) changes.push(item);
-        }
         const bullets = card.querySelectorAll(bulletSelector);
         (entry.bullets || []).forEach((bullet) => {
-          const item = change(
+          const item = pointChange(
             `${sectionLabel} ${Number(entry.index) + 1} · Bullet ${Number(bullet.index) + 1}`,
-            bullets[Number(bullet.index)],
+            bullets[0], Number(bullet.index),
             bullet.text
           );
           if (item) changes.push(item);
@@ -317,7 +328,7 @@ window.ReGenAI = (() => {
     const fields = root.querySelectorAll(section === 'achievements' ? '.ach-input' : '.cert-input');
     const label = section === 'achievements' ? 'Achievement' : 'Certification';
     (suggestion.items || []).forEach((item) => {
-      const next = change(`${label} ${Number(item.index) + 1}`, fields[Number(item.index)], item.text);
+      const next = pointChange(`${label} ${Number(item.index) + 1}`, fields[0], Number(item.index), item.text);
       if (next) changes.push(next);
     });
     return changes;
@@ -383,13 +394,14 @@ window.ReGenAI = (() => {
     const result = await Api.suggestResumeSection({
       section,
       data: buildSectionData(root, section),
+      expectedCost: Number(availability.quota?.costs?.refine ?? availability.costs?.refine ?? 1),
       previousSuggestion: card._regenSuggestion || null,
     });
     setLoading(card, false);
     if (result.quota) setQuota(result.quota);
     if (!result.success || !result.suggestion) {
       const quotaExhausted = result.quota
-        && (result.quota.exhausted === true || Number(result.quota.remaining) <= 0);
+        && Number(result.quota.remaining) < Number(result.quota.costs?.refine ?? 1);
       const message = result.status === 429 && quotaExhausted
         ? exhaustedMessage(result.quota)
         : result.message || 'ReGen AI could not create a suggestion. Please try again.';
@@ -397,7 +409,7 @@ window.ReGenAI = (() => {
       return;
     }
     card._regenSuggestion = result.suggestion;
-    renderSuggestion(card, root, section, result.suggestion);
+    if (card.isConnected) renderSuggestion(card, root, section, result.suggestion);
   }
 
   function createCard(root, section) {
@@ -410,18 +422,20 @@ window.ReGenAI = (() => {
     card.innerHTML = `
       <div class="ai-section-toolbar">
         <div class="ai-section-heading">
-          <span class="ai-section-icon">${ReGenIcons.icon('sparkles')}</span>
-          <h3>Improve ${LABELS[section]}</h3>
+          <span class="ai-section-icon">${ReGenIcons.icon('writing')}</span>
+          <h3>AI writing studio</h3>
         </div>
         <div class="ai-section-controls">
-          <div class="ai-token-summary">
-            <strong class="ai-token-badge">Checking ReGen AI availability...</strong>
+          <details class="ai-token-summary">
+            <summary class="ai-token-badge">AI balance</summary>
             <span class="ai-token-refill"></span>
-          </div>
-          <button type="button" class="btn btn-secondary ai-section-request" aria-controls="${resultId}" aria-expanded="false" disabled>
-            ${ReGenIcons.icon('sparkles')} <span>Improve this section</span>
-          </button>
+          </details>
         </div>
+      </div>
+      <div class="ai-refine-row"><p><strong>Refine existing text</strong><span>Review suggested edits before applying them.</span></p>
+          <button type="button" class="btn btn-secondary ai-section-request" aria-controls="${resultId}" aria-expanded="false" disabled>
+            ${ReGenIcons.icon('writing')} <span>Refine</span>
+          </button>
       </div>
       <p class="ai-section-status" role="status"></p>
       <div class="ai-section-result hidden" id="${resultId}" role="region" aria-labelledby="${resultTitleId}">
@@ -434,7 +448,7 @@ window.ReGenAI = (() => {
           <button type="button" class="btn btn-secondary ai-regenerate">${ReGenIcons.icon('retry')} Regenerate</button>
           <button type="button" class="btn btn-ghost ai-dismiss">Keep current</button>
         </div>
-        <p class="ai-result-note">Review ReGen AI-generated wording before using it.</p>
+
       </div>`;
     card.querySelector('.ai-section-request')?.addEventListener('click', () => requestSuggestion(card, root, section));
     card.querySelector('.ai-regenerate')?.addEventListener('click', () => requestSuggestion(card, root, section));
@@ -443,12 +457,14 @@ window.ReGenAI = (() => {
       setStatus(card, 'Current wording kept.');
       card.querySelector('.ai-section-request')?.focus();
     });
+    if (!SUPPORTED.has(section)) card.querySelectorAll('.ai-refine-row,.ai-section-result').forEach(element => { element.hidden = true; });
+    window.ReGenAssist?.bind(card, root, section);
     updateCard(card);
     return card;
   }
 
   function bind(root = document, section = '') {
-    if (!SUPPORTED.has(section) || root.querySelector('.ai-section-assist')) return;
+    if ((!SUPPORTED.has(section) && !window.ReGenAssist?.supported.has(section)) || root.querySelector('.ai-section-assist')) return;
     const body = root.querySelector('.form-body');
     if (!body) return;
     body.prepend(createCard(root, section));
@@ -465,6 +481,7 @@ window.ReGenAI = (() => {
     }
   });
   window.addEventListener('focus', scheduleStatusRefresh);
+  window.addEventListener('regen:prices-updated',scheduleStatusRefresh);
   document.addEventListener('visibilitychange', scheduleStatusRefresh);
 
   return { bind, loadStatus, setQuota };

@@ -1,0 +1,83 @@
+:root {
+  --color-canvas: #f5f7f4;
+  --color-editorial: #ecf1ed;
+  --color-panel: #fff;
+  --color-subtle: #ecf1ed;
+  --color-raised: #e1e8e1;
+  --color-ink: #172b25;
+  --color-muted: #466057;
+  --color-line: #d3ded9;
+  --color-control-line: #87998e;
+  --color-action: #175543;
+  --color-action-hover: #104d38;
+  --color-selected: #e2eee7;
+  --color-on-action: #fff;
+  --color-focus: #176952;
+  --color-admin-rail: #152c23;
+  --color-admin-ink: #eef5f0;
+  --color-admin-muted: #aec1b6;
+  --color-admin-active: #2c4839;
+  --color-scrim: #13291eb3;
+  --type-meta: 0.8125rem;
+  --type-small: 0.875rem;
+  --type-body: 1rem;
+  --type-dialog: 1.25rem;
+  --type-section: 1.375rem;
+  --type-page: 1.75rem;
+  --type-display: clamp(2.45rem, 4vw, 3.35rem);
+  --line-body: 1.5;
+  --line-title: 1.18;
+  --weight-medium: 500;
+  --weight-strong: 620;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-dialog: 18px;
+  --elevation-overlay: 0 12px 40px #12291b24;
+  --duration-quick: 140ms;
+  --duration-standard: 200ms;
+  --layer-rail: 90;
+  --layer-header: 100;
+  --layer-mobile-nav: 120;
+  --layer-menu: 220;
+  --target: 44px;
+  --workspace-gutter: clamp(16px, 3vw, 40px);
+  --workspace-width: 1160px;
+  --workspace-rail-width: 224px;
+  --mobile-nav-height: 62px;
+}
+
+.product-wordmark{display:inline-flex;align-items:center;min-height:var(--target);color:inherit;font:780 clamp(1.55rem,2.5vw,2rem)/1 Inter,system-ui,sans-serif;letter-spacing:-.075em;white-space:nowrap}
+.product-wordmark span{color:var(--color-action)}
+
+:root[data-theme="dark"], :root[data-appearance="dark"] {
+  --color-canvas: #111b16;
+  --color-editorial: #18251d;
+  --color-panel: #1a2720;
+  --color-subtle: #23332a;
+  --color-raised: #2c4035;
+  --color-ink: #eaf2ec;
+  --color-muted: #b4c8bb;
+  --color-line: #394e42;
+  --color-control-line: #839b8b;
+  --color-action: #8fd1ae;
+  --color-action-hover: #a9e1c1;
+  --color-selected: #263f32;
+  --color-on-action: #10271d;
+  --color-focus: #a3dfbb;
+  --elevation-overlay: 0 12px 40px #060e0aad;
+}
+
+/* CSS media queries live beside each layout rule. See the design system for screen cutoffs. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-quick: 0ms; --duration-standard: 0ms; }
+}

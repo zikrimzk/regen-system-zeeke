@@ -4,15 +4,20 @@
   "type": "project",
   "license": "proprietary",
   "require": {
-    "php": "^8.1",
+    "php": "^8.3",
     "ext-curl": "*",
+    "ext-dom": "*",
     "ext-fileinfo": "*",
+    "ext-gd": "*",
     "ext-json": "*",
     "ext-mbstring": "*",
+    "ext-openssl": "*",
     "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
     "dompdf/dompdf": "^3.1",
     "google/auth": "^1.53",
-    "phpseclib/phpseclib": "^3.0"
+    "phpseclib/phpseclib": "^3.0",
+    "pusher/pusher-php-server": "^7.3"
   },
   "autoload": {
     "psr-4": {
@@ -22,5 +27,23 @@
   "config": {
     "optimize-autoloader": true,
     "sort-packages": true
+  },
+  "scripts": {
+    "check": [
+      "@php scripts/build-site-css.php",
+      "@php scripts/check.php",
+      "@php scripts/check-page-assets.php",
+      "@php scripts/check-phase01.php",
+      "@php scripts/check-site.php",
+      "@php scripts/check-templates.php",
+      "@php scripts/check-writing.php",
+      "@php scripts/check-assistance.php",
+      "@php scripts/check-mochi.php",
+      "@php scripts/check-mail-config.php"
+    ],
+    "release": [
+      "@check",
+      "@php scripts/build-release.php"
+    ]
   }
 }

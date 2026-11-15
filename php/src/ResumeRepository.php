@@ -15,7 +15,7 @@ final class ResumeRepository
     /** @param array<string, mixed> $user
      *  @return array<string, mixed>
      */
-    public function getOrCreatePrimary(int $userId, array $user, string $title): array
+    public function getOrCreatePrimary(int $userId, array $user, string $title, string $templateId = 'classic'): array
     {
         $lockName = 'resume-single:' . $userId;
         $lock = $this->db->prepare('SELECT GET_LOCK(?, 5)');
@@ -33,7 +33,7 @@ final class ResumeRepository
             if ($existing !== null) {
                 return $this->primaryPayload($existing, true);
             }
-            return $this->create($userId, $user, $title);
+            return DocumentWriteGuard::run($this->db, $userId, fn(): array => $this->create($userId, $user, $title, $templateId));
         } finally {
             try {
                 $release = $this->db->prepare('SELECT RELEASE_LOCK(?)');
@@ -69,6 +69,28 @@ final class ResumeRepository
         return $this->decodeRow($statement->fetch());
     }
 
+    public function primaryDesign(int $userId): ?array
+    {
+        $query = $this->db->prepare("SELECT id,JSON_UNQUOTE(JSON_EXTRACT(resume_data,'$.templateId')) AS template_id
+            FROM resumes WHERE user_id=? ORDER BY updated_at DESC,id DESC LIMIT 1");
+        $query->execute([$userId]);
+        return $query->fetch() ?: null;
+    }
+
+    /** The account avatar follows the uploaded portrait, independently of template visibility. */
+    public function accountPhoto(int $userId): string
+    {
+        $statement = $this->db->prepare(
+            "SELECT JSON_UNQUOTE(JSON_EXTRACT(resume_data, '$.personal.photoBase64'))
+             FROM resumes WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1"
+        );
+        $statement->execute([$userId]);
+        $photo = $statement->fetchColumn();
+        return is_string($photo) && strlen($photo) <= 2200000
+            && preg_match('#^data:image/(?:png|jpeg);base64,[A-Za-z0-9+/=\r\n]+$#D', $photo)
+            ? $photo : '';
+    }
+
     /** @return array<string, mixed>|null */
     public function getById(int $resumeId, int $userId): ?array
     {
@@ -89,9 +111,25 @@ final class ResumeRepository
 
     public function saveSection(int $resumeId, int $userId, string $section, mixed $data): bool
     {
+        return DocumentWriteGuard::run($this->db, $userId, function () use ($resumeId,$userId,$section,$data): bool {
+        $previous = $section === 'templateId' ? $this->getById($resumeId,$userId) : null;
+        if ($section === 'templateId') {
+            if($previous===null)return false;
+            (new TemplateManagement($this->db))->requireSelectable((string)$data);
+            (new TemplateAccess($this->db))->apply($userId,(string)$data,$previous['resume_data']['templateId']??'classic');
+        }
+        (new RecoveryService($this->db))->snapshot($userId, 'Automatic document history', null, true);
+        // WRITE RELATED PREFERENCES TOGETHER SO A FAILURE CANNOT LEAVE HALF-APPLIED SETTINGS.
+        $settings = $section === 'documentSettings';
+        $expression = $settings
+            ? "JSON_SET(resume_data, '$.sectionOrder', JSON_EXTRACT(?, '$'), '$.appearance', JSON_EXTRACT(?, '$'), '$.writing', JSON_EXTRACT(?, '$'))"
+            : "JSON_SET(resume_data, ?, JSON_EXTRACT(?, '$'))";
+        $values = $settings
+            ? [self::encode($data['sectionOrder']), self::encode($data['appearance']), self::encode($data['writing'])]
+            : ['$.' . $section, self::encode($data)];
         $statement = $this->db->prepare(
             'UPDATE resumes
-             SET resume_data = JSON_SET(resume_data, ?, JSON_EXTRACT(?, \'$\')), updated_at = NOW()
+             SET resume_data = ' . $expression . ', updated_at = NOW()
              WHERE id = ? AND user_id = ?
                AND id = (
                  SELECT active.primary_id FROM (
@@ -101,13 +139,17 @@ final class ResumeRepository
                )'
         );
         $statement->execute([
-            '$.' . $section,
-            self::encode($data),
+            ...$values,
             $resumeId,
             $userId,
             $userId,
         ]);
-        return $statement->rowCount() > 0;
+        if ($section === 'templateId' && $previous !== null && ($previous['resume_data']['templateId'] ?? 'classic') !== $data) {
+            (new TemplateManagement($this->db))->recordSelection($userId,(string)$data);
+            (new AuditLogger($this->db))->log('user.template_selected','template',(string)$data,[],'user',$userId);
+        }
+        return $statement->rowCount() > 0 || $this->getById($resumeId, $userId) !== null;
+        });
     }
 
     /** @param array<string, mixed> $data */
@@ -140,6 +182,7 @@ final class ResumeRepository
 
     public function updateTitle(int $resumeId, int $userId, string $title): bool
     {
+        return DocumentWriteGuard::run($this->db,$userId,function()use($resumeId,$userId,$title):bool {
         $statement = $this->db->prepare(
             'UPDATE resumes SET title = ?, updated_at = NOW()
              WHERE id = ? AND user_id = ?
@@ -151,7 +194,9 @@ final class ResumeRepository
                )'
         );
         $statement->execute([$title, $resumeId, $userId, $userId]);
+        if($statement->rowCount())(new RealtimeEvents($this->db))->publish('templates','admin');
         return $statement->rowCount() > 0;
+        });
     }
 
     /** @param array<string, mixed> $review */
@@ -180,11 +225,17 @@ final class ResumeRepository
     /** @param array<string, mixed> $user
      *  @return array<string, mixed>
      */
-    private function create(int $userId, array $user, string $title): array
+    private function create(int $userId, array $user, string $title, string $templateId): array
     {
+        (new TemplateManagement($this->db))->requireSelectable($templateId);
+        (new TemplateAccess($this->db))->apply($userId,$templateId,null);
         $address = (string) ($user['address'] ?? '');
         $location = self::seedLocation($address);
         $resumeData = [
+            'templateId' => TemplateCatalog::get($templateId)['id'],
+            'sectionOrder' => TemplateCatalog::get($templateId)['recommendedOrder'],
+            'writing' => ResumeWriting::settings(['dateOrder'=>'newest']),
+            'additional' => [],
             'personal' => [
                 'fullName' => trim((string) ($user['first_name'] ?? '') . ' ' . (string) ($user['last_name'] ?? '')),
                 'jobTitle' => '',
@@ -220,8 +271,10 @@ final class ResumeRepository
             'INSERT INTO resumes (user_id, title, resume_data) VALUES (?, ?, ?)'
         );
         $statement->execute([$userId, $title, self::encode($resumeData)]);
+        $resumeId = (int) $this->db->lastInsertId();
+        (new TemplateManagement($this->db))->recordSelection($userId,$templateId);
         return [
-            'id' => (int) $this->db->lastInsertId(),
+            'id' => $resumeId,
             'title' => $title,
             'resumeData' => $resumeData,
         ];

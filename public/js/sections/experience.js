@@ -1,5 +1,6 @@
 const ExperienceSection = (() => {
   let entries = [];
+  let nextId = 0;
 
   function countryOptions(selected = 'Malaysia') {
     return ZeekeLookups.COUNTRIES.filter(country => country !== 'Worldwide').map(country =>
@@ -23,12 +24,12 @@ const ExperienceSection = (() => {
       <div class="step-header">
         <div class="step-header-info">
           <div class="step-count">Step ${stepNum}</div>
-          <h2 class="step-title">Work Experience</h2>
-          <p class="step-subtitle">Employment history and responsibilities.</p>
+          <h2 class="step-title">Experience</h2>
+          <p class="step-subtitle">Your work, and the difference you made.</p>
         </div>
-        <button type="button" class="skip-btn">Skip Step ${ReGenIcons.icon('arrowRight')}</button>
+        <button type="button" class="skip-btn">Skip ${ReGenIcons.icon('arrowRight')}</button>
       </div>
-      <div class="form-body form-section">
+      <div class="form-body form-section repeatable-form">
         <div id="exp-list" class="entry-cards"></div>
         <button type="button" class="add-entry-btn" id="btn-add-exp">${ReGenIcons.icon('add')} Add Experience</button>
       </div>
@@ -88,17 +89,8 @@ const ExperienceSection = (() => {
             </div>
           </div>
           <div class="form-group form-group-full">
-            <label class="form-label">Responsibilities & Achievements</label>
-            <div class="list-editor" id="exp-bullets-${id}">
-              ${bullets.map(b => `
-                <div class="list-item-row">
-                  <span class="list-item-num">-</span>
-                  <textarea class="list-item-input exp-bullet-input" rows="1" maxlength="320" placeholder="e.g. Led a team of 5 engineers to deliver...">${esc(b)}</textarea>
-                  <button type="button" class="list-item-remove" aria-label="Remove responsibility" title="Remove responsibility">${ReGenIcons.icon('trash')}</button>
-                </div>
-              `).join('')}
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm mt-sm add-bullet-btn">${ReGenIcons.icon('add')} Add Bullet</button>
+            <label class="form-label" for="exp-points-${id}">Contributions</label>
+            <textarea id="exp-points-${id}" class="points-editor exp-bullet-input" data-preserve-spaces="true" rows="4" maxlength="16000" placeholder="e.g. Automated weekly reports and saved the team two hours">${esc(ReGenPoints.format(bullets))}</textarea><p class="points-hint">One contribution per line.</p>
           </div>
         </div>
       </div>
@@ -117,7 +109,7 @@ const ExperienceSection = (() => {
   }
 
   function addEntry(data = {}) {
-    const id = Date.now() + Math.floor(Math.random()*1000);
+    const id = ++nextId;
     entries.push(id);
     document.getElementById('exp-list').insertAdjacentHTML('beforeend', renderForm(id, data));
     const card = document.getElementById(`exp-${id}`);
@@ -127,8 +119,7 @@ const ExperienceSection = (() => {
     card.querySelector('.exp-current')?.addEventListener('change', (event) => {
       toggleCurrent(event.currentTarget, `exp-${id}`);
     });
-    card.querySelector('.add-bullet-btn')?.addEventListener('click', () => addBullet(id));
-    bindBulletRemoveButtons(card);
+    ReGenPoints.bind(card);
     country.addEventListener('change', () => {
       location.innerHTML = locationOptions(country.value, '');
       location.dispatchEvent(new Event('change', { bubbles: true }));
@@ -151,30 +142,6 @@ const ExperienceSection = (() => {
     });
   }
 
-  function addBullet(id) {
-    const container = document.getElementById(`exp-bullets-${id}`);
-    if (!container) return;
-    container.insertAdjacentHTML('beforeend', `
-      <div class="list-item-row">
-        <span class="list-item-num">-</span>
-        <textarea class="list-item-input exp-bullet-input" rows="1" maxlength="320" placeholder="Add a responsibility..."></textarea>
-        <button type="button" class="list-item-remove" aria-label="Remove responsibility" title="Remove responsibility">${ReGenIcons.icon('trash')}</button>
-      </div>
-    `);
-    const row = container.lastElementChild;
-    window.ZeekeForm?.bind(row);
-    const input = row?.querySelector('.exp-bullet-input');
-    bindBulletRemoveButtons(container);
-    input?.focus();
-  }
-
-  function bindBulletRemoveButtons(scope) {
-    scope.querySelectorAll('.list-item-remove:not([data-bound])').forEach((button) => {
-      button.dataset.bound = 'true';
-      button.addEventListener('click', () => button.closest('.list-item-row')?.remove());
-    });
-  }
-
   function toggleCurrent(checkbox, parentId) {
     const endInput = document.querySelector(`#${parentId} .exp-end`);
     endInput.disabled = checkbox.checked;
@@ -187,7 +154,7 @@ const ExperienceSection = (() => {
 
     if (entries.length === 0) return { isValid: true, data: [] };
 
-    entries.forEach(id => {
+    FormCards.ordered(entries, 'exp-list').forEach(id => {
       const card = document.getElementById(`exp-${id}`);
       if (!card) return;
 
@@ -205,9 +172,7 @@ const ExperienceSection = (() => {
       if (!isCurr && !end.value.trim()) { end.classList.add('is-error'); isValid = false; }
       else end.classList.remove('is-error');
 
-      const bullets = Array.from(card.querySelectorAll('.exp-bullet-input'))
-        .map(i => window.ZeekeSafe.value(i))
-        .filter(b => b);
+      const bullets = ReGenPoints.lines(card.querySelector('.exp-bullet-input').value);
 
       if (isValid) {
         data.push({
@@ -229,5 +194,5 @@ const ExperienceSection = (() => {
     return { isValid, data: isValid ? data : null };
   }
 
-  return { render, attachEvents, getData, removeEntry, addBullet, toggleCurrent };
+  return { render, attachEvents, getData, removeEntry, toggleCurrent };
 })();

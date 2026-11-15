@@ -127,6 +127,7 @@ final class UserRepository
                 $identity['subject'],
                 $identity['email']
             );
+            (new NotificationService($this->db))->welcome($userId);
             $this->db->commit();
 
             return [
@@ -175,7 +176,7 @@ final class UserRepository
     {
         $statement = $this->db->prepare(
             'SELECT id, first_name, last_name, email, phone, address,
-                    email_verified_at, created_at
+                    email_verified_at, account_status, ai_token_limit, created_at
              FROM users WHERE id = ? LIMIT 1'
         );
         $statement->execute([$id]);
@@ -298,9 +299,10 @@ final class UserRepository
                 );
                 $update->execute([$userId]);
                 $valid = $update->rowCount() === 1;
+                if ($valid) (new NotificationService($this->db))->welcome($userId);
             }
 
-            // Expired, mismatched, already-used and successful tokens are all single-use.
+            // EXPIRED, MISMATCHED, ALREADY-USED AND SUCCESSFUL TOKENS ARE ALL SINGLE-USE.
             $delete = $this->db->prepare(
                 'DELETE FROM email_verification_tokens WHERE user_id = ?'
             );
@@ -347,6 +349,30 @@ final class UserRepository
     {
         password_verify(mb_substr($plainText, 0, 128), self::DUMMY_PASSWORD_HASH);
         return false;
+    }
+
+    public function changeEmailUnverified(
+        int $userId,
+        string $email,
+        string $tokenHash,
+        string $expiresAt,
+    ): void {
+        if (strlen($tokenHash) !== 32) {
+            throw new \InvalidArgumentException('Verification token hash must be 32 bytes.');
+        }
+        $email = mb_strtolower(trim($email));
+        $this->db->beginTransaction();
+        try {
+            $statement = $this->db->prepare(
+                'UPDATE users SET email = ?, email_verified_at = NULL WHERE id = ?'
+            );
+            $statement->execute([$email, $userId]);
+            $this->storeVerificationToken($userId, $email, $tokenHash, $expiresAt);
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $error;
+        }
     }
 
     private function insertIdentity(

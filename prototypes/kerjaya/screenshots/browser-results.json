@@ -1,0 +1,429 @@
+{
+  "viewport": [
+    {
+      "concept": "city",
+      "screen": "landing",
+      "width": 360,
+      "height": 844,
+      "content": 360,
+      "body": 360,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "landing",
+      "width": 390,
+      "height": 844,
+      "content": 390,
+      "body": 390,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "landing",
+      "width": 430,
+      "height": 844,
+      "content": 430,
+      "body": 430,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "landing",
+      "width": 768,
+      "height": 844,
+      "content": 753,
+      "body": 753,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "landing",
+      "width": 1024,
+      "height": 844,
+      "content": 1009,
+      "body": 1009,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "landing",
+      "width": 1440,
+      "height": 1000,
+      "content": 1425,
+      "body": 1425,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "dashboard",
+      "width": 360,
+      "height": 844,
+      "content": 360,
+      "body": 360,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "dashboard",
+      "width": 390,
+      "height": 844,
+      "content": 390,
+      "body": 390,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "dashboard",
+      "width": 430,
+      "height": 844,
+      "content": 430,
+      "body": 430,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "dashboard",
+      "width": 768,
+      "height": 844,
+      "content": 753,
+      "body": 753,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "dashboard",
+      "width": 1024,
+      "height": 844,
+      "content": 1009,
+      "body": 1009,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "dashboard",
+      "width": 1440,
+      "height": 1000,
+      "content": 1425,
+      "body": 1425,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "studio",
+      "width": 360,
+      "height": 844,
+      "content": 360,
+      "body": 360,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "studio",
+      "width": 390,
+      "height": 844,
+      "content": 390,
+      "body": 390,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "studio",
+      "width": 430,
+      "height": 844,
+      "content": 430,
+      "body": 430,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "studio",
+      "width": 768,
+      "height": 844,
+      "content": 753,
+      "body": 753,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "studio",
+      "width": 1024,
+      "height": 844,
+      "content": 1024,
+      "body": 1024,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "city",
+      "screen": "studio",
+      "width": 1440,
+      "height": 1000,
+      "content": 1440,
+      "body": 1440,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "landing",
+      "width": 360,
+      "height": 844,
+      "content": 360,
+      "body": 360,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "landing",
+      "width": 390,
+      "height": 844,
+      "content": 390,
+      "body": 390,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "landing",
+      "width": 430,
+      "height": 844,
+      "content": 430,
+      "body": 430,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "landing",
+      "width": 768,
+      "height": 844,
+      "content": 753,
+      "body": 753,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "landing",
+      "width": 1024,
+      "height": 844,
+      "content": 1009,
+      "body": 1009,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "landing",
+      "width": 1440,
+      "height": 1000,
+      "content": 1425,
+      "body": 1425,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "dashboard",
+      "width": 360,
+      "height": 844,
+      "content": 360,
+      "body": 360,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "dashboard",
+      "width": 390,
+      "height": 844,
+      "content": 390,
+      "body": 390,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "dashboard",
+      "width": 430,
+      "height": 844,
+      "content": 430,
+      "body": 430,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "dashboard",
+      "width": 768,
+      "height": 844,
+      "content": 753,
+      "body": 753,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "dashboard",
+      "width": 1024,
+      "height": 844,
+      "content": 1024,
+      "body": 1024,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "dashboard",
+      "width": 1440,
+      "height": 1000,
+      "content": 1440,
+      "body": 1440,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "studio",
+      "width": 360,
+      "height": 844,
+      "content": 360,
+      "body": 360,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "studio",
+      "width": 390,
+      "height": 844,
+      "content": 390,
+      "body": 390,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "studio",
+      "width": 430,
+      "height": 844,
+      "content": 430,
+      "body": 430,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "studio",
+      "width": 768,
+      "height": 844,
+      "content": 753,
+      "body": 753,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "studio",
+      "width": 1024,
+      "height": 844,
+      "content": 1024,
+      "body": 1024,
+      "h1": 1,
+      "pass": true
+    },
+    {
+      "concept": "workspace",
+      "screen": "studio",
+      "width": 1440,
+      "height": 1000,
+      "content": 1440,
+      "body": 1440,
+      "h1": 1,
+      "pass": true
+    }
+  ],
+  "journeys": [
+    "city skip link is first tab stop",
+    "city mobile menu opens",
+    "city mobile menu Escape and focus",
+    "city public template and sample PDF agree",
+    "city sample PDF is available",
+    "city primary landing action reaches candidate workspace",
+    "city candidate preview shows fixture resume",
+    "city candidate preview Escape returns focus",
+    "city existing sample letter is readable",
+    "city mobile documents navigation updates its selected location",
+    "city mobile outline changes section and focuses heading",
+    "city edit shows unsaved state",
+    "city switching layout preserves draft content",
+    "city save reports prototype scope",
+    "city saved draft survives reload in same tab",
+    "city mobile uses a separate preview dialog",
+    "city desktop continue action opens the next section",
+    "city desktop typing refreshes the inline preview",
+    "workspace skip link is first tab stop",
+    "workspace mobile menu opens",
+    "workspace mobile menu Escape and focus",
+    "workspace public template and sample PDF agree",
+    "workspace sample PDF is available",
+    "workspace primary landing action reaches candidate workspace",
+    "workspace candidate preview shows fixture resume",
+    "workspace candidate preview Escape returns focus",
+    "workspace existing sample letter is readable",
+    "workspace mobile documents navigation updates its selected location",
+    "workspace mobile outline changes section and focuses heading",
+    "workspace edit shows unsaved state",
+    "workspace switching layout preserves draft content",
+    "workspace save reports prototype scope",
+    "workspace saved draft survives reload in same tab",
+    "workspace mobile uses a dedicated preview mode",
+    "workspace desktop continue action opens the next section",
+    "workspace desktop typing refreshes the inline preview"
+  ],
+  "performance": [
+    {
+      "concept": "city",
+      "width": 390,
+      "lcp": 116,
+      "cls": 0
+    },
+    {
+      "concept": "city",
+      "width": 1440,
+      "lcp": 200,
+      "cls": 0.005174042028316405
+    },
+    {
+      "concept": "workspace",
+      "width": 390,
+      "lcp": 80,
+      "cls": 0
+    },
+    {
+      "concept": "workspace",
+      "width": 1440,
+      "lcp": 56,
+      "cls": 0.039775516451215756
+    }
+  ],
+  "unexpected": []
+}

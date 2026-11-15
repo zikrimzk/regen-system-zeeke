@@ -5,7 +5,6 @@ namespace ReGen;
 
 final class LookupService
 {
-    private const HIPO_URL = 'https://universities.hipolabs.com/search';
     private const WIKIDATA_URL = 'https://query.wikidata.org/sparql';
     private const CACHE_TTL = 43200;
 
@@ -55,55 +54,7 @@ final class LookupService
     /** @return list<array<string, string>> */
     public function institutions(string $rawQuery, string $rawCountry): array
     {
-        $query = self::clean($rawQuery);
-        $country = self::clean($rawCountry, 40) ?: 'Malaysia';
-        if (mb_strlen($query) < 2) {
-            return [];
-        }
-
-        $key = 'institution:' . mb_strtolower($country . ':' . $query);
-        $cached = $this->readCache($key);
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $params = http_build_query([
-            'name' => $query,
-            ...($country !== 'Worldwide' ? ['country' => $country] : []),
-        ]);
-        $deadline = microtime(true) + 6.0;
-        $hipo = $this->fetchJson(self::HIPO_URL . '?' . $params, 4);
-        $results = [];
-        if (is_array($hipo)) {
-            foreach (array_slice($hipo, 0, 12) as $item) {
-                if (!is_array($item) || trim((string) ($item['name'] ?? '')) === '') {
-                    continue;
-                }
-                $name = self::clean($item['name']);
-                $itemCountry = self::clean($item['country'] ?? '', 40);
-                $province = self::clean($item['state-province'] ?? '', 80);
-                $results[] = [
-                    'name' => $name,
-                    'country' => $itemCountry,
-                    'location' => self::location($name, $province, $itemCountry),
-                    'type' => 'University',
-                    'source' => 'Hipolabs',
-                ];
-            }
-        }
-
-        $wikidata = [];
-        $remainingSeconds = (int) floor($deadline - microtime(true));
-        if (count($results) < 8 && $remainingSeconds >= 1) {
-            $wikidata = $this->wikidataInstitutions(
-                $query,
-                $country,
-                min(3, $remainingSeconds)
-            );
-        }
-        $results = $this->uniqueBy($results, $wikidata, 'name', 18);
-        $this->writeCache($key, $results);
-        return $results;
+        return InstitutionDirectory::search(self::clean($rawQuery), self::clean($rawCountry, 80));
     }
 
     /** @return list<array<string, string>> */
@@ -148,54 +99,6 @@ final class LookupService
         $remote = $this->wikidataLocations($query, $country);
         $results = $this->uniqueBy($local, $remote, 'label', 12);
         $this->writeCache($key, $results);
-        return $results;
-    }
-
-    /** @return list<array<string, string>> */
-    private function wikidataInstitutions(
-        string $query,
-        string $country,
-        int $timeoutSeconds = 7,
-    ): array
-    {
-        $safe = self::sparqlString(mb_strtolower($query));
-        $countryId = self::COUNTRIES[$country] ?? '';
-        $countryFilter = $countryId !== ''
-            ? "?item wdt:P17 wd:{$countryId} . BIND(wd:{$countryId} AS ?country)"
-            : 'OPTIONAL { ?item wdt:P17 ?country . }';
-        $sparql = <<<SPARQL
-SELECT DISTINCT ?item ?itemLabel ?countryLabel ?adminLabel WHERE {
-  SERVICE wikibase:mwapi {
-    bd:serviceParam wikibase:endpoint "www.wikidata.org";
-                    wikibase:api "EntitySearch";
-                    mwapi:search "{$safe}";
-                    mwapi:language "en".
-    ?item wikibase:apiOutputItem mwapi:item.
-  }
-  VALUES ?eduType { wd:Q2385804 wd:Q3914 wd:Q3918 wd:Q189004 wd:Q875538 }
-  ?item wdt:P31/wdt:P279* ?eduType .
-  {$countryFilter}
-  OPTIONAL { ?item wdt:P131 ?admin . }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,ms". }
-}
-LIMIT 12
-SPARQL;
-        $data = $this->fetchWikidata($sparql, $timeoutSeconds);
-        $results = [];
-        foreach ($data as $row) {
-            $name = self::binding($row, 'itemLabel');
-            if ($name === '') {
-                continue;
-            }
-            $countryName = self::binding($row, 'countryLabel') ?: ($country === 'Malaysia' ? 'Malaysia' : '');
-            $results[] = [
-                'name' => $name,
-                'country' => $countryName,
-                'location' => self::location($name, self::binding($row, 'adminLabel'), $countryName),
-                'type' => 'Educational institution',
-                'source' => 'Wikidata',
-            ];
-        }
         return $results;
     }
 

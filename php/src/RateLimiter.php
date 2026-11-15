@@ -119,7 +119,11 @@ final class RateLimiter
         int $limit,
         int $windowSeconds
     ): void {
-        $directory = rtrim(sys_get_temp_dir(), '/\\') . '/regen-rate-limits';
+        try {
+            $directory = Storage::directory('cache/rate-limits');
+        } catch (Throwable) {
+            self::rejectUnavailable();
+        }
         if (!is_dir($directory)) {
             @mkdir($directory, 0700, true);
         }
@@ -169,6 +173,7 @@ final class RateLimiter
     private static function rejectIfLimited(int $retryAfter): void
     {
         if ($retryAfter > 0) {
+            OperationsMonitor::event('security.rate_limit_exceeded');
             header('Retry-After: ' . $retryAfter);
             Http::json([
                 'success' => false,

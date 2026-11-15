@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="{{LANGUAGE}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Edit resume details in the ReGen resume management system.">
+  <title>{{i18n.studio.title}} | {{BRAND_NAME}}</title>
+  <link rel="icon" href="/img/app-icon-192.png" type="image/png">
+  <script src="/js/theme.js?v=20261105r15"></script>
+  <link rel="stylesheet" href="/css/main.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/form.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/preview-protection.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/workspace.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/stepper.css?v=20261105r15">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/css/product.css?v=20261105r15">
+  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ReGen"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <script src="/js/candidate-guidance.js?v=20261105r15" defer></script>
+  <link rel="stylesheet" href="/css/appearance.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/privacy.css?v=20261105r15">
+  <script src="/js/privacy.js?v=20261105r15" defer></script>
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-portrait-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-landscape-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-portrait-light.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-landscape-light.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-portrait-light.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-landscape-light.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-portrait-light.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-landscape-light.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-portrait-light.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-landscape-light.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-portrait-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-landscape-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-portrait-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-landscape-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-portrait-light.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-landscape-light.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-portrait-light.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-landscape-light.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-portrait-light.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-landscape-light.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-portrait-light.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-landscape-light.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-portrait-light.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape-light.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-portrait.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-landscape.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-portrait.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-landscape.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-portrait.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-landscape.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-portrait.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-landscape.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-portrait.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-landscape.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-portrait.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-landscape.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-portrait.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-landscape.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-portrait.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-landscape.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-portrait.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-landscape.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-portrait.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-landscape.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-portrait.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-landscape.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-portrait.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <meta name="regen-preview-version" content="{{PREVIEW_VERSION}}">
+<link rel="stylesheet" href="/css/studio.css">
+</head>
+<body class="user-workspace builder-page">
+  <a class="skip-link" href="#step-content">{{i18n.common.skip}}</a>
+  <div id="toast-container"></div>
+  <div id="page-loader" role="status" aria-hidden="true"><div class="spinner" aria-hidden="true"></div><p>Saving...</p></div>
+
+  {{WORKSPACE_HEADER}}
+
+  <header class="studio-command-bar" aria-label="{{i18n.studio.title}}">
+    <div class="studio-identity"><a href="/resumes">{{i18n.nav.resumes}}</a><h1 id="studio-document-title">{{i18n.studio.title}}</h1></div>
+    <div class="studio-commands">
+      <button type="button" id="change-resume-template" class="btn btn-secondary">{{i18n.demo.design}}</button>
+      <button type="button" id="resume-layout-settings" class="btn btn-secondary">{{i18n.studio.pageSettings}}</button>
+      <button type="button" id="preview-open-top" class="btn btn-secondary">{{i18n.common.preview}}</button>
+      <button type="button" id="studio-review" class="btn btn-primary">{{i18n.studio.reviewExport}}</button>
+    </div>
+    <div class="studio-mobile-modes">
+      <button type="button" class="editor-sections-open" id="studio-sections-open" aria-haspopup="dialog">{{i18n.studio.sectionsShort}}</button>
+      <div class="studio-mode-switch" role="group" aria-label="{{i18n.studio.viewMode}}">
+        <button type="button" id="studio-write-mode" aria-controls="step-content" aria-pressed="true">{{i18n.studio.write}}</button>
+        <button type="button" id="studio-preview-mode" aria-controls="preview-modal" aria-pressed="false" data-price-feature="document_preview" data-price-base="{{i18n.common.preview}}">{{i18n.common.preview}}</button>
+      </div>
+    </div>
+  </header>
+  <div class="builder-layout">
+    <div class="builder-left">
+      <div id="stepper-wrap">
+        <div class="stepper-sidebar-head">
+          <h2>{{i18n.studio.structure}}</h2>
+        </div>
+        <div class="stepper-meta">
+          <div class="stepper-step-label" id="progress-label">01 / 11 · Personal</div>
+          <button type="button" class="stepper-sections-toggle" id="stepper-sections-toggle" aria-expanded="false" aria-controls="stepper-track">
+            Sections
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+        <div class="progress-bar">
+          <div id="progress-fill"></div>
+        </div>
+        <div class="stepper-track" id="stepper-track" role="tablist"></div>
+
+      </div>
+
+      <main tabindex="-1" id="step-content" role="main"></main>
+
+      <div class="nav-bar">
+        <button type="button" class="btn btn-secondary" id="btn-back" aria-label="Previous section">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
+          <span class="back-label">{{i18n.studio.back}}</span>
+        </button>
+        <button type="button" class="editor-sections-open" id="editor-sections-open" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg>{{i18n.studio.structure}}</button>
+        <div class="builder-nav-center">
+          <button type="button" class="btn btn-ghost" id="studio-save" disabled>{{i18n.studio.save}}</button>
+          <div id="save-indicator" class="save-indicator is-saved" role="status" aria-live="polite">
+            <span class="save-dot"></span>
+            <span class="save-label">{{i18n.studio.saved}}</span>
+          </div><button type="button" class="save-retry" id="save-retry" hidden>{{i18n.studio.retrySave}}</button>
+        </div>
+        <button type="button" class="btn btn-primary" id="btn-next">
+          {{i18n.studio.next}}
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+    <aside class="studio-preview" id="studio-preview" aria-labelledby="studio-preview-title">
+      <header class="studio-preview-header">
+        <h2 id="studio-preview-title">{{i18n.studio.savedPreview}}</h2>
+        <button type="button" id="studio-preview-refresh" class="btn btn-secondary" data-price-feature="document_preview" data-price-base="{{i18n.studio.refreshPreview}}">{{i18n.studio.refreshPreview}}</button>
+      </header>
+      <p id="studio-preview-status" class="studio-preview-status" role="status">{{i18n.studio.previewHelp}}</p>
+      <div class="studio-preview-scroll">
+        <figure id="studio-preview-sample" class="studio-preview-sample"><img width="320" height="453" alt="" hidden><figcaption>{{i18n.dashboard.designExample}}</figcaption></figure>
+        <div id="studio-pdf-pages" class="pdf-pages" hidden></div>
+      </div>
+    </aside>
+  </div>
+
+  <dialog id="editor-sections" class="editor-sections-dialog" aria-labelledby="editor-sections-title">
+    <div class="editor-sheet-head"><h2 id="editor-sections-title">{{i18n.studio.structure}}</h2><button class="btn btn-secondary" type="button" id="editor-sections-close" aria-label="Close sections">&#215;</button></div>
+    <p class="editor-sheet-help">Work in any order. Your details stay with you.</p>
+    <nav class="mobile-section-list" id="mobile-section-list" aria-label="Resume sections"></nav>
+    <div class="sheet-settings"><button type="button" class="btn btn-secondary" data-editor-action="change-resume-template">{{i18n.demo.design}}</button><button type="button" class="btn btn-secondary" data-editor-action="resume-layout-settings">{{i18n.studio.pageSettings}}</button></div>
+  </dialog>
+  <div id="preview-modal" class="hidden" role="dialog" aria-modal="true" aria-label="{{i18n.dashboard.preview}}">
+    <div class="preview-modal-box">
+      <div class="preview-modal-header">
+        <div>
+          <h2 class="preview-modal-title" id="draft-preview-title">{{i18n.studio.draftPreview}}</h2>
+        </div>
+        <div class="preview-tools" aria-label="Preview zoom controls">
+          <button type="button" class="btn btn-secondary btn-sm btn-icon" id="preview-zoom-out" aria-label="Zoom out" title="Zoom out">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-icon" id="preview-zoom-fit" aria-label="Fit preview" title="Fit preview">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5"/><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M16 21h5v-5"/></svg>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm btn-icon" id="preview-zoom-in" aria-label="Zoom in" title="Zoom in">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm btn-icon" id="close-preview-modal" aria-label="Close preview" title="Close preview">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="preview-stage">
+        <div class="preview-page-shell" id="preview-page-shell">
+          <div id="preview-pdf-pages" class="pdf-pages"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js?v=20261105r15"></script>
+  <script src="/js/form-cards.js?v=20261105r15"></script>
+  <script src="/js/points.js?v=20261105r15"></script>
+  <script src="/js/document-settings.js?v=20261105r15"></script>
+  <script src="/js/pdf-pages.js?v=20261105r15"></script>
+  <script src="/js/ai-enhance.js?v=20261105r15"></script>
+  <script src="/js/assist-me.js?v=20261105r15"></script>
+  <script src="/js/lookups.js?v=20261105r15"></script>
+  <script src="/js/form-assist.js?v=20261105r15"></script>
+  <script src="/js/sections/personal.js?v=20261105r15"></script>
+  <script src="/js/sections/summary.js?v=20261105r15"></script>
+  <script src="/js/sections/education.js?v=20261105r15"></script>
+  <script src="/js/sections/experience.js?v=20261105r15"></script>
+  <script src="/js/sections/projects.js?v=20261105r15"></script>
+  <script src="/js/sections/extracurricular.js?v=20261105r15"></script>
+  <script src="/js/sections/skills.js?v=20261105r15"></script>
+  <script src="/js/sections/achievements.js?v=20261105r15"></script>
+  <script src="/js/sections/certifications.js?v=20261105r15"></script>
+  <script src="/js/sections/references.js?v=20261105r15"></script>
+  <script src="/js/sections/additional.js?v=20261105r15"></script>
+  <script src="/js/preview-protection.js?v=20261105r15"></script>
+  <script src="/js/preview.js?v=20261105r15"></script>
+  <script src="/js/stepper.js?v=20261105r15"></script>
+  <script src="/js/templates.js?v=20261105r15"></script>
+  <script src="/js/studio.js" defer></script>
+  <script src="/js/app.js?v=20261105r15"></script>
+  <script src="/js/ui.js?v=20261105r15" defer></script>
+  <script src="/js/mobile-viewport.js?v=20261105r15" defer></script>
+  <script src="/js/pwa.js?v=20261105r15" defer></script>
+</body>
+</html>

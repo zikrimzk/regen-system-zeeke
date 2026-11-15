@@ -1,5 +1,6 @@
 const ReferencesSection = (() => {
   let entries = [];
+  let nextId = 0;
 
   function countryOptions(selected = 'Malaysia') {
     return ZeekeLookups.COUNTRIES.filter(country => country !== 'Worldwide').map(country =>
@@ -13,11 +14,11 @@ const ReferencesSection = (() => {
         <div class="step-header-info">
           <div class="step-count">Step ${stepNum}</div>
           <h2 class="step-title">References</h2>
-          <p class="step-subtitle">Up to two references.</p>
+          <p class="step-subtitle">Add up to two people who have agreed to be contacted.</p>
         </div>
-        <button type="button" class="skip-btn">Skip Step ${ReGenIcons.icon('arrowRight')}</button>
+        <button type="button" class="skip-btn">Skip ${ReGenIcons.icon('arrowRight')}</button>
       </div>
-      <div class="form-body form-section">
+      <div class="form-body form-section repeatable-form">
         <div id="ref-list" class="entry-cards"></div>
         <button type="button" class="add-entry-btn" id="btn-add-ref">${ReGenIcons.icon('add')} Add Reference</button>
       </div>
@@ -30,7 +31,7 @@ const ReferencesSection = (() => {
       <div class="entry-card" id="ref-${id}">
         <div class="entry-card-header">
           <div class="entry-card-num">${entries.length + 1}</div>
-          <div class="entry-card-title">Reference Entry</div>
+          <div class="entry-card-title">Reference</div>
           <button type="button" class="entry-delete-btn" aria-label="Remove reference" title="Remove reference">${ReGenIcons.icon('trash')}</button>
         </div>
         <div class="form-section">
@@ -41,7 +42,7 @@ const ReferencesSection = (() => {
             </div>
             <div class="form-group">
               <label class="form-label">Position & Company</label>
-              <input type="text" class="form-input ref-pos" value="${esc(data.position)}" placeholder="e.g. Professor, University of Malaya" maxlength="180">
+              <input type="text" class="form-input ref-pos" value="${esc(data.position)}" placeholder="e.g. Professor, Universiti Malaya" maxlength="180">
             </div>
           </div>
           <div class="form-row">
@@ -84,7 +85,7 @@ const ReferencesSection = (() => {
   }
 
   function addEntry(data = {}) {
-    const id = Date.now() + Math.floor(Math.random()*1000);
+    const id = ++nextId;
     entries.push(id);
     document.getElementById('ref-list').insertAdjacentHTML('beforeend', renderForm(id, data));
     const card = document.getElementById(`ref-${id}`);
@@ -113,7 +114,7 @@ const ReferencesSection = (() => {
 
     if (entries.length === 0) return { isValid: true, data: [] };
 
-    entries.forEach(id => {
+    FormCards.ordered(entries, 'ref-list').forEach(id => {
       const card = document.getElementById(`ref-${id}`);
       if (!card) return;
 

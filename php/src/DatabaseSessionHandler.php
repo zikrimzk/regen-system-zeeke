@@ -121,12 +121,19 @@ final class DatabaseSessionHandler implements SessionHandlerInterface, SessionUp
     public function updateTimestamp(string $id, string $data): bool
     {
         try {
+            // A concurrent request may have removed or replaced the session.
+            // A successful refresh query can leave zero rows updated.
             $statement = $this->db->prepare(
-                'UPDATE app_sessions SET expires_at = ? WHERE sid = ?'
+                'UPDATE app_sessions SET expires_at = ? WHERE sid = ? AND expires_at > UTC_TIMESTAMP(3)'
             );
-            $statement->execute([self::expiry($this->ttl), $id]);
-            return $statement->rowCount() > 0 || $this->validateId($id);
-        } catch (Throwable) {
+            return $statement->execute([self::expiry($this->ttl), $id]);
+        } catch (Throwable $error) {
+            $state = (string) $error->getCode();
+            $diagnostic = preg_match('/^[A-Z0-9]{5}$/D', $state) ? ' sqlstate='.$state : '';
+            if ($error instanceof \PDOException && is_int($error->errorInfo[1] ?? null)) {
+                $diagnostic .= ' driver_code='.$error->errorInfo[1];
+            }
+            error_log('[Session Timestamp Error] '.$error::class.$diagnostic);
             return false;
         }
     }

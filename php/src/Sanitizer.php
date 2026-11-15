@@ -6,13 +6,46 @@ namespace ReGen;
 final class Sanitizer
 {
     private const ALLOWED_SECTIONS = [
-        'personal', 'summary', 'education', 'experience', 'projects',
-        'extracurricular', 'skills', 'achievements', 'certifications', 'references',
+        'templateId', 'sectionOrder', 'appearance', 'documentSettings', 'personal', 'summary', 'education', 'experience', 'projects',
+        'extracurricular', 'skills', 'achievements', 'certifications', 'references', 'writing', 'additional',
     ];
+
+    public static function sectionOrder(mixed $value): array
+    {
+        $defaults = ['summary','experience','education','projects','skills','certifications','achievements','extracurricular','additional','references'];
+        $ordered = is_array($value) ? array_values(array_unique(array_filter($value, static fn ($id) => is_string($id) && in_array($id, $defaults, true)))) : [];
+        return array_merge($ordered, array_values(array_diff($defaults, $ordered)));
+    }
 
     public static function isAllowedSection(string $section): bool
     {
         return in_array($section, self::ALLOWED_SECTIONS, true);
+    }
+
+    public static function appearance(mixed $value): array
+    {
+        $value = is_array($value) ? $value : [];
+        $font = match ($value['font'] ?? 'template') {
+            'arial','calibri','sans' => 'sans',
+            'times','georgia','serif' => 'serif',
+            'source','lato','garamond','baskerville' => $value['font'],
+            default => 'template',
+        };
+        return [
+            'font' => $font,
+            'size' => in_array($value['size'] ?? '', ['10','10.5','11','11.5','12'], true) ? $value['size'] : '11',
+            'spacing' => in_array($value['spacing'] ?? '', ['compact','balanced','comfortable'], true) ? $value['spacing'] : 'balanced',
+            'color' => ($value['color'] ?? '') === 'accent' ? 'accent' : 'black',
+            'margins' => in_array($value['margins'] ?? '', ['compact','balanced','generous'], true) ? $value['margins'] : 'balanced',
+            'lineHeight' => in_array($value['lineHeight'] ?? '', ['template','1.25','1.3','1.35','1.45'], true) ? $value['lineHeight'] : 'template',
+            'headingSize' => in_array($value['headingSize'] ?? '', ['template','11','12','13'], true) ? $value['headingSize'] : 'template',
+            'nameSize' => in_array($value['nameSize'] ?? '', ['template','22','26','30'], true) ? $value['nameSize'] : 'template',
+            'headingStyle' => in_array($value['headingStyle'] ?? '', ['template','title','uppercase'], true) ? $value['headingStyle'] : 'template',
+            'dates' => ($value['dates'] ?? '') === 'inline' ? 'inline' : 'right',
+            'photoShape' => ($value['photoShape'] ?? '') === 'square' ? 'square' : 'portrait',
+            'photoPosition' => ($value['photoPosition'] ?? '') === 'left' ? 'left' : 'right',
+            'photoFocus' => in_array($value['photoFocus'] ?? '', ['top','center','bottom'], true) ? $value['photoFocus'] : 'top',
+        ];
     }
 
     public static function cleanText(mixed $value, bool $multiline = false, int $max = 5000): string
@@ -30,7 +63,7 @@ final class Sanitizer
         $cleaned = [];
         foreach ($lines as $line) {
             $line = preg_replace(
-                '/^[\s>]*(?:[•●○◦▪▫■□‣⁃*]|[-–—]{1,2}|\d{1,3}[.)]|[a-zA-Z][.)])\s+/u',
+                '/^[\s>]*(?:[•●○◦▪▫■□‣⁃*]|[-\x{2013}\x{2014}]{1,2}|\d{1,3}[.)]|[a-zA-Z][.)])\s+/u',
                 '',
                 $line
             ) ?? '';
@@ -67,6 +100,16 @@ final class Sanitizer
     public static function sanitizeSection(string $section, mixed $data): mixed
     {
         return match ($section) {
+            'templateId' => TemplateCatalog::get($data)['id'],
+            'sectionOrder' => self::sectionOrder($data),
+            'appearance' => self::appearance($data),
+            'writing' => ResumeWriting::settings($data),
+            'additional' => ResumeWriting::additional($data),
+            'documentSettings' => [
+                'sectionOrder' => self::sectionOrder(is_array($data) ? ($data['sectionOrder'] ?? []) : []),
+                'appearance' => self::appearance(is_array($data) ? ($data['appearance'] ?? []) : []),
+                'writing' => ResumeWriting::settings(is_array($data) ? ($data['writing'] ?? []) : []),
+            ],
             'personal' => self::sanitizePersonal($data),
             'summary' => self::cleanText($data, true),
             'education' => self::cleanEntries($data, static fn (array $item): array => [
@@ -92,8 +135,11 @@ final class Sanitizer
             'projects' => self::cleanEntries($data, static fn (array $item): array => [
                 'title' => self::cleanText($item['title'] ?? ''),
                 'type' => self::cleanText($item['type'] ?? ''),
-                'description' => self::cleanText($item['description'] ?? '', true),
-                'bullets' => self::cleanBullets($item['bullets'] ?? []),
+                // Fold legacy descriptions into the bullets without repeating exact matches.
+                'bullets' => array_values(array_unique([
+                    ...self::cleanBullets($item['bullets'] ?? []),
+                    ...self::cleanBullets([$item['description'] ?? '']),
+                ])),
             ]),
             'extracurricular' => self::cleanEntries($data, static fn (array $item): array => [
                 'organization' => self::cleanText($item['organization'] ?? ''),
@@ -120,6 +166,12 @@ final class Sanitizer
         }
 
         return [
+            'templateId' => TemplateCatalog::get($source['templateId'] ?? 'classic')['id'],
+            'showPhoto' => TemplateCatalog::get($source['templateId'] ?? 'classic')['photo'],
+            'sectionOrder' => self::sectionOrder($source['sectionOrder'] ?? []),
+            'appearance' => self::appearance($source['appearance'] ?? []),
+            'writing' => ResumeWriting::settings($source['writing'] ?? []),
+            'additional' => ResumeWriting::additional($source['additional'] ?? []),
             'personal' => self::sanitizePersonal($source['personal'] ?? []),
             'summary' => self::sanitizeSection('summary', $source['summary'] ?? ''),
             'education' => self::sanitizeSection('education', $source['education'] ?? []),
@@ -150,6 +202,7 @@ final class Sanitizer
             'email' => mb_strtolower(self::cleanText($data['email'] ?? '')),
             'phone' => self::cleanText($data['phone'] ?? ''),
             'linkedin' => self::cleanText($data['linkedin'] ?? ''),
+            'portfolio' => self::cleanText($data['portfolio'] ?? '',false,300),
             'address' => $structured !== '' ? $structured : self::cleanText($data['address'] ?? ''),
             'streetAddress' => '',
             'locationCountry' => $country,

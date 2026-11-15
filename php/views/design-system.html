@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="{{LANGUAGE}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ReGen design system</title>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/appearance.css">
+</head>
+<body>
+  <main class="design-showcase" id="main-content">
+    <div class="site-header"><a href="/">ReGen</a>{{LANGUAGE_LINK}}</div>
+    <h1>{{i18n.showcase.title}}</h1>
+    <p>{{i18n.showcase.intro}}</p>
+    <section class="overview-panel" aria-labelledby="showcase-type">
+      <h2 id="showcase-type">{{i18n.showcase.type}}</h2>
+      <p>{{i18n.showcase.body}}</p>
+      <p class="overview-section-state">{{i18n.showcase.metadata}}</p>
+    </section>
+    <section class="overview-panel" aria-labelledby="showcase-actions">
+      <h2 id="showcase-actions">{{i18n.showcase.actions}}</h2>
+      <div class="overview-actions">
+        <button class="btn btn-primary" type="button" data-showcase-open>{{i18n.showcase.open}}</button>
+        <a class="btn btn-secondary" href="/">{{i18n.common.home}}</a>
+        <button class="btn btn-secondary" type="button" disabled>{{i18n.showcase.disabled}}</button>
+      </div>
+      <label>{{i18n.auth.email}}<input type="email" placeholder="nama@example.my" aria-invalid="true" aria-describedby="example-field-error"></label>
+      <p id="example-field-error">{{i18n.showcase.error}}</p>
+    </section>
+    <section class="overview-panel overview-skeleton" aria-labelledby="showcase-states">
+      <h2 id="showcase-states">{{i18n.showcase.states}}</h2>
+      <p>{{i18n.dashboard.loading}}</p>
+      <div aria-hidden="true"><span></span><span></span><span></span></div>
+      <p>{{i18n.dashboard.emptyText}}</p>
+    </section>
+    <dialog id="showcase-dialog" aria-labelledby="showcase-dialog-title">
+      <h2 id="showcase-dialog-title">{{i18n.showcase.dialog}}</h2>
+      <p>{{i18n.showcase.dialogBody}}</p>
+      <form method="dialog"><button class="btn btn-secondary">{{i18n.common.close}}</button></form>
+    </dialog>
+  </main>
+</body>
+</html>

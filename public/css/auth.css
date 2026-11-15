@@ -169,13 +169,13 @@
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   outline: none;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   font-size: 14px;
   transition: border-color var(--t-fast), box-shadow var(--t-fast);
 }
-.auth-input::placeholder { color: #8b99a5; }
-.auth-input:hover { border-color: #9eacb8; }
+.auth-input::placeholder { color: var(--text-2); }
+.auth-input:hover { border-color: var(--border); }
 .auth-input:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }
 .auth-input.is-error { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(165, 54, 43, 0.1); }
 .auth-select {
@@ -255,6 +255,9 @@
 .google-auth-block { display: grid; gap: 17px; margin-bottom: 19px; }
 .google-auth-block[hidden] { display: none; }
 .google-button-shell {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   width: 100%;
   min-height: 44px;
   display: flex;
@@ -345,7 +348,64 @@
   .auth-input { min-height: 46px; font-size: 16px; }
 }
 
-/* 2026 corporate portal redesign */
+/* 2026 REGEN IDENTITY REFRESH */
+.auth-page {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(32, 189, 126, .10), transparent 28rem),
+    var(--surface-2);
+}
+.auth-header {
+  min-height: 76px;
+  padding-inline: clamp(22px, 4vw, 58px);
+  border-bottom-color: rgba(21, 34, 29, .08);
+  background: rgba(255, 255, 255, .82);
+  backdrop-filter: blur(18px);
+}
+.auth-header-logo {
+  width: 42px;
+  height: 42px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  object-fit: contain;
+  box-shadow: 0 6px 18px rgba(17, 25, 28, .08);
+}
+.auth-header-logo::after { display: none; }
+.auth-body { width: min(1180px, 100%); gap: clamp(36px, 7vw, 104px); padding: 54px clamp(22px, 6vw, 76px) 70px; }
+.auth-intro {
+  min-height: 570px;
+  padding: clamp(34px, 5vw, 62px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg, rgba(34, 195, 129, .14), transparent 42%),
+    #101719;
+  box-shadow: 0 34px 90px rgba(15, 24, 20, .20);
+}
+.auth-system-index { color: var(--primary); }
+.auth-brand-visual { display: grid; place-items: center; }
+.auth-brand-visual > img { width: min(440px, 92%); filter: brightness(0) invert(1); opacity: .96; }
+.auth-system-sheet-legacy { display: none; }
+.auth-card {
+  padding: clamp(28px, 4vw, 44px);
+  border-color: var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(17, 25, 28, .10);
+}
+.auth-card-eyebrow { color: var(--accent); letter-spacing: .12em; }
+.auth-card-title { color: var(--text); font-size: 32px; letter-spacing: -.035em; }
+.auth-input { border-color: var(--border); border-radius: 10px; background: var(--surface); }
+.auth-input:focus { border-color: var(--zeeke-rule); box-shadow: var(--shadow-focus); }
+.auth-submit-btn { min-height: 48px; border-radius: 10px; background: #121a1d; box-shadow: 0 10px 24px rgba(17,25,28,.16); }
+.auth-submit-btn:hover:not(:disabled) { background: #1c2a27; transform: translateY(-1px); }
+@media (max-width: 900px) {
+  .auth-body { padding-top: 26px; }
+  .auth-intro { min-height: 250px; border-radius: 20px; }
+  .auth-brand-visual { display: none; }
+}
+
+/* 2026 CORPORATE PORTAL REDESIGN */
 .auth-page {
   background:
     radial-gradient(circle at 92% 8%, rgba(7, 135, 124, 0.08), transparent 25rem),
@@ -524,12 +584,12 @@
 .auth-input {
   min-height: 50px;
   padding: 11px 14px;
-  border-color: #c5d0d9;
+  border-color: var(--border);
   border-radius: 12px;
-  background: #fbfcfd;
+  background: var(--surface);
 }
-.auth-input:hover { border-color: #94a9b9; background: #fff; }
-.auth-input:focus { background: #fff; }
+.auth-input:hover { border-color: var(--border); background: var(--surface); }
+.auth-input:focus { background: var(--surface); }
 .auth-password-toggle {
   top: 5px;
   right: 5px;
@@ -721,9 +781,9 @@
   .auth-assurance { gap: 5px 8px; }
 }
 
-/* Utility-first authentication revision */
+/* UTILITY-FIRST AUTHENTICATION REVISION */
 .auth-page {
-  background: #f4f6f8;
+  background: var(--surface-2);
 }
 .auth-body {
   width: min(1320px, 100%);
@@ -769,7 +829,7 @@
 }
 .auth-system-index {
   padding-top: 3px;
-  color: #66c8bd;
+  color: var(--primary);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: 0.12em;
@@ -866,7 +926,7 @@
   padding: clamp(34px, 4.5vw, 54px);
   border: 1px solid rgba(185, 199, 210, 0.55);
   border-radius: 18px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 14px 40px rgba(16, 47, 79, 0.06);
 }
 .auth-card-wide { max-width: 730px; }
@@ -888,7 +948,7 @@
 }
 .auth-input {
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
 }
 .auth-submit-btn {
   border-color: var(--primary);
@@ -963,7 +1023,7 @@
   .auth-card-wide { padding-inline: 16px; }
 }
 
-/* Compact account fields */
+/* COMPACT ACCOUNT FIELDS */
 .auth-form { gap: 14px; }
 .auth-form-row { gap: 13px; }
 .auth-form-group { gap: 5px; }
@@ -993,7 +1053,7 @@
   .auth-submit-btn { min-height: 46px; }
 }
 
-/* Mobile account scale */
+/* MOBILE ACCOUNT SCALE */
 @media (max-width: 600px) {
   .auth-body { padding: 18px 12px 28px; }
   .auth-card,
@@ -1037,7 +1097,7 @@
   }
 }
 
-/* Email verification */
+/* EMAIL VERIFICATION */
 .auth-error-box a {
   color: currentColor;
   font-weight: 700;
@@ -1191,3 +1251,12 @@
   .auth-verification-action,
   .auth-resend-form { margin-top: 18px; padding-top: 17px; }
 }
+.grecaptcha-badge { right: 12px !important; width: 70px !important; overflow: hidden; }
+.auth-card, .auth-body > * { min-width: 0; }
+.grecaptcha-badge:hover, .grecaptcha-badge:focus-within { width: 256px !important; max-width: calc(100vw - 24px); }
+
+.google-button-status {flex-wrap:wrap;font-size:13px;line-height:1.5}
+.google-button-status>span:nth-child(2) {flex:1;min-width:160px}
+.google-auth-retry {min-height:40px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface);color:var(--primary);font-size:13px;font-weight:600}
+.auth-remember { display: flex; align-items: center; gap: 9px; min-height: 44px; color: var(--text-2); font-size: 13px; cursor: pointer; }
+.auth-remember input { width: 18px; height: 18px; accent-color: var(--primary); }

@@ -1,5 +1,7 @@
 node_modules/
-uploads/
+/uploads/
+/public/uploads/*
+!/public/uploads/.htaccess
 .env
 .env.prod
 .env-prod
@@ -12,3 +14,5 @@ vendor/
 php/config.local.php
 tmp/
 output/
+release/
+storage/

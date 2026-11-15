@@ -1,0 +1,79 @@
+{
+    "id": "/",
+    "name": "ReGen Resume and Cover Letter Builder",
+    "short_name": "ReGen",
+    "description": "Your resume and matching cover letters, in one considered workspace. Powered by Zeeke Software Solution.",
+    "lang": "en",
+    "start_url": "/login?source=installed",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#f5f5f7",
+    "theme_color": "#f5f5f7",
+    "categories": [
+        "business",
+        "productivity"
+    ],
+    "icons": [
+        {
+            "src": "/img/app-icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/img/app-icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/img/app-icon-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "My resume",
+            "url": "/dashboard",
+            "icons": [
+                {
+                    "src": "/img/app-icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Cover letters",
+            "url": "/cover-letters",
+            "icons": [
+                {
+                    "src": "/img/app-icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
+    "display_override": [
+        "standalone",
+        "minimal-ui"
+    ],
+    "dir": "ltr",
+    "screenshots": [
+        {
+            "src": "/img/app-preview-wide.jpg",
+            "sizes": "1440x1000",
+            "type": "image/jpeg",
+            "form_factor": "wide",
+            "label": "ReGen resume editor \u2014 fictional sample"
+        },
+        {
+            "src": "/img/app-preview-narrow.jpg",
+            "sizes": "390x843",
+            "type": "image/jpeg",
+            "form_factor": "narrow",
+            "label": "ReGen resume editor \u2014 fictional sample"
+        }
+    ]
+}

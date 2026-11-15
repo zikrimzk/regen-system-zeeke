@@ -21,7 +21,7 @@
   padding: 24px;
   background: #e7ecef;
   color: #425a6e;
-  font: 600 13px/1.5 "Aptos", "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+  font: 600 13px/1.5 var(--font);
   text-align: center;
   opacity: 0;
   pointer-events: none;

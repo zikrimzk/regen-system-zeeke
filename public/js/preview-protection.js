@@ -35,7 +35,7 @@ window.PreviewProtection = (() => {
     try {
       surface.iframe.contentDocument?.documentElement.classList.add('preview-document-obscured');
     } catch (error) {
-      // The parent overlay remains effective if a browser denies frame access.
+      // THE PARENT OVERLAY REMAINS EFFECTIVE IF A BROWSER DENIES FRAME ACCESS.
     }
   }
 
@@ -45,7 +45,7 @@ window.PreviewProtection = (() => {
     try {
       surface.iframe.contentDocument?.documentElement.classList.remove('preview-document-obscured');
     } catch (error) {
-      // The frame can be replaced while a preview request is in flight.
+      // THE FRAME CAN BE REPLACED WHILE A PREVIEW REQUEST IS IN FLIGHT.
     }
   }
 
@@ -218,7 +218,7 @@ window.PreviewProtection = (() => {
     try {
       frameWindow.print = () => obscure(surface, 'Printing is unavailable from preview.');
     } catch (error) {
-      // Browser print UI is still covered by beforeprint and print styles.
+      // BROWSER PRINT UI IS STILL COVERED BY BEFOREPRINT AND PRINT STYLES.
     }
   }
 

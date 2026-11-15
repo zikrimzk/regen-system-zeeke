@@ -1,104 +1,79 @@
-name: Deploy PHP to DirectAdmin
+name: Build PHP release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-
-concurrency:
-  group: production-deploy
-  cancel-in-progress: false
+    inputs:
+      deploy:
+        description: Deploy through the configured FTPS account
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+concurrency:
+  group: php-release
+  cancel-in-progress: false
+
 jobs:
-  build-and-deploy:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, dom, fileinfo, gd, mbstring, openssl, pdo_mysql, zip
+          coverage: none
+      - name: Install locked production dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
+      - name: Validate and build upload ZIP
+        run: |
+          composer validate --strict
+          composer audit --locked --no-dev
+          composer release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regen-php
+          path: release/regen-php.zip
+          retention-days: 14
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy
+    needs: build
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 10
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@v6
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - uses: actions/download-artifact@v4
         with:
-          php-version: '8.3'
-          extensions: curl, fileinfo, json, mbstring, pdo_mysql
-          coverage: none
-
-      - name: Set up Node.js checks
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - name: Install production dependencies
-        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --classmap-authoritative
-
-      - name: Validate and test release
-        run: |
-          composer validate --strict
-          find php scripts -name '*.php' -print0 | xargs -0 -n1 php -l
-          npm run check
-          php scripts/smoke-php-pdf.php
-          php scripts/smoke-php-ai.php
-          php scripts/smoke-php-ats.php
-          php scripts/smoke-php-google-auth.php
-          php scripts/smoke-php-recaptcha.php
-          php scripts/smoke-php-email-verification.php
-
-      - name: Prepare release files
-        run: |
-          mkdir -p .release/_app
-          cp -R public/. .release/
-          cp -R php/. .release/_app/
-          cp -R vendor .release/_app/vendor
-          test -f .release/index.php
-          test -f .release/_app/bootstrap.php
-          test -f .release/_app/vendor/autoload.php
-
-      - name: Validate FTP destination
+          name: regen-php
+      - name: Extract release and validate destination
         env:
           FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
         run: |
-          if [[ -z "$FTP_SERVER_DIR" ]]; then
-            echo "::error::FTP_SERVER_DIR is missing."
+          mkdir .release
+          unzip -q regen-php.zip -d .release
+          if [[ -z "$FTP_SERVER_DIR" || "$FTP_SERVER_DIR" == /* || "$FTP_SERVER_DIR" == *".."* || "$FTP_SERVER_DIR" != */ ]]; then
+            echo "::error::FTP_SERVER_DIR must be a relative public_html path ending in '/'."
             exit 1
           fi
-          if [[ "$FTP_SERVER_DIR" == /* ]]; then
-            echo "::error::FTP_SERVER_DIR must be relative to the FTP login root. Do not use /home/... or any absolute server path."
-            exit 1
-          fi
-          if [[ "$FTP_SERVER_DIR" == *".."* ]]; then
-            echo "::error::FTP_SERVER_DIR must not contain '..'."
-            exit 1
-          fi
-          if [[ "$FTP_SERVER_DIR" != */ ]]; then
-            echo "::error::FTP_SERVER_DIR must end with a trailing slash."
-            exit 1
-          fi
-
-      - name: Deploy release through FTPS
+      - name: Deploy through FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          protocol: ftps
           port: ${{ vars.FTP_PORT || 21 }}
           local-dir: ./.release/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
           state-name: _app/.ftp-deploy-code-state.json
           log-level: minimal
           exclude: |
-            **/.git*
-            **/.git*/**
+            **/.env
             uploads/**
-            **/uploads/**
-            **/.env*
-            **/config.local.php
-            **/config.local.example.php
+            storage/**

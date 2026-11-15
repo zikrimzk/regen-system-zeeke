@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="{{LANGUAGE}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{UPCOMING_TITLE}} | ReGen</title>
+  <link rel="icon" href="/favicon.svg">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/product.css">
+  <link rel="stylesheet" href="/css/appearance.css">
+</head>
+<body class="user-workspace upcoming-page">
+  <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
+  {{WORKSPACE_HEADER}}
+  <main class="workspace-main" id="main-content" tabindex="-1">
+    <header class="workspace-heading"><div><h1>{{UPCOMING_TITLE}}</h1><p>{{UPCOMING_DESCRIPTION}}</p></div></header>
+    <section class="upcoming-state">
+      <h2>{{i18n.nav.upcoming}}</h2>
+      <p>{{i18n.nav.upcomingNote}}</p>
+      <a class="btn btn-secondary" href="/dashboard">{{i18n.upcoming.back}}</a>
+    </section>
+  </main>
+</body>
+</html>

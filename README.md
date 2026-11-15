@@ -1,220 +1,121 @@
 # ReGen Resume Builder
 
-Runtime production ReGen ialah PHP 8.1+ dengan MySQL/MariaDB. Node.js, `npm`, `nodemon`, Docker dan akses terminal server tidak diperlukan.
+**Commercial pricing refresh:** one Pricing module manages packages, individual prices and promotions. Each package chooses a large Hero card or a One-line offer, with separate Store sections, landing visibility and six theme-aware coin colours. User accounts now has a Packages tab for multiple grants, adjustments, replacements and revocations, including explicit, balance-checked token corrections. Unlimited functions, Basic/Premium collections and limited free claims remain available. Features now require their explicit package benefits by default. Token fallback must be enabled per feature. [HitPay checkout and payment history](docs/HITPAY_CHECKOUT.md) can be enabled after sandbox verification. The cover-letter layout, saved dates and recipient address have also been revised. See [strict access and cover letters](docs/STRICT_PACKAGES_AND_COVER_LETTERS.md), [account packages and layouts](docs/ACCOUNT_PACKAGES_AND_LAYOUTS.md), [package offers and the landing refresh](docs/PACKAGE_OFFERS_AND_LANDING.md) and [template packages and token protection](docs/TEMPLATE_PACKAGES_AND_SECURITY.md). Existing installations must apply missing migrations through **027_mochi_personal_coach.sql**. Pricing keeps promotions inside the package editor and includes a Payment history tab, and notification preferences are in Profile.
 
-UI menggunakan reka bentuk light corporate yang responsif untuk telefon, tablet dan
-desktop. Runtime production hanya membina dan menghantar release PHP; fail Node
-lama kekal sebagai alat ujian dan rujukan migrasi.
+The admin control centre now includes scoped read/change/export access, reporting, support workflows, consent-based alerts, persistent bonus credits, User Feedback and configurable campaigns. **Existing installations require migrations through 027; notification delivery requires the cron worker.** See [the refinement and deployment guide](docs/ADMIN_REFINEMENT.md). The latest authentication, landing, cover-letter and campaign updates are in [the November 6 UAT status](docs/UAT_STATUS_2026-11-06.md). Managed private-channel delivery, complete maintenance controls and private saved-resume viewing are documented in [Live operations](docs/LIVE_OPERATIONS.md), including PHP-only DirectAdmin prerequisites and the managed service setup guide.
 
-## Local PHP
+The latest update adds [permanent ReGen tokens, configurable feature pricing, token packages and private support attachments](docs/TOKEN_STORE_PHASE_ONE.md), along with user-side live alert feedback and a simpler maintenance editor. AI allowance credits stay separate from the permanent balance. Payment checkout remains disconnected.
 
-1. Import [`database/schema.sql`](database/schema.sql).
-2. Jalankan `composer install`.
-3. Salin `php/config.local.example.php` sebagai `php/config.local.php` dan masukkan database local.
-4. Jalankan:
+The November 2026 template redesign keeps the same **16 designs: 6 Standard and 10 Premium**, with equal quality standards, 12 text-only layouts and 4 dedicated portrait layouts. It adds sharper density-aware PDF previews, lossless high-resolution thumbnails, tighter default spacing, six genuine bundled font families and controls for typography, margins, spacing, dates and portrait framing. See [the design standard, research and validation](docs/TEMPLATE_DESIGN_STANDARD.md). No database migration is required.
+
+The public page now demonstrates the writing workflow instead of promoting appearance modes, uses consistent local typography and adds restrained pointer depth. Mobile input handling adapts to software-keyboard viewport changes. See [the landing and mobile update](docs/LANDING_MOBILE_UPDATE.md), including the remaining physical-device UAT scope.
+
+The writing update adds saved application context, summary/objective choices, optional academic CV sections and a more honest local writing review. It also updates the AI editing rules and cover-letter guidance. See the [tip-by-tip writing standard](docs/WRITING_STANDARDS.md) and [exact runtime prompts](docs/AI_WRITING_PROMPTS.md). No database migration is needed for these writing features.
+
+The resume engine now uses consistent spacing, full-width reading flow and bundled document fonts. The collection has **16 designs: 6 Standard and 10 Premium**, all currently available. See [the resume engine update and validation notes](docs/RESUME_ENGINE_UPDATE.md) for PDF checks, preview generation and compatibility details. This template update needs no additional database migration.
+
+The latest UAT follow-up makes Assist me a prominent optional dialog with simpler questions, fixes Next-button validation, and restores account photos across the workspace. No new migration is required beyond **011_assistance_and_admin_access.sql**. Follow [the Assist me update notes](docs/ASSIST_ME_UPDATE.md) before uploading the rebuilt ZIP. Earlier device-history changes are covered in [the UAT checklist](docs/UAT_UPDATE.md). Optional integration checks run with `php scripts/check-ai-database.php` and `php scripts/check-session-history.php` against a local development database.
+
+ReGen runs on PHP 8.3+ and MySQL/MariaDB. The frontend is plain HTML, CSS and browser JavaScript. Production does not need React, Node.js, npm, a frontend build, Composer commands or terminal access.
+
+## Local development
+
+1. Run `composer install` on your development computer.
+2. Import `database/schema.sql` into your local database. For an existing database, apply only the migrations it has not received.
+3. Configure the single root `.env`. The current local development settings have been retained. `.env.example` is a blank production template, not a second configuration source.
+4. Run `php -S localhost:8080 -t public public/router.php` and open `http://localhost:8080`.
+
+`Config` reads only `.env`; it does not load PHP configuration files, production override files or inherited shell configuration. Values can be quoted. Double quotes and backslashes inside double-quoted values use `\"` and `\\`. Secrets stay out of Git and browser assets.
+
+## Deployment
+
+The prepared upload archive is `release/regen-php.zip`. Extract its contents directly into `public_html`. Dependencies and the browser PDF library are already included. Follow [the first-install and update instructions](DEPLOYMENT_DIRECTADMIN.md).
+
+For future releases, run these commands on your development computer:
 
 ```powershell
-php -S 127.0.0.1:8000 -t public public/router.php
+composer install --no-dev --prefer-dist --classmap-authoritative
+composer release
 ```
 
-5. Buka `http://127.0.0.1:8000`.
+The archive excludes your `.env`, Node packages, test scripts, temporary output, Git history, development router and user uploads. A normal update therefore preserves the server configuration and uploaded files. Do not zip the entire development checkout.
 
-## DirectAdmin
+Every push to `main` builds a downloadable ZIP in GitHub Actions. FTPS deployment remains available through **Run workflow → deploy**; it is an explicit action and requires the existing production FTP secrets. CI audits locked dependencies before packaging.
 
-Ikut panduan lengkap dalam [`DEPLOYMENT_DIRECTADMIN.md`](DEPLOYMENT_DIRECTADMIN.md).
+## Code structure
 
-Setiap push ke branch `main` mencetuskan workflow [`.github/workflows/deploy-php.yml`](.github/workflows/deploy-php.yml) untuk build dan deploy melalui FTPS.
-
-## Pemeriksaan
-
-```powershell
-composer validate --strict
-php scripts/smoke-php-pdf.php
-php scripts/smoke-php-ai.php
-php scripts/smoke-php-ats.php
-php scripts/smoke-php-google-auth.php
-php scripts/smoke-php-google-auth-db.php
-php scripts/smoke-php-recaptcha.php
-php scripts/smoke-php-email-verification.php
-php scripts/smoke-php-email-verification-db.php
-powershell -ExecutionPolicy Bypass -File scripts/smoke-php-http.ps1
+```text
+php/
+  bootstrap.php          Runtime startup and error handling
+  src/Application.php    Request dispatch and access checks
+  src/Actions/           Auth, profile, admin, resume, document and AI actions
+  src/                   Repositories, validation and integrations
+  views/                 Private HTML page templates
+public/
+  index.php              HTTP entry point
+  router.php             Local development router
+  css/                   Shared design tokens and page styles
+  js/                    Browser interactions and section editors
+  fonts/, img/, lib/     Local assets, PDF.js and required licences
+database/
+  schema.sql             Fresh installation schema
+  migrations/            Existing database upgrades
+scripts/
+  check.php              PHP syntax, autoload and asset validation
+  build-release.php      Upload ZIP builder
+  create-admin.php       Local helper generating administrator SQL
 ```
 
-Smoke test HTTP dan email-verification-db memerlukan PHP server/database local
-yang aktif serta migration semasa.
+Actions are grouped by feature using PHP traits; they keep the same authorization and repository boundary as the dispatcher. Add database access to repositories and validation to the existing sanitizers. Use brief uppercase comments for security or non-obvious decisions. PHPDoc type annotations retain their standard syntax. Avoid commenting obvious operations.
 
-## Google Sign-In
+## Design and administration
 
-ReGen menggunakan Google Identity Services dan mengesahkan Google ID token pada
-server PHP. Aplikasi hanya menggunakan identiti asas pengguna dan tidak menyimpan
-Google access token atau refresh token.
+The public website defaults to light and offers the shared light/dark/system appearance picker. Neutral surfaces, green accents, system-first typography with the bundled Inter fallback, translucent glass navigation and reduced-motion-aware transitions provide one visual language. `main.css` owns semantic theme tokens; `appearance.css` owns the current materials and component treatments; `theme.js` applies appearance before first paint. Optional storage consent controls whether appearance is remembered between visits. The landing collection scrolls horizontally, and its separate sample theme switch affects only the illustrative workspace.
 
-1. Untuk database sedia ada, jalankan
-   [`database/migrations/002_google_identity.sql`](database/migrations/002_google_identity.sql)
-   sekali melalui phpMyAdmin.
-2. Untuk local, tambah `GOOGLE_CLIENT_ID` ke `php/config.local.php`:
+Email now supports Laravel-style `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION`, `MAIL_FROM_ADDRESS` and `MAIL_FROM_NAME`. Existing email keys remain supported. See [the DirectAdmin mailbox guide](docs/EMAIL_DIRECTADMIN.md).
 
-   ```php
-   'GOOGLE_CLIENT_ID' => 'your-client-id.apps.googleusercontent.com',
-   ```
+All pages use the same self-hosted Inter typography, green actions, neutral surfaces, spacing tokens, buttons and visible keyboard focus. User screens keep task-oriented navigation; admin screens keep a sidebar because they manage eight operational modules. The template gallery, resume editor, document preview, cover letters and profile each retain layouts suited to their tasks. The shared dialog helper contains keyboard focus and returns it when dialogs close.
 
-3. Untuk production, tambah GitHub Actions environment secret bernama
-   `GOOGLE_CLIENT_ID`. Workflow deployment akan memasukkannya ke konfigurasi
-   production secara automatik.
-4. Pastikan Google Web OAuth client mempunyai:
-   - Authorized JavaScript origin: `https://regen.zeeke.appnest.my`
-   - Authorized redirect URI: `https://regen.zeeke.appnest.my/api/auth/google`
+Administrators retain account management, account status, per-user AI limits and resets, global AI policy, registration and Google login controls, maintenance mode, account feature controls, session limits and revocation, SMTP diagnostics, administrator roles and audit history. Super-admin restrictions remain in place. Connection feedback reports actual request outcomes; delayed requests cannot overwrite a newly selected admin view.
 
-Untuk local Google Identity Services, gunakan origin
-`http://localhost:8080` dan redirect URI
-`http://localhost:8080/api/auth/google`, sepadan dengan `APP_URL`. Google
-menolak `login_uri` HTTP yang menggunakan alamat loopback IP, jadi buka aplikasi
-local menggunakan `localhost` dan bukannya `127.0.0.1`.
+## Security and performance
 
-## reCAPTCHA untuk authentication
+The release blocks HTTP access to `.env`, private application code, dependencies, templates and SQL. Uploaded executable file types are blocked. Authenticated mutations retain CSRF protection, ownership checks and shared rate limits. Production suppresses exception details and records a request identifier for diagnosis. Forwarded HTTPS headers are trusted only when `TRUST_PROXY=true` is deliberately configured behind a trusted proxy.
 
-Pendaftaran dan password login menggunakan Google reCAPTCHA v3 dengan action
-`register` dan `login`. Permintaan resend verification menggunakan action
-`resend_verification`.
-Browser hanya menerima site key; secret key dan semakan token, action serta score
-sentiasa berada pada server PHP. Cipta key v3 untuk domain aplikasi, kemudian
-konfigurasikan nilai berikut tanpa memasukkan secret sebenar ke Git:
+Settings and repeated authorization checks are cached within each request. Session revocation is checked every request, while device activity writes at most once per minute. Routine user reads no longer create audit inserts; authentication, mutations and administrative access remain recorded. PDF generation and section/cover-letter AI requests release the session lock before expensive work. Existing lazy PDF loading, progressive page rendering and draft reuse remain intact. Text assets are compressed by Apache. The ZIP builder fingerprints CSS/JavaScript references automatically, so changed assets refresh on each release. Protected application storage supplies caches and file-session fallbacks without depending on the host’s system temporary folder.
 
-```env
-RECAPTCHA_SITE_KEY=your-recaptcha-v3-site-key
-RECAPTCHA_SECRET_KEY=your-recaptcha-v3-secret-key
-RECAPTCHA_MIN_SCORE=0.5
-```
+The obsolete Express backend, its npm manifests and packages, migration-era configuration files, unused DOCX runtime template, test suites and generated test output were removed after verification. Browser JavaScript remains essential, and PDF.js, fonts and their licences remain bundled. Google ID-token verification explicitly requires `phpseclib/phpseclib` v3 for RSA key handling, even though Google Auth lists it as optional package metadata. It and its supporting libraries are bundled in the upload ZIP. The locked release is checked for current dependency advisories before packaging.
 
-Nilai minimum score mesti antara `0` dan `1`; nilai tidak sah kembali kepada `0.5`.
-Production gagal tertutup jika konfigurasi tiada atau Google tidak dapat disahkan.
-Development dan test kekal boleh digunakan tanpa key supaya setup local tidak
-terkunci. Endpoint awam `/api/auth/recaptcha/config` hanya mendedahkan site key dan
-status enabled, tidak pernah secret key. Google sign-in tidak menggunakan reCAPTCHA
-tambahan kerana ID token Google telah disahkan pada server.
+## Validation record
 
-## Email verification
+The cleanup was checked with PHP syntax/autoload/asset validation, Composer validation and audit, mocked AI and deterministic ATS checks, ten-template PDF layout checks, local Google/email verification and quota integration checks, real browser workspace and editor flows, and all eight admin modules at desktop and mobile widths. A flattened release was also exercised under Apache, including private-path denial, route handling, MIME types and relocated Composer loading. Temporary database accounts were removed after checks; no live AI credits were used.
 
-Akaun password baharu tidak menerima session sehingga alamat e-mel disahkan.
-ReGen menghantar link `/verify-email#token=...`; fragment tersebut tidak dihantar
-kepada web server atau access log. Halaman hanya menggunakan token selepas pengguna
-menekan butang verify secara jelas, kemudian server menggunakan transaksi database
-untuk mengesahkan expiry dan menggunakan token sekali sahaja. Database hanya
-menyimpan SHA-256 hash binary, bukan token atau link asal.
+Run `composer check` before a release. Dependency and frontend behavior changes still need targeted verification during development; generated test artifacts do not belong in deployment archives.
 
-Untuk database sedia ada, jalankan
-[`database/migrations/006_email_verification.sql`](database/migrations/006_email_verification.sql)
-sekali sahaja. Migration menandakan akaun legacy sebagai verified ketika column
-mula-mula dicipta, kemudian membuang default tersebut supaya pendaftaran baharu
-bermula sebagai unverified.
+## Public website and installed app
 
-DirectAdmin biasanya menyediakan penghantaran melalui fungsi PHP `mail()`. Cipta
-mailbox atau forwarder pada domain production dan tetapkan:
+The root URL now serves a public landing page; sign-in remains at `/login`. Public pages, sample templates, `robots.txt` and `sitemap.xml` are dispatched before the database and session startup. The demo shows ten actual template previews plus fictional, browser-only editing, sample recommendations and a matching letter. It makes no AI requests and sends no entered demo details to the server. A chosen template follows the sign-up journey within the same browser tab.
 
-```env
-MAIL_FROM_EMAIL=no-reply@your-domain.example
-MAIL_FROM_NAME=ReGen
-MAIL_REPLY_TO=support@your-domain.example
-EMAIL_VERIFICATION_TTL=3600
-```
+`public/css/product.css` is the final shared UI layer for the landing page, user workspace and administration. It uses the existing self-hosted Inter family, neutral surfaces, deep green text and green actions. The document designs remain independently selectable; public template previews use each design's default document font. Keep semantic headings, visible focus and 44 px minimum primary touch controls when extending the UI.
 
-`APP_URL` mesti URL HTTPS production yang betul. Nilai contoh, sender tidak sah,
-header newline, atau URL HTTP production akan gagal tertutup. Jika mail transport
-menolak penghantaran, akaun kekal unverified, kegagalan direkod tanpa token, recipient,
-atau verification link, dan pengguna masih boleh meminta link baharu. Endpoint resend
-memberikan jawapan generik untuk mengurangkan account enumeration dan mempunyai
-rate limit per IP serta hash e-mel. Google account dianggap verified hanya selepas
-server menerima claim `email_verified` yang sah daripada Google; akaun password
-sedia ada dengan e-mel sama masih perlu disahkan dan memasukkan password sebelum
-Google identity boleh dipautkan.
+`manifest.webmanifest`, install icons, `pwa.js` and the root `sw.js` provide progressive web app support. The install control uses a native browser prompt when available and platform instructions otherwise. Installation requires HTTPS in production and browser support. Private workspace pages, API responses, photos and generated PDFs never enter the service worker cache. Public landing/offline pages, explicitly allowed assets and fictional sample previews may be cached. Editing, saving, real AI and PDF downloads still require a connection. Workers update normally after open tabs release the previous worker; there is no forced reload of an editor.
 
-## ReGen AI (OpenAI)
+The release builder fingerprints both page assets and the worker cache version. HTML contains canonical/Open Graph/Twitter metadata, a social image and factual SoftwareApplication/Offer/Organization microdata. Production robots/sitemap URLs use `APP_URL`; development stays `noindex`. Private pages and demo endpoints send indexing exclusions. Search ranking or rich-result appearance is not guaranteed.
 
-ReGen menggunakan OpenAI Responses API dengan model default `gpt-5.4-mini` untuk
-penulisan profesional berstruktur dengan kos penggunaan yang lebih rendah.
+October 2026 verification covered 320–2560 px public layouts, interactive template/detail/recommendation/letter flows, the actual user/admin views, authentication pages, installability checks, offline landing/fallback behavior, and inspection of Cache Storage for private data. Verification helpers and temporary accounts are removed after use.
 
-AI kini berfungsi pada tahap section, bukan setiap field. Satu permintaan menyemak
-semua long-form fields berkaitan dalam Summary, Experience, Projects, Activities,
-Skills, Achievements, atau Certifications. Cadangan dipaparkan sebagai perbandingan
-sebelum/selepas dan tidak mengubah borang sehingga pengguna memilih
-`Use Suggestions`. `Regenerate` menggunakan satu ReGen AI Token baharu.
+## Candidate product design and remembered sign-in
 
-Arahan server menekankan ayat tepat, profesional, natural, HR-oriented dan
-ATS-friendly tanpa keyword stuffing atau fakta rekaan. Server hanya menghantar
-konteks resume profesional yang diperlukan. Nama, e-mel, telefon, alamat, lokasi,
-gambar, data Personal dan References dikecualikan serta disemak semula sebelum
-setiap request. Nama syarikat, organisasi, jawatan dan projek boleh digunakan sebagai
-context anchor, tetapi model diarahkan supaya tidak membawa masuk fakta luar yang
-tidak diberikan pengguna. Cadangan Skills boleh menggunakan bukti daripada
-Experience, Projects dan section profesional lain, dan server menolak skill baharu
-yang tidak dapat disokong oleh konteks tersebut. Requests menggunakan `store: false`
-serta `safety_identifier` pseudonymous; OpenAI key dan user ID mentah kekal pada
-server dan tidak pernah dihantar kepada browser.
+The public website and application use a candidate-focused product layout with a green action palette, explicit resume-building steps and consistent Inter typography. Candidate starting points, actual template previews, sample writing reviews and matching cover letters form the public walkthrough. Ten expandable writing guides support the real editor. Samples use Zamir Zaini and are labelled fictional. Landing previews use `ResumeTemplate` output and matching demo letters use `CoverLetterTemplate`; login and registration now share a lightweight application story without a PDF iframe. The renderer fingerprint prevents an older cached sample appearing after a design update. Product copy does not use typographic em or en dashes; pasted text can still be normalised safely.
 
-Secara default production, setiap pengguna menerima 15 ReGen AI Tokens dalam rolling
-window 24 jam yang bermula pada masa action AI pertama. Satu cadangan section atau
-AI review baharu menggunakan satu Token. Penggunaan dikira secara atomic di database
-untuk mengelakkan parallel request bypass. Jika provider gagal, reservation dipulangkan
-hanya jika ia masih berada dalam window yang sama. Dashboard dan panel builder
-menunjukkan baki Tokens serta masa reset. ATS score kekal local dan deterministic;
-hanya komen pilihan di final review menggunakan satu Token jika komen tersimpan
-tidak boleh digunakan.
+The PWA starts at `/login?source=installed`. A valid user session resumes the workspace. User authentication is kept in a persistent HttpOnly cookie for a maximum of 86,400 seconds from sign-in, including browser/app restarts and inactivity. Rotation preserves that original expiry. Passwords are never copied into local storage, IndexedDB or the service worker cache. Logout and revoked sessions still end access immediately. Administrators keep their configured shorter idle timeout. PHP file sessions use an isolated application directory so other applications cannot apply their garbage-collection timing to ReGen sessions.
 
-Untuk local, simpan secret dalam `.env` yang diabaikan Git:
+Local checks verified the personalised demo workflow, guided editor sections, saved content, responsive layouts, restart persistence, 23-hour inactivity and forced reauthentication after 24 hours. The November authentication redesign preserves the existing sign-in and registration handlers. The later live-operations release requires migrations 017–018.
 
-```env
-OPENAI_API_KEY=your-openai-project-key
-OPENAI_MODEL=gpt-5.4-mini
-OPENAI_DAILY_LIMIT=100
-OPENAI_SUGGEST_USER_MINUTE_LIMIT=120
-OPENAI_SUGGEST_IP_MINUTE_LIMIT=240
-```
+## Product experience refresh
 
-Untuk DirectAdmin, gunakan nilai yang sama dalam `_app/config.local.php`. Jangan
-masukkan key sebenar ke `.env.example`, Git, JavaScript, HTML, log, atau screenshot.
-Tanpa override, `APP_ENV=development` atau `test` menggunakan 100 Tokens setiap
-24 jam dengan burst 120 action pengguna dan 240 action IP seminit. Production
-menggunakan default 15, 8, dan 24. Override `OPENAI_DAILY_LIMIT` menerima 1 hingga
-1000; override burst pengguna menerima 1 hingga 1000 dan burst IP 1 hingga 2000.
-Nilai tidak sah kembali kepada default environment tersebut. Menaikkan limit local
-terus menggunakan kiraan window sedia ada, jadi database tidak perlu direset.
-Jika `APP_ENV` tidak dikonfigurasi, aplikasi menggunakan `production` sebagai fallback
-selamat; local development perlu menetapkan `APP_ENV=development` secara jelas.
-Aktifkan project budget dan billing alerts pada OpenAI Platform. Tanpa
-`OPENAI_API_KEY`, builder dan local ATS checks masih berfungsi tetapi action AI akan
-disabled.
+The user experience now follows the logo's green identity. Shared semantic tokens live in `public/css/main.css`, reusable product components in `product.css`, the complete editor layout in `stepper.css`, and the public application desk in `landing.css`. The editor no longer relies on competing layout overrides in `workspace.css`. On small screens it uses one compact header, an accessible native section sheet, contextual navigation and secondary photo entry. Other workspace screens use a shared mobile destination bar. Administration retains its existing layout.
 
-## Session, security dan skala
+Autosave now serializes writes, skips unchanged payloads, guards rapid navigation and exposes pending, failed and retry states. Offline changes remain in the open page and retry on reconnection. Expired sign-in opens a recovery dialog so the user can authenticate in a separate tab without discarding the open draft. Recovery checks that the same account reconnects. Private writing is not put in local storage or the offline cache, so closing an unsaved page still risks losing it; the editor shows a browser leave-page warning.
 
-- Production menggunakan `SESSION_DRIVER=database`, session rotation, absolute
-  expiry 24 jam, idle expiry 2 jam dan CSRF token untuk semua perubahan authenticated.
-- Login, registration, AI dan ATS endpoints mempunyai shared database rate limits,
-  dengan locked-file fallback semasa database limiter belum tersedia.
-- Jalankan [`database/migrations/003_release_hardening.sql`](database/migrations/003_release_hardening.sql)
-  untuk database sedia ada sebelum mengaktifkan release ini. Schema baru sudah
-  mengandungi jadual yang sama.
-- Jalankan [`database/migrations/004_openai_ai_quota.sql`](database/migrations/004_openai_ai_quota.sql)
-  untuk mengaktifkan shared 15-request rolling window bagi setiap pengguna.
-- Jalankan [`database/migrations/005_ai_quota_reservations.sql`](database/migrations/005_ai_quota_reservations.sql)
-  supaya refund untuk request provider yang gagal adalah idempotent.
-- Jalankan [`database/migrations/006_email_verification.sql`](database/migrations/006_email_verification.sql)
-  sekali untuk token verification single-use dan status e-mel.
-- Upload gambar hanya menerima JPG/PNG yang sah, dinyahsaiz di browser, dan disemak
-  semula pada server.
-- Security headers, strict script CSP, no-store API responses dan same-origin checks
-  diaktifkan untuk production.
-
-## Checklist sebelum release
-
-1. Jalankan migration `002_google_identity.sql`, `003_release_hardening.sql`,
-   `004_openai_ai_quota.sql`, `005_ai_quota_reservations.sql`, kemudian
-   `006_email_verification.sql` melalui
-   phpMyAdmin.
-2. Simpan production secret hanya di `_app/config.local.php`; jangan deploy fail
-   `.env-prod` atau secret melalui Git.
-3. Rotate database password dan mana-mana API key yang pernah berada dalam Git
-   history, kemudian kemas kini server.
-4. Jalankan semua pemeriksaan di atas dan buat satu ujian login, builder mobile,
-   ReGen AI, ATS review dan PDF di staging.
-5. Tetapkan OpenAI project budget/rate limits dan semak penggunaan sebenar sebelum
-   membuka traffic besar.
+Public template frames load close to the viewport. UI fonts use a 174 KB Latin WOFF2 subset and a full WOFF2 for other supported character ranges. PDF generation retains the original document font files. Export endpoints require contact details and reject an empty cover letter; previewing an incomplete resume remains available. See [the audit and verification record](docs/PRODUCT_REVIEW.md) for measured results and remaining work.

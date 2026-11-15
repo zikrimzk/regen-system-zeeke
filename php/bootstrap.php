@@ -4,10 +4,16 @@ declare(strict_types=1);
 use ReGen\Application;
 use ReGen\Config;
 use ReGen\Database;
+use ReGen\ErrorReporter;
 use ReGen\Http;
+use ReGen\PaymentWebhookController;
+use ReGen\PublicSite;
+use ReGen\ReadinessController;
+use ReGen\Routes;
 use ReGen\Session;
 
 $projectRoot = dirname(__DIR__);
+ini_set('display_errors', '0');
 $autoloadCandidates = [
     $projectRoot . '/vendor/autoload.php',
     __DIR__ . '/vendor/autoload.php',
@@ -22,6 +28,8 @@ foreach ($autoloadCandidates as $autoload) {
             && method_exists($loader, 'addPsr4')
         ) {
             $loader->addPsr4('ReGen\\', __DIR__ . '/src', true);
+            $releaseMap = __DIR__ . '/autoload-map.php';
+            if (is_file($releaseMap)) $loader->addClassMap(require $releaseMap);
         }
         $autoloadLoaded = true;
         break;
@@ -38,31 +46,44 @@ if (!$autoloadLoaded) {
     exit;
 }
 
-Config::load($projectRoot);
-Http::applySecurityHeaders();
-
 set_exception_handler(static function (Throwable $error): void {
-    error_log('[ReGen PHP Error] ' . $error);
+    if ($error instanceof \ReGen\DocumentRecoveryConflict) Http::json(['success'=>false,'code'=>'DOCUMENT_RECOVERED','message'=>$error->getMessage()],409);
+    $requestId = ErrorReporter::report($error);
     if (Config::get('app.env', 'production') === 'production') {
-        Http::json(['success' => false, 'message' => 'Internal server error.'], 500);
+        Http::json(['success' => false, 'message' => 'Internal server error.', 'requestId' => $requestId], 500);
     } else {
         Http::json([
             'success' => false,
             'message' => $error->getMessage(),
             'type' => $error::class,
+            'requestId' => $requestId,
         ], 500);
     }
 });
 
-Session::start(
-    (string) Config::get('session.driver', 'files') === 'database'
-        ? Database::connection()
-        : null
-);
+Config::load($projectRoot);
+ini_set('display_errors', Config::get('app.env') === 'production' ? '0' : '1');
+ini_set('log_errors', '1');
+Http::applySecurityHeaders();
+if (Http::method() === 'GET' && Http::path() === '/api/health') ReadinessController::serve();
+if (Routes::legacyPage(Http::path(), Http::method()) === '/') {
+    Http::redirect(Routes::pageUrl('/', (string) ($_SERVER['REQUEST_URI'] ?? '/')));
+}
+if (Http::path() === '/' && Http::method() === 'GET') {
+    try { (new \ReGen\OperationsMonitor(Database::connection()))->recordLanding(); }
+    catch (\Throwable $error) { error_log('[Landing Analytics] ' . $error::class); }
+}
+PublicSite::dispatch($projectRoot);
 
-if (Http::contentLength() > 8 * 1024 * 1024) {
+if (Http::contentLength() > 32 * 1024 * 1024) {
     Http::json(['success' => false, 'message' => 'Request is too large.'], 413);
 }
 
-$application = new Application(Database::connection(), $projectRoot);
+$db = Database::connection();
+$webhookMode = Routes::webhookMode(Http::path(), Http::method());
+if ($webhookMode !== null) PaymentWebhookController::serve($db, $webhookMode);
+Session::start((string) Config::get('session.driver', 'files') === 'database' ? $db : null);
+
+\ReGen\RealtimeEndpoint::dispatch($db, $projectRoot);
+$application = new Application($db, $projectRoot);
 $application->run();

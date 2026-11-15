@@ -10,6 +10,11 @@ final class Database
 {
     private static ?PDO $connection = null;
 
+    public static function existingConnection(): ?PDO
+    {
+        return self::$connection;
+    }
+
     public static function connection(): PDO
     {
         if (self::$connection instanceof PDO) {
@@ -24,7 +29,7 @@ final class Database
         );
 
         try {
-            self::$connection = new PDO(
+            $connection = new PDO(
                 $dsn,
                 (string) Config::get('db.user'),
                 (string) Config::get('db.password'),
@@ -36,10 +41,9 @@ final class Database
                     PDO::ATTR_TIMEOUT => 10,
                 ]
             );
-            self::$connection->exec("SET time_zone = '+00:00'");
-            return self::$connection;
+            $connection->exec("SET time_zone = '+00:00'");
+            return self::$connection = $connection;
         } catch (PDOException $error) {
-            error_log('[Database Connection Error] ' . $error->getMessage());
             throw new \RuntimeException('Database connection failed.', 0, $error);
         }
     }

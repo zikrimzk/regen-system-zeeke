@@ -1,6 +1,11 @@
-/**
- * auth.js — Handles login and registration forms
- */
+(() => {
+  const template = new URLSearchParams(window.location.search).get('template');
+  if (['classic','modern','minimal','heritage','essential','graduate','executive','editorial','precision','horizon','signature','atlas','meridian','keystone','counsel','impact'].includes(template)) {
+    try { sessionStorage.setItem('regen:onboarding-template', template); } catch {}
+  }
+})();
+
+/* AUTH.JS - HANDLES LOGIN AND REGISTRATION FORMS */
 
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm    = document.getElementById('login-form');
@@ -13,7 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let postcodeError = null;
   let validateRegistrationPostcode = () => true;
 
-  function showGoogleStatus(block, shell, message, loading = false) {
+  let googleInitializationInFlight = false;
+  let googleResizeObserver = null;
+  let googleRenderTimer = null;
+  let googleAppearanceListener = null;
+
+  function showGoogleStatus(block, shell, message, loading = false, retry = false) {
+    shell.classList.remove('is-rendered');
     const status = document.createElement('div');
     status.className = loading ? 'google-button-status is-loading' : 'google-button-status';
     status.setAttribute('role', loading ? 'status' : 'note');
@@ -26,6 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
     text.textContent = message;
 
     status.append(indicator, text);
+    if (retry) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'google-auth-retry';
+      button.textContent = 'Retry';
+      button.addEventListener('click', initializeGoogleAuth);
+      status.append(button);
+    }
     shell.replaceChildren(status);
     block.classList.toggle('is-loading', loading);
     block.classList.toggle('is-unavailable', !loading);
@@ -33,41 +52,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function loadGoogleIdentityLibrary() {
     if (window.google?.accounts?.id) return Promise.resolve();
-
     return new Promise((resolve, reject) => {
       let script = document.querySelector('script[data-google-identity]');
+      const finish = error => {
+        clearTimeout(timer);
+        script.removeEventListener('load', onLoad);
+        script.removeEventListener('error', onError);
+        if (error) { script.remove(); reject(error); }
+        else resolve();
+      };
+      const onLoad = () => finish(window.google?.accounts?.id ? null : new Error('Google Identity Services did not initialize.'));
+      const onError = () => finish(new Error('Google Identity Services could not load.'));
+      const timer = setTimeout(() => finish(new Error('Google Identity Services took too long.')), 10000);
       if (!script) {
         script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
         script.defer = true;
         script.dataset.googleIdentity = 'true';
-        document.head.appendChild(script);
       }
-
-      script.addEventListener('load', resolve, { once: true });
-      script.addEventListener('error', reject, { once: true });
+      script.addEventListener('load', onLoad, {once:true});
+      script.addEventListener('error', onError, {once:true});
+      if (!script.isConnected) document.head.append(script);
     });
   }
 
   async function initializeGoogleAuth() {
     const block = document.getElementById('google-auth');
     const shell = document.getElementById('google-button-shell');
-    if (!block || !shell) return;
-
+    if (!block || !shell || googleInitializationInFlight) return;
+    googleInitializationInFlight = true;
+    googleResizeObserver?.disconnect();
+    if (googleAppearanceListener) window.removeEventListener('regen:appearance', googleAppearanceListener);
+    clearTimeout(googleRenderTimer);
+    const controller = new AbortController();
+    const configTimeout = setTimeout(() => controller.abort(), 8000);
     try {
       const response = await fetch('/api/auth/google/config', {
         credentials: 'same-origin',
+        cache: 'no-store',
+        signal: controller.signal,
         headers: { Accept: 'application/json' },
       });
       const config = await response.json();
-      if (
-        !response.ok
-        || !config.enabled
-        || !config.clientId
-        || !config.loginUri
-      ) {
+      clearTimeout(configTimeout);
+      if (!response.ok) throw new Error('Google sign-in configuration is unavailable.');
+      if (config.enabled === false) {
+        block.hidden = true;
         return;
+      }
+      if (config.enabled !== true || !config.clientId || !config.loginUri) {
+        throw new Error('Google sign-in configuration is incomplete.');
       }
 
       block.hidden = false;
@@ -86,18 +121,34 @@ document.addEventListener('DOMContentLoaded', () => {
         ux_mode: 'redirect',
         auto_select: false,
       });
-      window.google.accounts.id.renderButton(shell, {
+      let renderedWidth = 0;
+      let renderedTheme = '';
+      const renderGoogleButton = () => {
+        const width = Math.max(200, Math.min(400, Math.floor(shell.getBoundingClientRect().width)));
+        const theme = document.documentElement.dataset.theme === 'dark' ? 'outline_dark' : 'outline';
+        if (width === renderedWidth && theme === renderedTheme) return;
+        renderedWidth = width;
+        renderedTheme = theme;
+        shell.replaceChildren();
+        shell.classList.add('is-rendered');
+        window.google.accounts.id.renderButton(shell, {
         type: 'standard',
         size: 'large',
-        theme: 'outline',
+        theme,
         text: 'continue_with',
-        shape: 'rectangular',
+        shape: 'pill',
         logo_alignment: 'left',
-        width: Math.max(220, Math.min(400, Math.floor(shell.getBoundingClientRect().width))),
+        width: width,
         state: block.dataset.page === 'register' ? 'register' : 'login',
       });
+      };
+      renderGoogleButton();
+      googleResizeObserver = new ResizeObserver(renderGoogleButton);
+      googleResizeObserver.observe(shell);
+      googleAppearanceListener = renderGoogleButton;
+      window.addEventListener('regen:appearance', googleAppearanceListener);
 
-      window.setTimeout(() => {
+      googleRenderTimer = window.setTimeout(() => {
         const renderedControl = shell.firstElementChild;
         const renderedRect = renderedControl?.getBoundingClientRect();
         if (!renderedRect || renderedRect.width < 200 || renderedRect.height < 36) {
@@ -113,8 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
       showGoogleStatus(
         block,
         shell,
-        'Google sign-in could not load. Continue with email below.'
+        'Google sign-in is temporarily unavailable. Continue with email below.',
+        false,
+        true
       );
+    } finally {
+      clearTimeout(configTimeout);
+      googleInitializationInFlight = false;
     }
   }
 
@@ -217,8 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return recaptchaConfigPromise;
   }
 
-  // Login and registration always require the check, so prepare it early. The
-  // verification page loads it only if the user actually requests a resend.
+  // LOGIN AND REGISTRATION ALWAYS REQUIRE THE CHECK, SO PREPARE IT EARLY. THE
+  // VERIFICATION PAGE LOADS IT ONLY IF THE USER ACTUALLY REQUESTS A RESEND.
   if (registerForm || loginForm) ensureRecaptchaConfig();
 
   async function getRecaptcha(action) {
@@ -257,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       window.sessionStorage.setItem('regenVerificationEmail', normalized);
     } catch (error) {
-      // The flow still works when private browsing disables session storage.
+      // THE FLOW STILL WORKS WHEN PRIVATE BROWSING DISABLES SESSION STORAGE.
     }
   }
 
@@ -273,17 +329,19 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       window.sessionStorage.removeItem('regenVerificationEmail');
     } catch (error) {
-      // No cleanup is needed when session storage is unavailable.
+      // NO CLEANUP IS NEEDED WHEN SESSION STORAGE IS UNAVAILABLE.
     }
   }
 
   function setPasswordToggle(button, visible) {
     button.innerHTML = ReGenIcons.icon(visible ? 'eyeOff' : 'eye');
-    button.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
-    button.title = visible ? 'Hide password' : 'Show password';
+    const fallback = visible ? 'Hide password' : 'Show password';
+    const label = window.ReGenText?.get(visible ? 'auth.hidePassword' : 'auth.showPassword', fallback) ?? fallback;
+    button.setAttribute('aria-label', label);
+    button.title = label;
   }
 
-  // ── Password toggles ──────────────────────────────────────────
+  // ── PASSWORD TOGGLES ──────────────────────────────────────────
   document.querySelectorAll('.auth-password-toggle').forEach(btn => {
     setPasswordToggle(btn, false);
     btn.addEventListener('click', () => {
@@ -298,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ── Registration validation & strength ────────────────────────
+  // ── REGISTRATION VALIDATION & STRENGTH ────────────────────────
   if (registerForm) {
     const pwdInput = document.getElementById('password');
     const confirmInput = document.getElementById('confirmPassword');
@@ -387,8 +445,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ── Login Submit ──────────────────────────────────────────────
+  // ── LOGIN SUBMIT ──────────────────────────────────────────────
   if (loginForm) {
+    const remember = document.getElementById('remember-me');
+    const syncGoogleRemember = () => {
+      if (location.protocol === 'https:') document.cookie = 'regen_remember_google=1; Path=/api/auth/google; SameSite=None; Secure; Max-Age='+(remember.checked?600:0);
+    };
+    if (remember) {
+      syncGoogleRemember();
+      remember.addEventListener('change', syncGoogleRemember);
+    }
     const loginNotice = document.getElementById('login-error');
     const loginEmail = document.getElementById('email');
     const authParams = new URLSearchParams(window.location.search);
@@ -439,6 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = {
         email:    window.ZeekeSafe.cleanText(loginEmail.value),
         password: document.getElementById('password').value,
+        rememberMe: remember?.checked === true,
       };
 
       try {
@@ -446,7 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await Api.login(data);
         if (res.success) {
           clearRememberedVerificationEmail();
-          window.location.href = '/dashboard';
+          const destination = typeof res.redirect === 'string' ? res.redirect : '';
+          window.location.assign(/^\/(?![\/\\])/.test(destination) && !/[\u0000-\u0020\\]/.test(destination)
+            ? destination : '/dashboard');
         } else if (
           ['EMAIL_NOT_VERIFIED', 'EMAIL_VERIFICATION_REQUIRED'].includes(res.code)
           || res.verificationRequired === true
@@ -470,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Register Submit ───────────────────────────────────────────
+  // ── REGISTER SUBMIT ───────────────────────────────────────────
   if (registerForm) {
     const registerNotice = document.getElementById('register-error');
     const authParams = new URLSearchParams(window.location.search);
@@ -571,8 +640,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Email verification is deliberately user-confirmed. Link scanners can open
-  // the page safely, but the one-time token is only submitted after a click.
+  // EMAIL VERIFICATION IS DELIBERATELY USER-CONFIRMED. LINK SCANNERS CAN OPEN
+  // THE PAGE SAFELY, BUT THE ONE-TIME TOKEN IS ONLY SUBMITTED AFTER A CLICK.
   if (verificationPage) {
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));

@@ -1,158 +1,81 @@
-/**
- * preview.js - on-demand A4 resume preview with zoom controls.
- */
 const Preview = (() => {
-  let iframe;
-  let modal;
-  let shell;
-  let hasLoaded = false;
-  let zoom = 1;
-  let draftTimer = null;
-  let lastDraftPayload = '';
-  let protection = null;
-  let frameRevision = 0;
-
-  const MIN_ZOOM = 0.3;
-  const MAX_ZOOM = 1.4;
-  const ZOOM_STEP = 0.1;
-  const PAGE_HEIGHT = 1123;
-  let documentHeight = PAGE_HEIGHT;
-
-  function init() {
-    iframe = document.getElementById('preview-iframe-modal');
-    modal = document.getElementById('preview-modal');
-    shell = document.getElementById('preview-page-shell');
-    protection = window.PreviewProtection?.register({
-      iframe,
-      container: modal?.querySelector('.preview-stage'),
-      isActive: () => !modal?.classList.contains('hidden'),
-    });
-
-    const closeBtn = document.getElementById('close-preview-modal');
-    const openBtns = [document.getElementById('preview-open-top')].filter(Boolean);
-
-    openBtns.forEach((btn) => btn.addEventListener('click', open));
-    iframe?.addEventListener('load', syncFrameHeight);
-    closeBtn?.addEventListener('click', close);
-    document.getElementById('preview-zoom-out')?.addEventListener('click', () => setZoom(zoom - ZOOM_STEP));
-    document.getElementById('preview-zoom-in')?.addEventListener('click', () => setZoom(zoom + ZOOM_STEP));
-    document.getElementById('preview-zoom-fit')?.addEventListener('click', fitToStage);
-
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) close();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal?.classList.contains('hidden')) close();
-    });
-
-    window.addEventListener('resize', () => {
-      if (!modal?.classList.contains('hidden')) fitToStage();
-    });
-  }
-
-  function open() {
-    modal?.classList.remove('hidden');
-    document.body.classList.add('preview-open');
-    protection?.activate();
-    refreshNow({ force: true });
-    if (typeof Stepper !== 'undefined' && typeof Stepper.getDraftResume === 'function') {
-      renderDraft(Stepper.getDraftResume());
-    }
-    requestAnimationFrame(fitToStage);
-  }
-
-  function close() {
-    frameRevision += 1;
-    clearTimeout(draftTimer);
-    modal?.classList.add('hidden');
-    document.body.classList.remove('preview-open');
-    protection?.deactivate();
-  }
-
-  function setZoom(value) {
-    zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Number(value) || 1));
-    if (shell) {
-      shell.style.setProperty('--preview-zoom', zoom.toFixed(2));
-      shell.style.marginBottom = `${documentHeight * (zoom - 1)}px`;
-    }
-  }
-
-  function fitToStage() {
-    const stage = document.querySelector('.preview-stage');
-    if (!stage || !shell) return;
-
-    const stageWidth = stage.clientWidth - 32;
-    const stageHeight = stage.clientHeight - 32;
-    const pageWidth = 794;
-    const pageHeight = 1123;
-    const fit = Math.min(stageWidth / pageWidth, stageHeight / pageHeight, 1);
-    setZoom(fit);
-  }
-
-  async function refreshNow({ force = false } = {}) {
-    if (!iframe || !window.PreviewProtection) return;
-    const url = Api.previewUrl();
-    const nextUrl = `${url}?t=${Date.now()}`;
-    if (force || !hasLoaded || !modal?.classList.contains('hidden')) {
-      const revision = ++frameRevision;
-      const result = await window.PreviewProtection.loadUrl(iframe, nextUrl, {
-        shouldCommit: () => revision === frameRevision,
-      });
-      if (revision !== frameRevision || result.stale) return;
-      if (!result.success) {
-        if (!modal?.classList.contains('hidden') && typeof App !== 'undefined') {
-          App.showToast(result.message || 'Preview is temporarily unavailable.', 'error');
-        }
-        return;
+  let modal,container,timer,zoom=1,revision=0,focusBefore;
+  let originalParent, writeMode, previewMode, mobile, inline=false;
+  let request,lastPayload='',lastPdf=null,pendingPayload='';
+  function init(){
+    modal=document.getElementById('preview-modal');container=document.getElementById('preview-pdf-pages');
+    originalParent=modal.parentElement;
+    writeMode=document.getElementById('studio-write-mode');
+    previewMode=document.getElementById('studio-preview-mode');
+    mobile=matchMedia('(max-width: 760px)');
+    document.getElementById('preview-open-top')?.addEventListener('click',()=>open());
+    previewMode?.addEventListener('click',()=>open(true));
+    writeMode?.addEventListener('click',()=>close(false));
+    document.getElementById('close-preview-modal')?.addEventListener('click',()=>close());
+    document.getElementById('preview-zoom-in')?.addEventListener('click',()=>setZoom(zoom+.1));
+    document.getElementById('preview-zoom-out')?.addEventListener('click',()=>setZoom(zoom-.1));
+    document.getElementById('preview-zoom-fit')?.addEventListener('click',()=>setZoom(1));
+    modal?.addEventListener('click',event=>{if(event.target===modal)close();});
+    document.addEventListener('keydown',event=>{
+      if(modal?.classList.contains('hidden'))return;
+      if(event.key==='Escape' && !document.querySelector('dialog[open]'))close();
+      if(event.key==='Tab' && !inline){
+        const controls=[...modal.querySelectorAll('button:not([disabled])')],first=controls[0],last=controls.at(-1);
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
       }
-      hasLoaded = true;
-      requestAnimationFrame(() => {
-        syncFrameHeight();
-        fitToStage();
-      });
+    });
+    mobile.addEventListener('change',()=>close(false));
+    document.addEventListener('regen:studio-review',()=>close(false));
+    window.addEventListener('regen:session-expired',()=>{ lastPayload='';lastPdf=null;close(false); });
+  }
+  function open(useInline=false){
+    if(!modal.classList.contains('hidden'))return;
+    focusBefore=document.activeElement;
+    inline=useInline&&mobile.matches;
+    if(inline){
+      document.querySelector('.builder-left').append(modal);
+      modal.classList.add('is-inline');
+      modal.setAttribute('role','region');
+      modal.removeAttribute('aria-modal');
+      modal.setAttribute('aria-labelledby','draft-preview-title');
+      document.body.dataset.studioMode='preview';
+      writeMode.setAttribute('aria-pressed','false');
+      previewMode.setAttribute('aria-pressed','true');
+    }else document.body.classList.add('preview-open');
+    modal.classList.remove('hidden');
+    if(!inline)document.getElementById('close-preview-modal').focus();
+    refreshNow();
+  }
+  function close(restoreFocus=true){
+    if(!modal||modal.classList.contains('hidden'))return;
+    revision++;clearTimeout(timer);request?.abort();pendingPayload='';PdfPages.clear(container);
+    modal.classList.add('hidden');
+    document.body.classList.remove('preview-open');
+    if(inline){
+      originalParent.append(modal);
+      modal.classList.remove('is-inline');
+      modal.setAttribute('role','dialog');
+      modal.setAttribute('aria-modal','true');
+      modal.removeAttribute('aria-labelledby');
+      delete document.body.dataset.studioMode;
+      writeMode.setAttribute('aria-pressed','true');
+      previewMode.setAttribute('aria-pressed','false');
     }
+    inline=false;
+    if(restoreFocus)focusBefore?.focus();
   }
-
-  function syncFrameHeight() {
-    if (!iframe || !shell) return;
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      const measured = Math.max(
-        doc?.documentElement?.scrollHeight || 0,
-        doc?.body?.scrollHeight || 0,
-        PAGE_HEIGHT
-      );
-      const pageAlignedHeight = Math.ceil(measured / PAGE_HEIGHT) * PAGE_HEIGHT;
-      documentHeight = pageAlignedHeight;
-      shell.style.setProperty('--preview-doc-height', `${pageAlignedHeight}px`);
-      iframe.style.height = `${pageAlignedHeight}px`;
-      shell.style.marginBottom = `${documentHeight * (zoom - 1)}px`;
-    } catch (err) {
-      documentHeight = PAGE_HEIGHT;
-    }
+  function setZoom(value){zoom=Math.max(.5,Math.min(1.6,value));PdfPages.zoom(container,zoom);}
+  async function load(data){
+    clearTimeout(timer);
+    const payload=JSON.stringify(data);if(payload===pendingPayload)return;
+    request?.abort();request=new AbortController();pendingPayload=payload;
+    const current=++revision;container.setAttribute('aria-busy','true');
+    try{const pdf=payload===lastPayload&&lastPdf?lastPdf:await Api.documentDraft(data,{signal:request.signal});if(current===revision){lastPayload=payload;lastPdf=pdf;await PdfPages.render(container,pdf,{zoom,documentType:data.writing?.documentType||'resume',onSettings:()=>{close();document.getElementById('resume-layout-settings')?.click();}});}}
+    catch(error){if(current===revision&&error.name!=='AbortError'){container.textContent=error.message;container.setAttribute('aria-busy','false');}}
+    finally{if(current===revision)pendingPayload='';}
   }
-
-  function renderDraft(resumeData) {
-    if (!iframe || !window.PreviewProtection || modal?.classList.contains('hidden')) return;
-
-    const payload = JSON.stringify(resumeData || {});
-    if (payload === lastDraftPayload) return;
-    lastDraftPayload = payload;
-
-    clearTimeout(draftTimer);
-    const revision = ++frameRevision;
-    draftTimer = setTimeout(async () => {
-      const res = await Api.previewDraft(resumeData);
-      if (!res.success || revision !== frameRevision) return;
-      window.PreviewProtection.setFrameHtml(iframe, res.html);
-      hasLoaded = true;
-      requestAnimationFrame(() => {
-        syncFrameHeight();
-        fitToStage();
-      });
-    }, 220);
-  }
-
-  return { init, refreshNow, renderDraft, open, close };
+  function refreshNow(){if(!modal?.classList.contains('hidden'))load(Stepper.getDraftResume());}
+  function renderDraft(data){if(modal?.classList.contains('hidden'))return;clearTimeout(timer);timer=setTimeout(()=>load(data),700);}
+  return {init,open,close,refreshNow,renderDraft};
 })();

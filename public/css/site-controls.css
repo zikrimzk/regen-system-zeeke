@@ -1,0 +1,48 @@
+/* PUBLIC DOCUMENT, APPEARANCE AND INSTALL CONTROLS. */
+html {scroll-padding-top:100px}
+body {letter-spacing:-.015em;background:var(--bg);color:var(--text)}
+button,a,input,textarea,select,summary {-webkit-tap-highlight-color:transparent}
+button,a {touch-action:manipulation}
+::selection {background:var(--primary-border);color:var(--text)}
+input,textarea,select {accent-color:var(--primary)}
+input::placeholder,textarea::placeholder {color:var(--text-3);opacity:1}
+.btn,.user-workspace .btn {border-radius:999px;font-size:14px;font-weight:600;min-height:44px;padding:11px 20px;transition:transform var(--t-fast),background var(--t-fast),box-shadow var(--t-fast)}
+.btn-primary,.auth-submit-btn,.user-workspace .resume-command-card .resume-command-actions .btn-primary {background:var(--primary);border-color:transparent;color:var(--text-inv);box-shadow:inset 0 1px 0 #ffffff25,0 4px 12px #0000000c}
+.btn-primary:hover,.auth-submit-btn:hover {background:var(--primary-hover);border-color:transparent;box-shadow:0 6px 20px #00000018}
+.btn:active:not(:disabled),.appearance-toggle:active {transform:scale(.97)}
+.btn-secondary,.user-workspace .btn-secondary {background:var(--surface);color:var(--text);border-color:var(--border)}
+.btn-secondary:hover {background:var(--surface-2);border-color:var(--border-strong)}
+.btn-sm {font-size:13px;min-height:40px}.btn-icon {min-width:44px;width:44px;padding:10px}
+.appearance-control {position:relative;flex:0 0 auto;margin-left:4px}
+.auth-header .appearance-control {margin-left:auto}
+.appearance-toggle {width:44px;height:44px;border:1px solid var(--border);border-radius:50%;background:var(--glass-shine),var(--glass);color:var(--text);display:grid;place-items:center}
+.appearance-toggle svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5}
+.appearance-panel {position:fixed;right:auto;width:224px;padding:8px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-md);z-index:220}
+.appearance-label {display:block;padding:7px 10px 9px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.appearance-panel [role=menuitemradio] {display:flex;align-items:center;gap:12px;min-height:44px;width:100%;padding:10px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font-size:14px;text-align:left}
+.appearance-panel [role=menuitemradio]:hover,.appearance-panel [role=menuitemradio]:focus-visible {background:var(--surface-2);outline:2px solid var(--primary-border);outline-offset:-2px}
+.appearance-panel [aria-checked=true] {color:var(--primary);background:var(--primary-lt)}
+.appearance-panel svg {width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.appearance-panel .appearance-check {margin-left:auto;visibility:hidden;width:16px}.appearance-panel [aria-checked=true] .appearance-check {visibility:visible}
+@media (prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-transparency:reduce){:root{--glass:var(--surface)}}
+@supports not (backdrop-filter:blur(1px)){:root{--glass:var(--surface)}}
+.brand-signature{display:inline-flex;align-items:center;justify-content:flex-start;gap:0;padding:0;width:116px;height:44px;flex:0 0 auto;border:0;border-radius:0;background:transparent;box-shadow:none;line-height:1}
+.brand-signature img{display:block;width:116px;height:auto;max-height:38px;object-fit:contain;filter:var(--brand-filter)}
+body {font-size:16px;line-height:1.6}
+[hidden] {display:none!important}
+button,input,select,textarea {font-family:inherit}
+:where(button,a,input,textarea,select,summary):focus-visible {outline:2px solid var(--primary);outline-offset:3px}
+.document-stage {position:relative;width:100%;aspect-ratio:794/1123;overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:0 4px 16px #1437220a}
+.document-stage>iframe {position:absolute;left:0;top:0;width:794px;height:1123px;border:0;transform-origin:top left;pointer-events:none}
+.pwa-dialog {width:min(480px,calc(100% - 32px));margin:auto;padding:28px;border:1px solid var(--border);border-radius:12px;color:var(--text);background:var(--surface);box-shadow:var(--shadow-md)}
+.pwa-dialog::backdrop {background:#10291e88}
+.pwa-dialog h2 {font-size:25px;line-height:1.25;margin-bottom:14px}
+.pwa-dialog p,.pwa-dialog ol {color:var(--text-2);margin-bottom:18px}
+.pwa-dialog ol {padding-left:24px}
+.pwa-dialog li {margin-bottom:10px}
+.pwa-dialog .btn {width:100%}
+.pwa-dialog{max-width:none;max-height:calc(100dvh - 32px);overflow:auto;border-radius:24px}.brand-signature picture{display:block}
+@media(max-width:700px){.appearance-control{margin:0}}
+
+.landing-page .btn {border-radius:var(--action-radius)}

@@ -192,7 +192,7 @@ window.ZeekeLookups = (() => {
     return { ok: true, message: '' };
   }
 
-  async function searchInstitutions(query, country = 'Malaysia') {
+  async function searchInstitutions(query, country = 'Malaysia', signal) {
     const q = String(query || '').trim();
     if (q.length < 2) return [];
     const key = `${country}:${q}`.toLowerCase();
@@ -200,14 +200,16 @@ window.ZeekeLookups = (() => {
 
     try {
       const res = await fetch(`/api/lookups/institutions?q=${encodeURIComponent(q)}&country=${encodeURIComponent(country)}`, {
-        credentials: 'same-origin',
+        credentials: 'same-origin', signal,
       });
       const data = await res.json();
-      const results = data.success && Array.isArray(data.results) ? data.results : [];
+      if (!res.ok || !data.success || !Array.isArray(data.results)) return null;
+      const results = data.results;
+      if (institutionCache.size >= 80) institutionCache.delete(institutionCache.keys().next().value);
       institutionCache.set(key, results);
       return results;
     } catch (err) {
-      return [];
+      return null;
     }
   }
 

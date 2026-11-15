@@ -1,5 +1,12 @@
 window.ZeekeForm = (() => {
   const bound = new WeakSet();
+  let fieldSequence = 0;
+
+  function updateValue(el, value) {
+    if (el.value === value) return;
+    el.value = value;
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+  }
 
   function fieldLabel(el) {
     const text = el.closest('.form-group')?.querySelector('.form-label')?.textContent || 'This field';
@@ -29,6 +36,9 @@ window.ZeekeForm = (() => {
     el.classList.toggle('is-error', !!message);
     el.setAttribute('aria-invalid', String(!!message));
     if (error) {
+      if (!error.id) error.id = `${el.id || 'field'}-error-${Math.random().toString(36).slice(2,8)}`;
+      const descriptions = new Set((el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+      descriptions.add(error.id);el.setAttribute('aria-describedby',[...descriptions].join(' '));
       if (message) error.textContent = message;
       error.classList.toggle('visible', !!message);
     }
@@ -79,11 +89,12 @@ window.ZeekeForm = (() => {
   }
 
   function validateField(el, options = {}) {
-    if (!el || el.disabled || el.type === 'file' || el.type === 'checkbox') return true;
+    if (!el || el.disabled || ['file','checkbox','hidden'].includes(el.type)) return true;
     const value = String(el.value || '').trim();
     let message = '';
 
-    if (el.required && !value) message = `${fieldLabel(el)} is required.`;
+    if (el.validity.customError) message = el.validationMessage;
+    else if (el.required && !value) message = `${fieldLabel(el)} is required.`;
     else if (value && el.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) message = 'Enter a valid email address.';
     else if (value && el.type === 'tel') message = ZeekeLookups.validatePhone(value, countryFor(el)).message;
     else if (value && el.dataset.url && !validateUrl(value, el.dataset.url)) message = el.dataset.url === 'linkedin' ? 'Enter a valid LinkedIn profile URL or username.' : 'Enter a valid web address.';
@@ -111,13 +122,19 @@ window.ZeekeForm = (() => {
       if (!validateField(el, { silent })) valid = false;
     });
     if (!validateDateRanges(root, { silent })) valid = false;
-    if (!valid && !silent && focus) root.querySelector('.is-error')?.focus({ preventScroll: false });
+    if (!valid && !silent && focus) {
+      const field = root.querySelector('.is-error');
+      field?.closest('.entry-card')?.querySelector('.entry-collapse[aria-expanded="false"]')?.click();
+      const details = field?.closest('details');
+      if (details) details.open = true;
+      field?.focus();
+    }
     return valid;
   }
 
   function normalizeCommaList(el) {
     const seen = new Set();
-    el.value = String(el.value || '').split(/[,;\n]/)
+    const value = String(el.value || '').split(/[,;\n]/)
       .map(item => item.trim())
       .filter(Boolean)
       .filter((item) => {
@@ -127,6 +144,7 @@ window.ZeekeForm = (() => {
         return true;
       })
       .join(', ');
+    updateValue(el, value);
   }
 
   function updateCounter(el) {
@@ -144,7 +162,14 @@ window.ZeekeForm = (() => {
   function resizeTextarea(el) {
     if (!el?.matches?.('textarea')) return;
     const isListItem = el.classList.contains('list-item-input');
-    const maxHeight = Number(el.dataset.maxHeight) || (isListItem ? 112 : 220);
+    const style = getComputedStyle(el);
+    const maxHeight = Math.min(Number(el.dataset.maxHeight) || (isListItem ? 112 : 220),Number.parseFloat(style.maxHeight)||Infinity);
+    // Resetting a focused textarea to auto on each character makes mobile scroll
+    // and caret position jump while the keyboard is resizing the viewport.
+    if(document.activeElement===el&&el.clientHeight>0){
+      if(el.scrollHeight>el.clientHeight+1)el.style.height=`${Math.min(maxHeight,el.scrollHeight)}px`;
+      el.style.overflowY=el.scrollHeight>el.clientHeight?'auto':'hidden';return;
+    }
     el.style.height = 'auto';
     const minHeight = Number.parseFloat(getComputedStyle(el).minHeight) || 0;
     const contentHeight = Math.max(minHeight, el.scrollHeight);
@@ -155,14 +180,27 @@ window.ZeekeForm = (() => {
   function bindField(el) {
     if (bound.has(el)) return;
     bound.add(el);
+    const group = el.closest('.form-group');
+    if (group && !['checkbox','radio','file'].includes(el.type)) {
+      if (!el.id) el.id = `editor-field-${++fieldSequence}`;
+      const label = group.querySelector('.form-label');
+      if (label && !label.htmlFor) label.htmlFor = el.id;
+      const descriptions = new Set((el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+      group.querySelectorAll('.form-hint').forEach((hint,index) => {
+        if (!hint.id) hint.id = `${el.id}-hint-${index}`;
+        descriptions.add(hint.id);
+      });
+      if (descriptions.size) el.setAttribute('aria-describedby',[...descriptions].join(' '));
+    }
     if (el.matches('textarea')) {
       resizeTextarea(el);
       el.addEventListener('input', () => resizeTextarea(el));
+      el.addEventListener('blur', () => resizeTextarea(el));
     }
     if (el.type === 'tel') {
       if (el.value.trim()) el.value = ZeekeLookups.formatPhone(el.value, countryFor(el));
       el.addEventListener('blur', () => {
-        el.value = ZeekeLookups.formatPhone(el.value, countryFor(el));
+        updateValue(el, ZeekeLookups.formatPhone(el.value, countryFor(el)));
         validateField(el);
       });
     }
@@ -177,13 +215,13 @@ window.ZeekeForm = (() => {
     }
     if (el.type === 'email') {
       el.addEventListener('blur', () => {
-        el.value = el.value.trim().toLowerCase();
+        updateValue(el, el.value.trim().toLowerCase());
         validateField(el);
       });
     }
     if (el.dataset.url) {
       el.addEventListener('blur', () => {
-        if (el.value.trim()) el.value = normalizeUrl(el.value, el.dataset.url);
+        if (el.value.trim()) updateValue(el, normalizeUrl(el.value, el.dataset.url));
         validateField(el);
       });
     }

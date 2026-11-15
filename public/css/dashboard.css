@@ -5,6 +5,34 @@
     linear-gradient(90deg, rgba(23, 62, 99, 0.025) 1px, transparent 1px) 0 0 / 40px 40px,
     var(--bg);
 }
+
+/* REGEN WORKSPACE REFRESH */
+.dashboard-page {
+  background:
+    radial-gradient(circle at 92% 4%, rgba(34, 193, 129, .08), transparent 25rem),
+    linear-gradient(180deg, var(--surface-2) 0, var(--surface-2) 100%);
+}
+.dashboard-content { width: min(1260px, 100%); padding-top: 42px; }
+.dash-page-header { align-items: center; margin-bottom: 24px; }
+.dash-page-title { font-size: clamp(28px, 4vw, 38px); font-weight: 720; letter-spacing: -.04em; }
+.dash-page-eyebrow { color: var(--accent); letter-spacing: .12em; }
+.dashboard-ai-token-card {
+  min-height: 102px;
+  margin-bottom: 22px;
+  padding: 20px 22px;
+  border-color: var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(17, 25, 28, .06);
+}
+.dashboard-ai-token-icon { border: 0; border-radius: 12px; background: var(--primary-lt); color: var(--accent); }
+.resume-command-card, .dashboard-panel { border-color: var(--border); border-radius: 16px; box-shadow: 0 10px 30px rgba(17, 25, 28, .045); }
+.resume-command-card { padding: 28px 28px 22px 31px; }
+.resume-command-card::before, .regen-review-panel::before { width: 4px; background: linear-gradient(180deg, #25c98a, #10845a); }
+.resume-document-mark { border: 0; border-radius: 11px; background: #11191c; color: #fff; }
+.resume-command-actions .btn-primary { background: #11191c; }
+.dashboard-grid { gap: 22px; }
+.section-status { border-radius: 9px; }
+.section-status:hover { background: var(--surface-2); }
 .dashboard-content {
   width: min(1200px, 100%);
   margin: 0 auto;
@@ -175,7 +203,7 @@
   height: 12px;
   border-left: 1px solid var(--primary-border);
   border-bottom: 1px solid var(--primary-border);
-  background: #fff;
+  background: var(--surface);
   clip-path: polygon(0 0, 100% 100%, 0 100%);
 }
 .resume-command-copy { min-width: 0; }
@@ -300,7 +328,7 @@
   font-weight: 550;
 }
 
-.regen-review-panel { background: #fff; }
+.regen-review-panel { background: var(--surface); }
 .regen-review-body { padding: 18px 19px 19px 22px; }
 .review-summary {
   display: grid;
@@ -315,7 +343,7 @@
   place-content: center;
   border: 5px solid var(--border);
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   text-align: center;
 }
 .review-score strong {
@@ -332,7 +360,7 @@
 .review-score.is-excellent { border-color: #58a894; }
 .review-score.is-strong { border-color: #6d98c7; }
 .review-score.is-developing { border-color: #d2a951; }
-.review-score.is-attention { border-color: #d48178; }
+.review-score.is-attention { border-color: var(--border); }
 .review-copy h3 {
   color: var(--text);
   font-size: 16px;
@@ -524,7 +552,7 @@
   min-height: 0;
   overflow: auto;
   padding: 22px;
-  background: #e7ecef;
+  background: var(--surface-2);
 }
 .dashboard-preview-shell {
   --dashboard-preview-scale: 0.7;
@@ -533,7 +561,7 @@
   width: calc(794px * var(--dashboard-preview-scale));
   height: calc(var(--dashboard-document-height) * var(--dashboard-preview-scale));
   margin: 0 auto;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 12px 32px rgba(19, 42, 62, 0.18);
 }
 .dashboard-preview-shell iframe {
@@ -542,7 +570,7 @@
   width: 794px;
   height: var(--dashboard-document-height);
   border: 0;
-  background: #fff;
+  background: var(--surface);
   transform: scale(var(--dashboard-preview-scale));
   transform-origin: top left;
 }
@@ -660,11 +688,11 @@ body.dashboard-preview-open { overflow: hidden; }
   .resume-command-actions { grid-template-columns: 1fr 44px 44px; }
 }
 
-/* 2026 corporate command center */
+/* 2026 CORPORATE COMMAND CENTER */
 .dashboard-page {
   background:
     radial-gradient(circle at 92% 0, rgba(7, 135, 124, 0.07), transparent 28rem),
-    linear-gradient(180deg, #f7f9fb 0, var(--bg) 22rem);
+    linear-gradient(180deg, var(--surface-2) 0, var(--bg) 22rem);
 }
 .dashboard-content {
   width: min(1280px, 100%);
@@ -762,13 +790,13 @@ body.dashboard-preview-open { overflow: hidden; }
 .resume-command-actions .btn-primary {
   min-width: 160px;
   border-color: #fff;
-  background: #fff;
+  background: var(--surface);
   color: var(--primary);
   box-shadow: 0 10px 24px rgba(4, 20, 35, 0.16);
 }
 .resume-command-actions .btn-primary:hover {
-  border-color: #e5eef3;
-  background: #edf5f8;
+  border-color: var(--border);
+  background: var(--surface-2);
   color: var(--primary);
 }
 .resume-command-actions .btn-secondary {

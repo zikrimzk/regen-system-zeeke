@@ -1,9 +1,7 @@
-/**
- * app.js - ReGen builder bootstrap
- */
+/* APP.JS - REGEN BUILDER BOOTSTRAP */
 const App = (() => {
 
-  // ── Toast notifications ───────────────────────────────────────
+  // ── TOAST NOTIFICATIONS ───────────────────────────────────────
   function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -15,19 +13,22 @@ const App = (() => {
     setTimeout(() => toast.remove(), 3100);
   }
 
-  // ── Page loader ───────────────────────────────────────────────
+  // ── PAGE LOADER ───────────────────────────────────────────────
   function showLoader(text = 'Saving...') {
     const loader = document.getElementById('page-loader');
     const p = loader?.querySelector('p');
     if (p) p.textContent = text;
+    loader?.setAttribute('aria-hidden','false');
     loader?.classList.add('active');
   }
 
   function hideLoader() {
-    document.getElementById('page-loader')?.classList.remove('active');
+    const loader = document.getElementById('page-loader');
+    loader?.classList.remove('active');
+    loader?.setAttribute('aria-hidden','true');
   }
 
-  // ── Final Screen ──────────────────────────────────────────────
+  // ── FINAL SCREEN ──────────────────────────────────────────────
   function showFinalScreen() {
     const content = document.getElementById('step-content');
     const navBar  = document.querySelector('.nav-bar');
@@ -37,11 +38,14 @@ const App = (() => {
     if (stepperWrap) stepperWrap.classList.add('hidden');
     if (navBar)  navBar.classList.add('hidden');
     builder?.classList.add('is-final');
+    document.dispatchEvent(new Event('regen:studio-review'));
 
     if (content) {
-      const previewSrc = `${Api.previewUrl()}?t=${Date.now()}`;
+      PdfPages.clear(document.getElementById('final-pdf-pages'));
+      const previewSrc = Api.documentUrl();
+      const kind=Stepper.getDraftResume().writing?.documentType==='academic-cv'?'CV':'Resume';
       content.innerHTML = `
-        <div class="final-screen" role="main">
+        <div class="final-screen">
           <div class="final-layout">
             <div class="final-sidebar">
               <section class="final-panel">
@@ -50,12 +54,11 @@ const App = (() => {
                     <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
                   </div>
                   <div>
-                    <p class="final-eyebrow">Final step</p>
-                    <h2 class="final-title">Resume review</h2>
+                    <h2 class="final-title">${kind} review</h2>
                   </div>
                 </div>
                 <p class="text-muted mt-sm">
-                  Review recommendations and the saved A4 layout before downloading.
+                  A final look. Then your next move.
                 </p>
               </section>
 
@@ -63,8 +66,8 @@ const App = (() => {
                 <div class="ats-review-loading">
                   <span class="ai-spinner" aria-hidden="true"></span>
                   <div>
-                    <strong>Loading ATS checks</strong>
-                    <p>This local check does not use a ReGen AI Token.</p>
+                    <strong>Loading writing checks</strong>
+                    <p>This local check does not use a token.</p>
                   </div>
                 </div>
               </section>
@@ -72,12 +75,12 @@ const App = (() => {
               <div class="final-actions">
                 <button type="button" class="btn btn-primary btn-lg w-full" id="btn-download-pdf">
                   <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-                  Download PDF
+                  Download
                 </button>
                 <div class="final-secondary-actions">
-                  <button type="button" class="btn btn-secondary flex-1" id="btn-back-to-edit">
+                  <button type="button" class="btn btn-secondary flex-1" id="btn-back-to-edit" aria-label="Edit resume">
                     <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
-                    Edit resume
+                      Edit
                   </button>
                   <a href="/dashboard" class="btn btn-secondary flex-1">
                     <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/></svg>
@@ -87,60 +90,32 @@ const App = (() => {
               </div>
             </div>
             <div class="final-preview-card">
-              <div class="final-preview-header">Final Resume Preview</div>
+              <div class="final-preview-header">Your ${kind==='CV'?'CV':'resume'}</div>
               <div class="final-preview-stage">
                 <div class="final-preview-page-shell" id="final-preview-page-shell">
-                  <iframe class="final-preview-frame" title="Final Resume Preview" sandbox="allow-same-origin" tabindex="-1" draggable="false"></iframe>
+                  <div id="final-pdf-pages" class="pdf-pages"></div>
                 </div>
               </div>
             </div>
           </div>
         </div>`;
 
-      const finalFrame = content.querySelector('.final-preview-frame');
-      const finalStage = content.querySelector('.final-preview-stage');
-      const finalProtection = window.PreviewProtection?.register({
-        iframe: finalFrame,
-        container: finalStage,
-        isActive: () => finalStage?.isConnected === true,
-      });
-      finalProtection?.obscure('Loading protected preview...');
-
+      PdfPages.render(document.getElementById('final-pdf-pages'), previewSrc, {documentType:kind==='CV'?'academic-cv':'resume',onSettings:()=>document.getElementById('resume-layout-settings')?.click()});
       document.getElementById('btn-download-pdf')?.addEventListener('click', async (e) => {
         const res = await Api.downloadPdf(e.currentTarget);
-        if (!res.success) App.showToast(res.message || 'PDF download failed.', 'error');
+        if (!res.success && !res.handled) App.showToast(res.message || 'PDF download failed.', 'error');
       });
 
       document.getElementById('btn-back-to-edit')?.addEventListener('click', async () => {
-        finalProtection?.deactivate();
+        PdfPages.clear(document.getElementById('final-pdf-pages'));
         if (stepperWrap) stepperWrap.classList.remove('hidden');
         if (navBar) navBar.classList.remove('hidden');
         builder?.classList.remove('is-final');
-        await Stepper.back();
+        await Stepper.resumeEditing();
+        document.getElementById('step-content')?.focus({preventScroll:true});
       });
 
-      finalFrame?.addEventListener('load', syncFinalPreviewHeight);
-      if (finalFrame && window.PreviewProtection) {
-        finalStage?.setAttribute('aria-busy', 'true');
-        window.PreviewProtection.loadUrl(finalFrame, previewSrc, {
-          shouldCommit: () => finalFrame.isConnected,
-        }).then((result) => {
-          if (!finalFrame.isConnected) return;
-          finalStage?.removeAttribute('aria-busy');
-          if (!result.success) {
-            finalProtection?.obscure(result.message || 'Preview is temporarily unavailable.');
-            App.showToast(result.message || 'Preview is temporarily unavailable.', 'error');
-            return;
-          }
-          finalProtection?.activate();
-        });
-      }
       loadAtsReviewState();
-      requestAnimationFrame(() => {
-        syncFinalPreviewHeight();
-        fitFinalPreview();
-      });
-      setTimeout(syncFinalPreviewHeight, 350);
     }
 
   }
@@ -157,7 +132,7 @@ const App = (() => {
       card.setAttribute('aria-busy', 'false');
       card.innerHTML = `
         <div class="ats-review-error">
-          <strong>ATS review is temporarily unavailable</strong>
+          <strong>Writing review is temporarily unavailable</strong>
           <p></p>
           <button type="button" class="btn btn-secondary btn-sm" id="ats-review-state-retry">Try again</button>
         </div>`;
@@ -186,7 +161,7 @@ const App = (() => {
       status.className = 'ats-review-action-status';
     }
 
-    const result = await Api.generateAtsReview();
+    const result = await Api.generateAtsReview(undefined, Number(card.dataset.aiCost ?? 1));
     if (result.quota) window.ReGenAI?.setQuota(result.quota);
     if (!card.isConnected) return;
     if (!result.success || !result.review) {
@@ -194,7 +169,7 @@ const App = (() => {
       button.disabled = false;
       button.innerHTML = originalHtml;
       if (status) {
-        status.textContent = result.message || 'The comment could not be generated. Your local ATS checks are still available.';
+        status.textContent = result.message || 'The comment could not be generated. Your local writing checks are still available.';
         status.className = 'ats-review-action-status is-error';
       }
       return;
@@ -218,7 +193,6 @@ const App = (() => {
   }
 
   function quotaLimitMessage(quota) {
-    const limit = Math.max(1, Number(quota?.limit) || 15);
     const date = quota?.resetAt ? new Date(quota.resetAt) : null;
     const reset = date && !Number.isNaN(date.getTime())
       ? date.toLocaleString(undefined, {
@@ -226,7 +200,7 @@ const App = (() => {
           hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
         })
       : 'the next reset';
-    return `You have used all ${limit} ReGen AI Tokens for this 24-hour period. More tokens will be available on ${reset}.`;
+    return quota?.renewable===false?'This action needs more tokens than are available. Your AI allowance does not renew automatically. Saved tokens are used after base tokens.':`This action needs more tokens than are available. Your AI allowance renews ${reset}. Saved tokens are used after base tokens.`;
   }
 
   function renderAtsReview(
@@ -235,6 +209,8 @@ const App = (() => {
   ) {
     const card = document.getElementById('ats-review-card');
     if (!card) return;
+    const reviewCost = Number(quota?.costs?.review ?? 1);
+    card.dataset.aiCost = String(reviewCost);
     const score = Math.max(0, Math.min(100, Number(review.score) || 0));
     const level = score >= 85 ? 'excellent' : score >= 70 ? 'strong' : score >= 55 ? 'developing' : 'attention';
     const recommendations = Array.isArray(review.recommendations) ? review.recommendations.slice(0, 4) : [];
@@ -248,12 +224,12 @@ const App = (() => {
     card.setAttribute('aria-busy', 'false');
     card.innerHTML = `
       <div class="ats-review-head">
-        <div class="ats-score ats-score-${level}" role="img" aria-label="ATS readiness score ${score} out of 100">
+        <div class="ats-score ats-score-${level}" role="img" aria-label="Local writing readiness score ${score} out of 100">
           <strong></strong>
           <span>/100</span>
         </div>
         <div class="ats-review-title">
-          <p class="final-eyebrow">ReGen ATS check</p>
+          <p class="final-eyebrow">Writing readiness</p>
           <h3></h3>
           <span class="ats-review-mode"></span>
         </div>
@@ -272,16 +248,20 @@ const App = (() => {
         <button type="button" class="btn btn-secondary btn-sm ats-review-action"></button>
         <span class="ats-review-action-status" role="status"></span>
       </div>
-      <p class="ats-disclaimer">This is guidance, not a guarantee of how every employer's ATS will score a resume.</p>`;
+      <details class="writing-check-details"><summary>See all checks</summary><ul></ul></details>
+      <details class="writing-proofread"><summary>Before you apply</summary><ul><li>Verify every qualification, date, contribution and number.</li><li>Check contact details and open your professional links.</li><li>Read aloud for grammar, spelling and natural wording.</li><li>Check tense, punctuation and citation consistency.</li><li>Inspect every PDF page and follow the employer’s file instructions.</li></ul></details>
+      <p class="ats-disclaimer">Local writing guidance. Employer ATS parsing, factual accuracy and spelling or grammar are not certified by this score.</p>`;
 
     card.querySelector('.ats-score strong').textContent = String(score);
-    card.querySelector('.ats-review-title h3').textContent = `${review.label || 'ATS review'} readiness`;
+    card.querySelector('.ats-review-title h3').textContent = `${review.label || 'Writing review'}`;
     card.querySelector('.ats-review-mode').textContent = showAiComment
       ? (cached ? 'Saved ReGen AI review - no new token used' : 'Reviewed with ReGen AI')
-      : 'Local ATS checks - no ReGen AI Token used';
+      : 'Local checks · No token used';
     card.querySelector('.ats-review-comment').textContent = showAiComment
       ? review.comment
       : review.summary || review.comment || '';
+    const checks=card.querySelector('.writing-check-details ul');
+    (Array.isArray(review.checks)?review.checks:[]).forEach(check=>{const li=document.createElement('li');li.className='writing-check '+(check.status==='improve'?'needs-review':check.status==='pass'?'checked':'information');const title=document.createElement('strong');title.textContent=(check.status==='pass'?'✓ ':check.status==='improve'?'Review: ':'')+check.label;const text=document.createElement('p');text.textContent=check.detail;li.append(title,text);checks.append(li);});
 
     const strengthWrap = card.querySelector('.ats-strengths');
     strengths.forEach((strength) => {
@@ -294,7 +274,7 @@ const App = (() => {
     const list = card.querySelector('.ats-priorities ol');
     const items = recommendations.length
       ? recommendations
-      : ['Tailor the role title and skill keywords to each job description before applying.'];
+      : ['Tailor the relevant evidence to the role, then proofread and inspect the exported PDF.'];
     items.forEach((item) => {
       const li = document.createElement('li');
       li.textContent = item;
@@ -309,7 +289,7 @@ const App = (() => {
     if (showAiComment) {
       requestTitle.textContent = cached ? 'Saved comment loaded' : 'Comment saved for later';
       requestCopy.textContent = cached
-        ? 'This comment was reused without using another ReGen AI Token.'
+        ? 'This comment was reused without using another token.'
         : 'Returning to this unchanged resume will not generate the comment again.';
       action.remove();
       return;
@@ -317,14 +297,14 @@ const App = (() => {
 
     if (hasSavedComment) {
       requestTitle.textContent = 'Saved ReGen comment available';
-      requestCopy.textContent = 'View the saved comment without using another ReGen AI Token.';
+      requestCopy.textContent = 'View the saved comment without using another token.';
       action.id = 'ats-review-view-saved';
       action.textContent = 'View saved comment';
       action.addEventListener('click', () => {
         card.querySelector('.ats-review-comment').textContent = savedComment;
         card.querySelector('.ats-review-mode').textContent = 'Saved ReGen AI review - no new token used';
         requestTitle.textContent = 'Saved comment loaded';
-        requestCopy.textContent = 'No ReGen AI Token was used.';
+        requestCopy.textContent = 'No token was used.';
         action.remove();
       }, { once: true });
       return;
@@ -332,14 +312,14 @@ const App = (() => {
 
     if (!aiEnabled) {
       requestTitle.textContent = 'ReGen AI comment unavailable';
-      requestCopy.textContent = 'Local ATS checks remain available without AI.';
+      requestCopy.textContent = 'Local writing checks remain available without AI.';
       action.remove();
       return;
     }
 
-    if (quota?.exhausted === true || Number(quota?.remaining) === 0) {
-      requestTitle.textContent = 'Daily ReGen AI Token limit reached';
-      requestCopy.textContent = quotaLimitMessage(quota);
+    if (quota && Number(quota.remaining) < reviewCost) {
+      requestTitle.textContent = 'Not enough tokens';
+      requestCopy.textContent = `This comment uses ${reviewCost} tokens; ${Number(quota.remaining)} remain. ${quota.resetAt ? 'Resets ' + new Date(quota.resetAt).toLocaleString() + '.' : 'Check your allowance with an administrator.'}`;
       action.remove();
       return;
     }
@@ -348,74 +328,38 @@ const App = (() => {
     requestTitle.textContent = reviewNeedsUpdate
       ? 'ReGen comment needs an update'
       : 'Want a concise ReGen comment?';
-    const requestCountCopy = quota ? ` ${Number(quota.remaining) || 0} ReGen AI Tokens remain.` : '';
-    requestCopy.textContent = (reviewNeedsUpdate
-      ? 'Your resume or review checks changed. Generate a new comment only when you are ready.'
-      : 'This runs only when you choose and the result is saved for later.') + requestCountCopy;
+    requestCopy.textContent = quota ? `${Number(quota.remaining).toLocaleString()} tokens available` : '';
     action.id = 'ats-review-generate';
     action.innerHTML = `${ReGenIcons.icon('sparkles')} Generate ReGen comment`;
+    window.ReGenTokens?.setAiCosts({review:reviewCost});
+    window.ReGenTokens?.bind(action,'ai_review','Generate review');
     action.addEventListener('click', requestAtsReview);
   }
 
-  function syncFinalPreviewHeight() {
-    const iframe = document.querySelector('.final-preview-frame');
-    const shell = document.getElementById('final-preview-page-shell');
-    if (!iframe || !shell) return;
 
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow?.document;
-      const pageHeight = 1123;
-      const measured = Math.max(
-        doc?.documentElement?.scrollHeight || 0,
-        doc?.body?.scrollHeight || 0,
-        pageHeight
-      );
-      const pageAlignedHeight = Math.ceil(measured / pageHeight) * pageHeight;
-      shell.style.setProperty('--final-preview-doc-height', `${pageAlignedHeight}px`);
-      iframe.style.height = `${pageAlignedHeight}px`;
-    } catch (err) {
-      // Keep the default one-page preview height if the iframe cannot be measured.
-    }
-    fitFinalPreview();
-  }
-
-  function fitFinalPreview() {
-    const stage = document.querySelector('.final-preview-stage');
-    const shell = document.getElementById('final-preview-page-shell');
-    if (!stage || !shell) return;
-
-    const fit = Math.min((stage.clientWidth - 32) / 794, 1);
-    const zoom = Math.max(0.3, fit);
-    const docHeight = parseFloat(getComputedStyle(shell).getPropertyValue('--final-preview-doc-height')) || 1123;
-    shell.style.setProperty('--final-preview-zoom', zoom.toFixed(2));
-    shell.style.marginBottom = `${docHeight * (zoom - 1)}px`;
-  }
-
-  // ── Bootstrap ─────────────────────────────────────────────────
   async function init() {
     const params = new URLSearchParams(window.location.search);
     let id = params.get('id');
     
     if (!id) {
-      showLoader('Opening your resume...');
-      const resume = await Api.createResume();
-      hideLoader();
-      if (resume.success && resume.data?.id) {
-        window.location.replace(`/builder?id=${encodeURIComponent(resume.data.id)}`);
-      } else {
-        App.showToast(resume.message || 'Unable to open resume.', 'error');
-        window.location.href = '/dashboard';
+      const dashboard = await Api.listResumes();
+      if (!dashboard.success) {
+        App.showToast(dashboard.message || 'Unable to open your workspace.', 'error');
+        window.location.replace('/dashboard');
+        return;
       }
+      window.location.replace(dashboard.profile
+        ? `/builder?id=${encodeURIComponent(dashboard.profile.id)}`
+        : '/templates');
       return;
     }
 
     Api.setResumeId(id);
     Preview.init();
-    window.addEventListener('resize', fitFinalPreview, { passive: true });
 
     const userResPromise = Api.getMe();
 
-    // Fetch existing data
+    // FETCH EXISTING DATA
     showLoader('Loading resume...');
     const res = await Api.getResume();
     hideLoader();
@@ -436,11 +380,39 @@ const App = (() => {
       });
     }
     await Stepper.init(resumeData);
+    Studio.init(res.title, resumeData.templateId || 'classic');
+    document.addEventListener('regen:writing-settings-changed',()=>{if(document.querySelector('.builder-left.is-final'))showFinalScreen();});
+    const layoutButton = document.getElementById('resume-layout-settings');
+    if (layoutButton) layoutButton.innerHTML = `${ReGenIcons.icon('settings')} ${ReGenText.get('studio.pageSettings')}`;
+    const templateButton = document.getElementById('change-resume-template');
+    function updateTemplateName(id) {
+      ReGenTemplates.catalog().then(templates => {
+        const template = templates.find(t => t.id === id) || templates[0];
+        templateButton.innerHTML = `${ReGenIcons.icon('template')} ${ZeekeSafe.attr(template.name)}`;
+        templateButton.title = ReGenText.get('public.sampleSwitch');
+        templateButton.setAttribute('aria-label', `${ReGenText.get('studio.currentDesign')}: ${template.name}`);
+      }).catch(() => { templateButton.textContent = ReGenText.get('demo.design'); });
+    }
+    updateTemplateName(resumeData.templateId || 'classic');
+    templateButton?.addEventListener('click', () => {
+      ReGenTemplates.choose(Stepper.getDraftResume().templateId || 'classic', async templateId => {
+        const result = await Api.saveSection('templateId', templateId);
+        if (!result.success) throw new Error(result.message || 'Unable to change the template.');
+        Stepper.setTemplate(templateId);
+        updateTemplateName(templateId);
+        App.showToast('Resume and cover letter design updated.', 'success');
+      });
+    });
     if (params.get('review') === '1') {
       showFinalScreen();
+    } else if (params.get('designs') === '1') {
+      const url = new URL(location.href);
+      url.searchParams.delete('designs');
+      history.replaceState(null, '', url);
+      templateButton?.click();
     }
 
-    // Back / Next nav
+    // BACK / NEXT NAV
     document.getElementById('btn-back')?.addEventListener('click', () => Stepper.back());
     document.getElementById('btn-next')?.addEventListener('click', () => Stepper.next());
   }

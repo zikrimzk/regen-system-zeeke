@@ -1,177 +1,201 @@
 const SkillsSection = (() => {
-  let customSkillIds = [];
-  const defaultCategories = [
-    {
-      key: 'technical',
-      id: 'sk-tech',
-      label: 'Technical Skills',
-      desc: 'Programming languages, frameworks, methodologies.',
-      icon: 'T',
-      style: 'background:#E0F2FE;color:#0284C7',
-      placeholder: 'e.g. JavaScript, React, Node.js, Agile',
-    },
-    {
-      key: 'software',
-      id: 'sk-soft',
-      label: 'Software / Tools',
-      desc: 'Applications, IDEs, design tools.',
-      icon: 'S',
-      style: 'background:#FEF3C7;color:#D97706',
-      placeholder: 'e.g. VS Code, Figma, Adobe Photoshop, Git',
-    },
-    {
-      key: 'interpersonal',
-      id: 'sk-inter',
-      label: 'Interpersonal / Soft Skills',
-      desc: 'Leadership, communication, problem solving.',
-      icon: 'I',
-      style: 'background:#DCFCE7;color:#16A34A',
-      placeholder: 'e.g. Team Leadership, Public Speaking, Critical Thinking',
-    },
-    {
-      key: 'language',
-      id: 'sk-lang',
-      label: 'Languages',
-      desc: 'Languages you speak or write.',
-      icon: 'L',
-      style: 'background:#EEF2FF;color:#4F46E5',
-      placeholder: 'e.g. English (Fluent), Malay (Native), Mandarin (Basic)',
-    },
+  const groups = [
+    { key: 'technical', id: 'sk-tech', label: 'Technical skills', examples: ['Data analysis', 'Project planning', 'SQL', 'JavaScript'] },
+    { key: 'software', id: 'sk-soft', label: 'Software and tools', examples: ['Microsoft Excel', 'Power BI', 'Figma', 'Git'] },
+    { key: 'interpersonal', id: 'sk-inter', label: 'Interpersonal skills', examples: ['Team leadership', 'Public speaking', 'Customer service', 'Facilitation'] },
+    { key: 'language', id: 'sk-lang', label: 'Languages', examples: [] }
   ];
+  const esc = value => window.ZeekeSafe.attr(value);
+  const MAX_GROUPS = 20;
+  const MAX_LENGTH = 5000;
+  let sequence = 0;
 
-  function renderCategory(cat) {
+  function split(value) {
+    const items = [], seen = new Set();
+    for (const raw of String(value || '').split(/[,;\r\n]+/)) {
+      const item = raw.trim();
+      const key = item.toLowerCase();
+      if (key && !seen.has(key)) { seen.add(key); items.push(item); }
+    }
+    return items;
+  }
+
+  function editor(id, placeholder, examples = [], custom = false) {
     return `
-      <div class="skill-category">
-        <div class="skill-cat-header">
-          <div class="skill-cat-icon" style="${cat.style}">${cat.icon}</div>
-          <div>
-            <div class="skill-cat-label">${cat.label}</div>
-            <div class="skill-cat-desc">${cat.desc}</div>
-          </div>
+      <div class="skill-input-wrap">
+        <div class="skill-chips" aria-label="Added skills"></div>
+        <div class="skill-add-row">
+          <label class="sr-only" for="${id}-entry">Add a skill</label>
+          <input id="${id}-entry" class="form-input skill-entry" data-preserve-spaces="true" placeholder="${esc(placeholder)}" maxlength="${MAX_LENGTH}" enterkeyhint="done" aria-describedby="${id}-status">
+          <button type="button" class="btn btn-secondary skill-add">Add</button>
         </div>
-        <div class="skill-input-wrap">
-          <input type="text" id="${cat.id}" class="form-input" data-comma-list="true" maxlength="500" placeholder="${cat.placeholder}">
-        </div>
-      </div>
-    `;
+        <input type="hidden" id="${id}" class="skill-value${custom ? ' custom-skill-value' : ''}">
+        ${examples.length ? `<div class="skill-examples" aria-label="Example skills">${examples.map(item => `<button type="button" class="skill-example" data-skill="${esc(item)}">+ ${esc(item)}</button>`).join('')}</div>` : ''}
+        <p class="form-hint skill-status" role="status" id="${id}-status" hidden></p>
+      </div>`;
   }
 
   function render(stepNum) {
     return `
       <div class="step-header">
-        <div class="step-header-info">
-          <div class="step-count">Step ${stepNum}</div>
-          <h2 class="step-title">Skills & Proficiencies</h2>
-          <p class="step-subtitle">Skills grouped by type.</p>
+        <div class="step-header-info"><div class="step-count">Step ${stepNum}</div>
+          <h2 class="step-title">Skills</h2><p class="step-subtitle">Add skills that fit the job. Type one or paste a list.</p>
         </div>
-        <button type="button" class="skip-btn">Skip Step ${ReGenIcons.icon('arrowRight')}</button>
+        <button type="button" class="skip-btn">Skip ${ReGenIcons.icon('arrowRight')}</button>
       </div>
       <div class="form-body form-section">
         <div class="skills-form">
-          <datalist id="skill-type-options">
-            <option value="Design Skills"></option><option value="Industry Knowledge"></option>
-            <option value="Laboratory Skills"></option><option value="Management Skills"></option>
-            <option value="Research Skills"></option><option value="Certifications & Platforms"></option>
-          </datalist>
-          ${defaultCategories.map(renderCategory).join('')}
+          ${groups.map(({ id, label, examples, key }) => `
+            <details class="skill-category skill-group" data-group="${key}" ${key === 'technical' ? 'open' : ''}>
+              <summary class="skill-group-summary"><span>${label}</span><span class="skill-count"></span>${ReGenIcons.icon('arrowDown')}</summary>
+              ${editor(id, key === 'language' ? 'e.g. English (Fluent)' : `e.g. ${examples[0]}`, examples)}
+            </details>`).join('')}
           <div id="custom-skills-list" class="skills-form"></div>
-          <button type="button" class="add-entry-btn" id="btn-add-skill-type">${ReGenIcons.icon('add')} Add Skill Type</button>
+          <button type="button" class="add-entry-btn" id="btn-add-skill-type">${ReGenIcons.icon('add')} Add a custom group</button>
         </div>
-      </div>
-    `;
+      </div>`;
+  }
+
+  function bindEditor(group, initial) {
+    const input = group.querySelector('.skill-entry');
+    const value = group.querySelector('.skill-value');
+    const chips = group.querySelector('.skill-chips');
+    const count = group.querySelector('.skill-count');
+    const status = group.querySelector('.skill-status');
+    let items = split(initial);
+    const report = (message, announceOnly = false) => {
+      status.classList.toggle('sr-only', announceOnly);
+      status.textContent = message;
+      status.hidden = !message;
+    };
+    const updateValue = () => {
+      const all = split([...items, input.value].join(', ')).join(', ');
+      input.setCustomValidity(all.length > MAX_LENGTH ? 'This group is full. Remove a skill or add another group.' : '');
+      value.value = all.length <= MAX_LENGTH ? all : items.join(', ');
+      return all.length <= MAX_LENGTH;
+    };
+    function redraw() {
+      chips.innerHTML = items.map((item, index) => `<span class="skill-chip"><span>${esc(item)}</span><button type="button" data-remove-skill="${index}" aria-label="Remove ${esc(item)}">${ReGenIcons.icon('close')}</button></span>`).join('');
+      if (count) count.textContent = items.length ? String(items.length) : '';
+      group.querySelectorAll('.skill-example').forEach(button => {
+        button.hidden = items.some(item => item.toLowerCase() === button.dataset.skill.toLowerCase());
+      });
+      updateValue();
+    }
+
+    function add(text, clear = false) {
+      const next = split([...items, text].join(', '));
+      if (next.join(', ').length > MAX_LENGTH) {
+        report('This group is full. Remove a skill or add another group.');
+        return;
+      }
+      const added = next.length - items.length;
+      items = next;
+      if (clear) input.value = '';
+      redraw();
+      report(added ? `${added} ${added === 1 ? 'skill' : 'skills'} added.` : text.trim() ? 'Already added.' : '', added > 0);
+      value.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    input.addEventListener('input', () => {
+      report(updateValue() ? '' : 'This group is full. Remove a skill or add another group.');
+    });
+    input.addEventListener('keydown', event => {
+      if (event.isComposing || !['Enter', ',', ';'].includes(event.key)) return;
+      event.preventDefault();
+      add(input.value, true);
+    });
+    input.addEventListener('paste', event => {
+      const text = event.clipboardData?.getData('text');
+      if (!text || !/[,;\r\n]/.test(text)) return;
+      event.preventDefault();
+      const combined = [input.value.slice(0, input.selectionStart), text, input.value.slice(input.selectionEnd)].join('');
+      if (split([...items, combined].join(', ')).join(', ').length <= MAX_LENGTH) add(combined, true);
+      else report('This list is too long. Paste a smaller list or add another group.');
+    });
+    input.addEventListener('blur', () => { if (input.value.trim()) add(input.value, true); });
+    group.querySelector('.skill-add').addEventListener('click', () => {
+      if (input.value.trim()) add(input.value, true);
+      input.focus();
+    });
+    group.querySelectorAll('.skill-example').forEach(button => button.addEventListener('click', () => {
+      // The selected example is hidden after adding it; keep a stable focus target.
+      group.querySelector('summary').focus();
+      add(button.dataset.skill);
+    }));
+    chips.addEventListener('click', event => {
+      const button = event.target.closest('[data-remove-skill]');
+      if (!button) return;
+      const index = Number(button.dataset.removeSkill);
+      const [removed] = items.splice(index, 1);
+      redraw();
+      report(`${removed} removed.`, true);
+      (chips.querySelector(`[data-remove-skill="${index}"]`) || input).focus({ preventScroll: true });
+      value.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    // Assist me and Refine apply edits through the same canonical value.
+    value.addEventListener('input', () => {
+      items = split(value.value);
+      input.value = '';
+      if (group.matches('details')) group.open = true;
+      redraw();
+    });
+    redraw();
   }
 
   function attachEvents(data) {
-    customSkillIds = [];
-    if (data) {
-      document.getElementById('sk-tech').value  = data.technical || '';
-      document.getElementById('sk-soft').value  = data.software || '';
-      document.getElementById('sk-inter').value = data.interpersonal || '';
-      document.getElementById('sk-lang').value  = data.language || '';
-      (Array.isArray(data.custom) ? data.custom : []).forEach(item => addCustomSkill(item));
-    }
-    document.getElementById('btn-add-skill-type').addEventListener('click', () => addCustomSkill());
+    const first = groups.find(({ key }) => data?.[key]) || groups[0];
+    groups.forEach(({ id, key }) => {
+      const group = document.getElementById(id).closest('.skill-group');
+      bindEditor(group, data?.[key]);
+      group.open = key === first.key;
+    });
+    (Array.isArray(data?.custom) ? data.custom : []).forEach(item => addCustom(item));
+    document.getElementById('btn-add-skill-type').addEventListener('click', () => addCustom({}, true));
+    syncCustomButton();
   }
 
-  function addCustomSkill(data = {}) {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    customSkillIds.push(id);
-    const esc = window.ZeekeSafe.attr;
+  function syncCustomButton() {
+    document.getElementById('btn-add-skill-type').disabled = document.querySelectorAll('.custom-skill-category').length >= MAX_GROUPS;
+  }
+
+  function addCustom(data, focus = false) {
+    if (document.querySelectorAll('.custom-skill-category').length >= MAX_GROUPS) return;
+    const id = `custom-skill-${++sequence}`;
     document.getElementById('custom-skills-list').insertAdjacentHTML('beforeend', `
-      <div class="skill-category custom-skill-category" id="custom-skill-${id}">
-        <div class="skill-cat-header custom-skill-header">
-          <div class="skill-cat-icon" id="icon-${id}" style="background:#F1F5F9;color:#334155">${esc((data.label || 'A').slice(0, 1).toUpperCase())}</div>
-          <div class="custom-skill-title-fields">
-            <label class="form-label" for="sk-custom-label-${id}">Skill Type</label>
-            <input type="text" id="sk-custom-label-${id}" class="form-input custom-skill-label" list="skill-type-options" value="${esc(data.label)}" placeholder="Select or type a skill type" maxlength="80">
+      <div class="skill-category custom-skill-category" id="${id}">
+        <div class="custom-skill-heading">
+          <div class="form-group"><label class="form-label" for="${id}-label">Group name</label>
+            <input id="${id}-label" class="form-input custom-skill-label" value="${esc(data.label)}" placeholder="e.g. Research skills" maxlength="80">
           </div>
-          <button type="button" class="entry-delete-btn" aria-label="Remove skill type" title="Remove skill type">${ReGenIcons.icon('trash')}</button>
+          <button type="button" class="entry-delete-btn" aria-label="Remove skill group">${ReGenIcons.icon('trash')}</button>
         </div>
-        <div class="skill-input-wrap">
-          <input type="text" id="sk-custom-val-${id}" class="form-input custom-skill-value" data-comma-list="true"
-            value="${esc(data.value)}" placeholder="e.g. Canva, layout design, brand guidelines" maxlength="500">
-        </div>
-      </div>
-    `);
-
-    const labelInput = document.getElementById(`sk-custom-label-${id}`);
-    const valInput = document.getElementById(`sk-custom-val-${id}`);
-    const icon = document.getElementById(`icon-${id}`);
-    const card = document.getElementById(`custom-skill-${id}`);
-    card.querySelector('.entry-delete-btn')?.addEventListener('click', () => removeCustomSkill(id));
+        ${editor(`${id}-value`, 'Type a skill', [], true)}
+      </div>`);
+    const card = document.getElementById(id);
+    bindEditor(card, data.value);
     window.ZeekeForm?.bind(card);
-
-    labelInput.addEventListener('input', (e) => {
-      icon.textContent = (e.target.value || 'A').slice(0, 1).toUpperCase();
-      if (typeof Stepper !== 'undefined' && typeof Preview !== 'undefined') Preview.renderDraft(Stepper.getDraftResume());
+    card.querySelector('.entry-delete-btn').addEventListener('click', () => {
+      card.remove();
+      syncCustomButton();
+      document.getElementById('btn-add-skill-type').focus({ preventScroll: true });
     });
-    valInput.addEventListener('input', () => {
-      if (typeof Stepper !== 'undefined' && typeof Preview !== 'undefined') Preview.renderDraft(Stepper.getDraftResume());
-    });
+    syncCustomButton();
+    if (focus) card.querySelector('.custom-skill-label').focus();
   }
 
-  function removeCustomSkill(id) {
-    customSkillIds = customSkillIds.filter(item => item !== id);
-    document.getElementById(`custom-skill-${id}`)?.remove();
-    if (typeof Stepper !== 'undefined' && typeof Preview !== 'undefined') Preview.renderDraft(Stepper.getDraftResume());
+  function getPreviewData() {
+    const values = Object.fromEntries(groups.map(({ id, key }) => [key, document.getElementById(id).value]));
+    const custom = [...document.querySelectorAll('.custom-skill-category')].map(card => ({
+      label: window.ZeekeSafe.value(card.querySelector('.custom-skill-label')),
+      value: card.querySelector('.custom-skill-value').value
+    })).filter(item => item.label || item.value);
+    return Object.values(values).some(Boolean) || custom.length ? { ...values, custom } : null;
   }
 
   function getData() {
-    const tech  = window.ZeekeSafe.value(document.getElementById('sk-tech'));
-    const soft  = window.ZeekeSafe.value(document.getElementById('sk-soft'));
-    const inter = window.ZeekeSafe.value(document.getElementById('sk-inter'));
-    const lang  = window.ZeekeSafe.value(document.getElementById('sk-lang'));
-
-    let isValid = true;
-    const custom = customSkillIds.map(id => {
-      const row = document.getElementById(`custom-skill-${id}`);
-      const labelInput = row?.querySelector('.custom-skill-label');
-      const valueInput = row?.querySelector('.custom-skill-value');
-      const item = { label: window.ZeekeSafe.value(labelInput), value: window.ZeekeSafe.value(valueInput) };
-      if ((item.label && !item.value) || (!item.label && item.value)) {
-        isValid = false;
-        window.ZeekeForm?.setError(item.label ? valueInput : labelInput, item.label ? 'Add at least one skill.' : 'Choose or type a skill type.');
-      }
-      return item;
-    }).filter(item => item.label || item.value);
-
-    if (!isValid) return { isValid: false, data: null };
-
-    if (!tech && !soft && !inter && !lang && custom.length === 0) {
-      return { isValid: true, data: null };
-    }
-
-    return {
-      isValid: true,
-      data: {
-        technical: tech,
-        software: soft,
-        interpersonal: inter,
-        language: lang,
-        custom
-      }
-    };
+    return { isValid: !document.querySelector('.skill-entry:invalid'), data: getPreviewData() };
   }
 
-  return { render, attachEvents, getData, removeCustomSkill };
+  return { render, attachEvents, getData };
 })();

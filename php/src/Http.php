@@ -7,6 +7,16 @@ final class Http
 {
     /** @var array<string, mixed>|null */
     private static ?array $jsonBody = null;
+    private static array $successCallbacks=[];
+
+    public static function onSuccess(callable $callback): void { self::$successCallbacks[]=$callback; }
+
+    /** Complete priced access before any successful response body leaves the server. */
+    public static function completeSuccess(): void
+    {
+        $callbacks=self::$successCallbacks;self::$successCallbacks=[];
+        foreach($callbacks as $callback)$callback();
+    }
 
     public static function applySecurityHeaders(): void
     {
@@ -19,14 +29,15 @@ final class Http
         header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), display-capture=()');
         header('Cross-Origin-Opener-Policy: same-origin-allow-popups');
         header('Cross-Origin-Resource-Policy: same-origin');
+        $managedConnect=ManagedRealtime::configured()?' wss://ws-'.Config::get('realtime.pusher_cluster').'.pusher.com':'';
         header(
             "Content-Security-Policy: default-src 'self'; "
             . "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
             . "script-src 'self' https://accounts.google.com/gsi/client "
             . "https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; "
             . "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; "
-            . "img-src 'self' data: blob:; font-src 'self'; "
-            . "connect-src 'self' https://accounts.google.com/gsi/ https://www.google.com/recaptcha/; "
+            . "img-src 'self' data: blob:; font-src 'self' blob:; worker-src 'self'; "
+            . "connect-src 'self' https://accounts.google.com/gsi/ https://www.google.com/recaptcha/".$managedConnect."; "
             . "frame-src 'self' https://accounts.google.com/ https://www.google.com/recaptcha/ "
             . "https://recaptcha.google.com/recaptcha/;"
         );
@@ -34,10 +45,10 @@ final class Http
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         }
         $path = self::path();
-        if (
-            str_starts_with($path, '/api/')
-            || in_array($path, ['/', '/login', '/register', '/verify-email', '/dashboard', '/builder'], true)
-        ) {
+        if ($path !== '/' && !in_array($path, ['/pricing', '/robots.txt', '/sitemap.xml'], true)) {
+            header('X-Robots-Tag: noindex, nofollow');
+        }
+        if (Routes::privateResponse($path)) {
             header('Cache-Control: no-store');
             header('Pragma: no-cache');
         }
@@ -69,7 +80,11 @@ final class Http
         if (self::$jsonBody !== null) {
             return self::$jsonBody;
         }
-        $raw = file_get_contents('php://input');
+        // LIMIT BODY ALLOCATION BEFORE DECODING.
+        $maximum = 3 * 1024 * 1024;
+        if (self::contentLength() > $maximum) self::json(['success'=>false, 'message'=>'Request is too large.'], 413);
+        $raw = file_get_contents('php://input', false, null, 0, $maximum + 1);
+        if (is_string($raw) && strlen($raw) > $maximum) self::json(['success'=>false, 'message'=>'Request is too large.'], 413);
         if ($raw === false || trim($raw) === '') {
             return self::$jsonBody = [];
         }
@@ -83,6 +98,7 @@ final class Http
     /** @param array<string, mixed> $payload */
     public static function json(array $payload, int $status = 200): never
     {
+        if($status>=200&&$status<300&&($payload['success']??true)!==false)self::completeSuccess();
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(
@@ -94,6 +110,7 @@ final class Http
 
     public static function html(string $html, int $status = 200): never
     {
+        if($status>=200&&$status<300)self::completeSuccess();
         http_response_code($status);
         header('Content-Type: text/html; charset=utf-8');
         echo $html;
@@ -107,16 +124,18 @@ final class Http
         exit;
     }
 
-    public static function requireSameOriginForMutation(): void
+    public static function requireSameOriginForMutation(bool $force = false): void
     {
-        if (in_array(self::method(), ['GET', 'HEAD', 'OPTIONS'], true)) {
+        if (!$force && in_array(self::method(), ['GET', 'HEAD', 'OPTIONS'], true)) {
             return;
         }
         $fetchSite = strtolower(trim((string) ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')));
         if (in_array($fetchSite, ['cross-site', 'same-site'], true)) {
+            OperationsMonitor::event('security.origin_rejected');
             self::json(['success' => false, 'message' => 'Request origin is not allowed.'], 403);
         }
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        if($force&&$origin==='')$origin=$_SERVER['HTTP_REFERER']??'';
         if ($origin === '') {
             return;
         }
@@ -151,6 +170,7 @@ final class Http
             || !hash_equals($expectedToken, $provided)
             || !Session::validCsrfToken($provided)
         ) {
+            OperationsMonitor::event('security.csrf_rejected');
             self::json([
                 'success' => false,
                 'message' => 'Your secure session changed. Refresh the page and try again.',
@@ -164,11 +184,12 @@ final class Http
             || str_starts_with(self::path(), '/api/');
     }
 
-    private static function isHttps(): bool
+    public static function isHttps(): bool
     {
         if (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') {
             return true;
         }
-        return strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+        return Config::get('app.trust_proxy', false)
+            && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
     }
 }

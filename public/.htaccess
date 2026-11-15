@@ -3,8 +3,10 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(login|register|verify-email|dashboard|builder)\.html$ /$1 [R=302,L,NE]
-  RewriteRule ^index\.html$ / [R=302,L,NE]
+  RewriteRule (^|/)\. - [F,L]
+  RewriteRule (^|/)(_app|vendor|database|storage|scripts)(/|$) - [F,L,NC]
+  RewriteRule \.(sql|log|ini|bak|zip|env)$ - [F,L,NC]
+  RewriteRule \.html$ index.php [QSA,L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ index.php [QSA,L]
@@ -17,26 +19,68 @@ DirectoryIndex index.php
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), display-capture=()"
   Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
   Header always set Cross-Origin-Resource-Policy "same-origin"
-  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' https://accounts.google.com/gsi/client https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://accounts.google.com/gsi/ https://www.google.com/recaptcha/; frame-src 'self' https://accounts.google.com/ https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/;"
+  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self' https://accounts.google.com/gsi/client https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; font-src 'self' blob:; worker-src 'self'; connect-src 'self' https://accounts.google.com/gsi/ https://www.google.com/recaptcha/; frame-src 'self' https://accounts.google.com/ https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/;"
 </IfModule>
 
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json image/svg+xml
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json application/manifest+json application/xml image/svg+xml
 </IfModule>
 
 <IfModule mod_expires.c>
   ExpiresActive On
-  ExpiresByType text/css "access plus 30 days"
-  ExpiresByType application/javascript "access plus 30 days"
-  ExpiresByType text/javascript "access plus 30 days"
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType text/javascript "access plus 7 days"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType image/png "access plus 7 days"
+  ExpiresByType image/jpeg "access plus 7 days"
+  ExpiresByType image/webp "access plus 7 days"
+  ExpiresByType image/svg+xml "access plus 7 days"
+  ExpiresByType image/x-icon "access plus 7 days"
 </IfModule>
 
-<FilesMatch "^(\.env|composer\.(json|lock)|package(-lock)?\.json|server\.js)$">
+<FilesMatch "(?i)^(\..*|.*\.(sql|log|ini|bak|zip|env)|composer\.(json|lock)|package(-lock)?\.json|server\.js)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
   <IfModule !mod_authz_core.c>
     Order allow,deny
     Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_mime.c>
+  AddType application/javascript .mjs
+  AddType font/ttf .ttf
+  AddType font/woff2 .woff2
+  AddType application/manifest+json .webmanifest
+  AddType image/webp .webp
+</IfModule>
+
+# Only content-versioned static assets receive immutable caching.
+<IfModule mod_setenvif.c>
+  SetEnvIfExpr "%{QUERY_STRING} =~ /(^|&)v=[a-f0-9]{12}(&|$)/" REGEN_VERSIONED
+</IfModule>
+<FilesMatch "\.(css|js|png|jpg|webp|woff2|ttf)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable" env=REGEN_VERSIONED
+  </IfModule>
+</FilesMatch>
+
+<FilesMatch "(?i)\.html$">
+  <IfModule mod_headers.c>
+    Header always set Cache-Control "no-store"
+  </IfModule>
+</FilesMatch>
+
+<FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+  <IfModule mod_expires.c>
+    ExpiresActive Off
+  </IfModule>
+  <IfModule mod_headers.c>
+    Header unset Cache-Control
+    Header always set Cache-Control "no-cache"
+    Header always set Service-Worker-Allowed "/"
   </IfModule>
 </FilesMatch>

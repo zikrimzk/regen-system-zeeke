@@ -1,0 +1,5 @@
+Options -Indexes
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=604800"
+  Header set Cache-Control "public, max-age=31536000, immutable" env=REGEN_VERSIONED
+</IfModule>

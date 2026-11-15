@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="{{LANGUAGE}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="{{BRAND_NAME}} administration portal">
+  <title>{{i18n.admin.brand}} | {{BRAND_NAME}}</title>
+  <link rel="icon" href="/img/app-icon-192.png" type="image/png">
+  <script src="/js/theme.js?v=20261105r15"></script>
+  <link rel="stylesheet" href="/css/main.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/admin.css?v=20261105r15">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/css/product.css?v=20261105r15">
+  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ReGen"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/css/appearance.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/privacy.css?v=20261105r15">
+  <link rel="stylesheet" href="/css/admin-control-centre.css?v=20261105admin1">
+  <script src="/js/privacy.js?v=20261105r15" defer></script>
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-portrait-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-landscape-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-portrait-light.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-landscape-light.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-portrait-light.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-landscape-light.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-portrait-light.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-landscape-light.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-portrait-light.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-landscape-light.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-portrait-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-landscape-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-portrait-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-landscape-light.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-portrait-light.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-landscape-light.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-portrait-light.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-landscape-light.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-portrait-light.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-landscape-light.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-portrait-light.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-landscape-light.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-portrait-light.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape-light.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-portrait.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-landscape.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-portrait.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-landscape.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-portrait.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-390-844-3-landscape.png" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-portrait.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-393-852-3-landscape.png" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-portrait.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-402-874-3-landscape.png" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-portrait.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-2-landscape.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-portrait.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-414-896-3-landscape.png" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-portrait.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-428-926-3-landscape.png" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-portrait.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-430-932-3-landscape.png" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-portrait.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-440-956-3-landscape.png" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-portrait.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-landscape.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-portrait.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+  <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/css/campaigns.css"></head>
+<body class="admin-page">
+  <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
+  <div class="admin-mobile-scrim" id="admin-mobile-scrim" hidden></div>
+
+  <aside class="admin-sidebar" id="admin-sidebar" aria-label="Administration navigation">
+    <div class="admin-sidebar-head">
+      <a class="admin-brand" href="/admin" aria-label="{{BRAND_NAME}} {{i18n.admin.brand}}">
+        {{PRODUCT_WORDMARK}}<small class="admin-brand-caption">{{i18n.admin.brand}}</small>
+      </a>
+<button type="button" class="admin-nav-collapse" id="admin-nav-collapse" aria-label="{{i18n.nav.collapse}}" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7-5 5 5 5"/></svg></button>
+      <button type="button" class="admin-mobile-close" id="admin-mobile-close" aria-label="{{i18n.nav.close}}">×</button>
+    </div>
+
+    <nav id="admin-nav" aria-label="{{i18n.admin.brand}}">{{ADMIN_NAVIGATION}}</nav>
+
+    <div class="admin-identity">
+      <span id="admin-avatar">A</span>
+      <div><strong id="admin-name">Administrator</strong><small id="admin-role">Loading</small></div>
+      <button type="button" id="admin-logout" aria-label="{{i18n.common.signOut}}" title="{{i18n.common.signOut}}"><span data-icon="logout"></span></button>
+    </div>
+  </aside>
+
+  <div class="admin-workspace">
+    <header class="admin-topbar">
+      <button type="button" class="admin-menu-toggle" id="admin-menu-toggle" aria-label="{{i18n.nav.open}}" aria-expanded="false"><span></span><span></span><span></span></button>
+      <div class="admin-breadcrumb"><span>{{i18n.admin.brand}}</span><i>/</i><strong id="admin-breadcrumb-current">{{i18n.nav.overview}}</strong></div>
+      <div class="admin-topbar-meta">{{LANGUAGE_LINK}}
+        <span class="admin-connection" id="admin-connection" role="status"><i></i>Connecting</span>
+        <span class="admin-live-state" id="admin-live-state">Connecting live updates</span><span id="last-refresh">-</span><button type="button" class="admin-alert-toggle" id="admin-alerts-button" aria-label="{{i18n.nav.notifications}}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="admin-alert-count" hidden></span></button>
+      </div>
+    </header>
+
+    <main id="main-content" tabindex="-1" class="admin-main">
+      <header class="admin-page-head">
+        <div><p class="admin-eyebrow" id="view-eyebrow" hidden></p><h1 id="view-title">{{i18n.nav.overview}}</h1><p class="admin-page-description" id="view-description"></p></div>
+      </header>
+      <div id="admin-banner"></div><div class="read-only-notice" id="admin-read-only" hidden>{{i18n.admin.readOnly}}</div>
+      <nav class="admin-subnav" id="admin-subnav" aria-label="Module sections" hidden></nav>
+      <div id="admin-view" class="admin-view" aria-live="polite"><div class="admin-loading"><span></span><p>{{i18n.common.loading}}</p></div></div>
+    </main>
+  </div>
+
+  <div class="toast-region" id="admin-toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog id="admin-drawer" class="admin-drawer" aria-labelledby="drawer-title">
+    <form id="admin-drawer-form" novalidate>
+      <header class="drawer-head">
+        <div><p id="drawer-eyebrow" hidden></p><h2 id="drawer-title">Manage</h2></div>
+        <button type="button" class="dialog-close" id="drawer-close" aria-label="Close panel">×</button>
+      </header>
+      <div class="drawer-body" id="drawer-body"></div>
+      <footer class="drawer-actions">
+        <button type="button" class="btn btn-secondary" id="drawer-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="drawer-save">Save changes</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="admin-confirm" class="admin-confirm" aria-labelledby="confirm-title">
+    <form id="admin-confirm-form" novalidate>
+      <header class="confirm-head">
+        <span class="confirm-symbol" id="confirm-symbol">!</span>
+        <div><p id="confirm-eyebrow">Confirmation required</p><h2 id="confirm-title">Confirm action</h2></div>
+        <button type="button" class="dialog-close" id="confirm-close" aria-label="Close confirmation">×</button>
+      </header>
+      <p class="confirm-message" id="confirm-message"></p>
+      <div id="confirm-extra"></div>
+      <footer class="confirm-actions">
+        <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="confirm-submit">Confirm</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="/js/admin-campaigns.js"></script>
+  <script src="/js/admin-charts.js"></script>
+  <script src="/js/pdf-pages.js"></script>
+  <script src="/js/admin-templates.js"></script>
+  <script src="/js/admin-insights.js"></script>
+  <script src="/js/admin-maintenance.js"></script>
+  <link rel="stylesheet" href="/css/payments.css">
+  <link rel="stylesheet" href="/css/admin-commerce.css">
+  <link rel="stylesheet" href="/css/support-attachments.css">
+  <link rel="stylesheet" href="/css/token-store.css"><script src="/js/commerce-ui.js" defer></script><script src="/js/admin-store.js"></script>
+  <script src="/js/support-attachments.js"></script>
+  <script src="/js/admin-control-centre.js?v=20261105admin1"></script>
+  <script src="/js/admin-user-packages.js"></script>
+  <script src="/js/admin.js?v=20261105admin1"></script>
+  <script src="/js/ui.js?v=20261105r15" defer></script>
+  <script src="/js/mobile-viewport.js?v=20261105r15" defer></script>
+  <script src="/js/pwa.js?v=20261105r15" defer></script>
+</body>
+</html>

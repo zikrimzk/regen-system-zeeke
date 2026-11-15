@@ -12,33 +12,17 @@ final class Config
     {
         $env = [];
         $envFile = $projectRoot . '/.env';
-        if (is_file($envFile) && is_readable($envFile)) {
+        if (is_file($envFile)) {
             $env = self::parseEnvFile($envFile);
         }
 
-        $local = [];
-        $localFile = __DIR__ . '/../config.local.php';
-        if (is_file($localFile)) {
-            $loaded = require $localFile;
-            if (is_array($loaded)) {
-                $local = $loaded;
-            }
-        }
-
-        $read = static function (string $key, mixed $default = null) use ($env, $local): mixed {
-            $system = getenv($key);
-            if ($system !== false && $system !== '') {
-                return $system;
-            }
-            if (array_key_exists($key, $local)) {
-                return $local[$key];
-            }
+        $read = static function (string $key, mixed $default = null) use ($env): mixed {
             return $env[$key] ?? $default;
         };
 
         $appEnv = strtolower(trim((string) $read(
             'APP_ENV',
-            $read('NODE_ENV', 'production')
+            'production'
         ))) ?: 'production';
         $developmentMode = in_array($appEnv, ['development', 'test', 'testing'], true);
         $validatedLimit = static function (
@@ -54,8 +38,8 @@ final class Config
             return is_int($validated) ? $validated : $default;
         };
         $aiDailyLimit = $validatedLimit(
-            $read('OPENAI_DAILY_LIMIT', $developmentMode ? 100 : 15),
-            $developmentMode ? 100 : 15,
+            $read('OPENAI_DAILY_LIMIT', $developmentMode ? 100 : 10),
+            $developmentMode ? 100 : 10,
             1000
         );
         $aiSuggestUserMinuteLimit = $validatedLimit(
@@ -68,6 +52,10 @@ final class Config
             $developmentMode ? 240 : 24,
             2000
         );
+        $mochiModel = trim((string) $read('MOCHI_OPENAI_MODEL', MochiCoach::DEFAULT_MODEL));
+        if (!preg_match('/^[a-z0-9][a-z0-9._-]{1,100}$/iD', $mochiModel)) {
+            $mochiModel = MochiCoach::DEFAULT_MODEL;
+        }
         $recaptchaScoreValue = filter_var(
             $read('RECAPTCHA_MIN_SCORE', '0.5'),
             FILTER_VALIDATE_FLOAT
@@ -81,9 +69,32 @@ final class Config
             86400
         );
         $emailVerificationTtl = max(900, $emailVerificationTtl);
+        // LARAVEL-STYLE MAIL KEYS TAKE PRECEDENCE; EXISTING INSTALLATIONS KEEP WORKING.
+        $mailRead = static fn (string $key, string $legacy, mixed $default = ''): mixed =>
+            $read($key, $read($legacy, $default));
+        $mailPort = max(1, min(65535, (int) $mailRead('MAIL_PORT', 'SMTP_PORT', 587)));
+        $mailEncryption = strtolower(trim((string) $mailRead(
+            'MAIL_ENCRYPTION', 'SMTP_ENCRYPTION', $mailPort === 465 ? 'ssl' : 'tls'
+        )));
+        $mailEncryption = match ($mailEncryption) {
+            'starttls' => 'tls',
+            'smtps' => 'ssl',
+            'null', '' => 'none',
+            default => $mailEncryption,
+        };
         self::$values = [
             'app.env' => $appEnv,
+            'realtime.transport' => (string)$read('REALTIME_TRANSPORT','auto'),
+            'realtime.pusher_app_id' => (string)$read('PUSHER_APP_ID',''),
+            'realtime.pusher_key' => (string)$read('PUSHER_APP_KEY',''),
+            'realtime.pusher_secret' => (string)$read('PUSHER_APP_SECRET',''),
+            'realtime.pusher_cluster' => (string)$read('PUSHER_APP_CLUSTER','ap1'),
             'app.url' => rtrim((string) $read('APP_URL', ''), '/'),
+            'hitpay.mode' => strtolower(trim((string) $read('HITPAY_MODE', 'disabled'))),
+            'hitpay.api_key' => trim((string) $read('HITPAY_API_KEY', '')),
+            'hitpay.sandbox_salt' => trim((string) $read('HITPAY_SANDBOX_WEBHOOK_SALT', '')),
+            'hitpay.live_salt' => trim((string) $read('HITPAY_LIVE_WEBHOOK_SALT', '')),
+            'app.trust_proxy' => filter_var($read('TRUST_PROXY', 'false'), FILTER_VALIDATE_BOOLEAN),
             'db.host' => (string) $read('DB_HOST', 'localhost'),
             'db.port' => max(1, (int) $read('DB_PORT', 3306)),
             'db.name' => (string) $read('DB_NAME', 'zeekeresumedb'),
@@ -100,20 +111,36 @@ final class Config
             'recaptcha.site_key' => trim((string) $read('RECAPTCHA_SITE_KEY', '')),
             'recaptcha.secret_key' => trim((string) $read('RECAPTCHA_SECRET_KEY', '')),
             'recaptcha.min_score' => $recaptchaMinScore,
-            'mail.from_email' => trim((string) $read('MAIL_FROM_EMAIL', '')),
+            'mail.from_email' => trim((string) $mailRead('MAIL_FROM_ADDRESS', 'MAIL_FROM_EMAIL')),
             'mail.from_name' => trim((string) $read('MAIL_FROM_NAME', 'ReGen')),
             'mail.reply_to' => trim((string) $read('MAIL_REPLY_TO', '')),
+            'mail.transport' => strtolower(trim((string) $mailRead('MAIL_MAILER', 'MAIL_TRANSPORT', 'smtp'))),
+            'mail.smtp_host' => trim((string) $mailRead('MAIL_HOST', 'SMTP_HOST')),
+            'mail.smtp_port' => $mailPort,
+            'mail.smtp_username' => trim((string) $mailRead('MAIL_USERNAME', 'SMTP_USERNAME')),
+            'mail.smtp_password' => (string) $mailRead('MAIL_PASSWORD', 'SMTP_PASSWORD'),
+            'mail.smtp_encryption' => $mailEncryption,
+            'mail.smtp_timeout' => max(5, min(30, (int) $mailRead('MAIL_TIMEOUT', 'SMTP_TIMEOUT', 15))),
             'email_verification.ttl' => $emailVerificationTtl,
             'openai.api_key' => trim((string) $read('OPENAI_API_KEY', '')),
             'openai.model' => trim((string) $read('OPENAI_MODEL', 'gpt-5.4-mini')),
             'openai.daily_limit' => $aiDailyLimit,
             'openai.suggest_user_minute_limit' => $aiSuggestUserMinuteLimit,
             'openai.suggest_ip_minute_limit' => $aiSuggestIpMinuteLimit,
+            'mochi.enabled' => filter_var($read('MOCHI_AI_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+            'mochi.model' => $mochiModel,
             'lookup.user_agent' => (string) $read(
                 'LOOKUP_USER_AGENT',
                 'ReGenByZeeke/1.0 (institution lookup)'
             ),
         ];
+        try {
+            self::$values = array_replace(self::$values,(new RuntimeMailSettings($projectRoot))->read());
+        } catch (\Throwable) {
+            self::$values['mail.smtp_host']='';
+            self::$values['mail.transport']='disabled';
+            error_log('[Email Configuration] Saved settings are unreadable; SMTP delivery paused.');
+        }
     }
 
     public static function get(string $key, mixed $default = null): mixed
@@ -125,7 +152,8 @@ final class Config
     private static function parseEnvFile(string $path): array
     {
         $values = [];
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) throw new \RuntimeException('Application configuration cannot be read.');
         foreach ($lines as $line) {
             $line = trim($line);
             if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
@@ -134,7 +162,7 @@ final class Config
             [$key, $value] = explode('=', $line, 2);
             $key = trim($key);
             $value = trim($value);
-            if ($key === '') {
+            if (!preg_match('/^[A-Z][A-Z0-9_]*$/D', $key)) {
                 continue;
             }
             if (
@@ -142,7 +170,11 @@ final class Config
                 && (($value[0] === '"' && str_ends_with($value, '"'))
                     || ($value[0] === "'" && str_ends_with($value, "'")))
             ) {
+                $quote = $value[0];
                 $value = substr($value, 1, -1);
+                if ($quote === '"') {
+                    $value = strtr($value, ['\\"' => '"', '\\\\' => '\\']);
+                }
             }
             $values[$key] = $value;
         }
