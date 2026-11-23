@@ -362,7 +362,7 @@ final class Application
             if (!(new TemplateManagement($this->db))->selectable($templateMatch[1])) Http::html('Template not found.', 404);
             Http::html(TemplateCatalog::browserHtml(ResumeTemplate::buildHtml(TemplateCatalog::sample($templateMatch[1]))));
         }
-        if ($path === '/api/cover-letters' || preg_match('#^/api/cover-letters/(\d+)(?:/(ai-suggest|preview|pdf|document))?$#', $path)) $this->coverLetters($path, $method);
+        if (in_array($path, ['/api/cover-letters', '/api/cover-letters/document'], true) || preg_match('#^/api/cover-letters/(\d+)(?:/(ai-suggest|preview|pdf|document))?$#', $path)) $this->coverLetters($path, $method);
 
         $this->servePage($path);
     }
@@ -427,7 +427,9 @@ final class Application
         if ($dailyTokens === 0 || $settings['dailyBudget'] === 0) Http::json(['success'=>true, $responseKey=>null, 'reason'=>'daily']);
         $input = $isChat ? MochiCoach::chatInput(Http::jsonBody()) : MochiCoach::input(Http::jsonBody());
         if ($input === null) Http::json(['success'=>false], 422);
-        if ($isChat && !MochiCoach::writingRequest($input)) Http::json(['success'=>true,'reply'=>null,'reason'=>'local']);
+        if ($isChat && !(isset($input['conversation']) ? MochiCoach::conversationRequest($input) : MochiCoach::writingRequest($input))) {
+            Http::json(['success'=>true,'reply'=>null,'reason'=>'local']);
+        }
         RateLimiter::enforce($isChat ? 'mochi-chat-minute' : 'mochi-user-minute', (string)$userId, $isChat ? 10 : 1, $isChat ? 60 : $settings['feedbackSeconds']);
         // A slow model must not hold the session lock and delay editor saves.
         if (session_status() === PHP_SESSION_ACTIVE) session_write_close();

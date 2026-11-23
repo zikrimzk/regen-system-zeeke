@@ -3,8 +3,10 @@
   const editors = '#step-content, #letter-form';
   const defaults = {nickname:'',goal:'',stage:'',tone:'playful',language:'auto',intro:'new',asleep:false,live:false,napUntil:0};
   const screens = {
-    dashboard:'Resume dashboard',builder:'Resume editor','cover-letters':'Cover letters',templates:'Templates',
-    profile:'Profile',support:'Support',notifications:'Notifications',store:'ReGen Store',payments:'Payment history','token-activity':'Token activity',mochi:'Mochi’s room'
+    dashboard:'Overview',builder:'Resume Studio','cover-letters':'Cover Letter Studio',templates:'Templates',
+    profile:'Profile',support:'Support',notifications:'Notifications',store:'K-Store',payments:'Payment history',
+    'token-activity':'Coin activity',mochi:'Mochi’s room',jobs:'Saved jobs',applications:'Applications',
+    tailor:'Resume tailoring',interview:'Interview practice'
   };
   const sections = {
     personal:'Personal details',summary:'Profile summary',education:'Education',experience:'Work experience',
@@ -13,7 +15,7 @@
   };
   const expressions = {curious:'Ready to help',bright:'Celebrating',laugh:'Giggling',sad:'Feeling for you',wave:'Saying hello',hop:'Doing a hop',dance:'Dancing',sleep:'Asleep',
     yarn:'Chasing yarn',climb:'Climbing',sneak:'Sneaking',purr:'Purring',proud:'Proud of you',startle:'Wait a second'};
-  const refusal = 'Saya boleh bantu dengan resume, cover letter atau cara guna ReGen. Apa yang awak sedang usahakan?';
+  const withoutEmDash = text=>text.replace(/[^\S\n]*—[^\S\n]*/g, ', ');
   const guidance = [
     ['#p-fullname', 'Use the name you want an employer to address you by.'],
     ['#p-jobtitle', 'Choose a clear title that matches the work you want to do.'],
@@ -102,7 +104,8 @@
     const soundButton=find('sound');
     const channel='BroadcastChannel' in window?new BroadcastChannel('regen-mochi-preferences'):null;
     const urlScreen=location.pathname.replace(/^\/|\/$/g,'');
-    const screen=Object.hasOwn(screens,urlScreen)?urlScreen:'dashboard';
+    const screenAliases = {'store/activity':'token-activity','store/payments':'payments','payments/result':'payments','jobs/saved':'jobs'};
+    const screen = screenAliases[urlScreen] || (Object.hasOwn(screens, urlScreen) ? urlScreen : 'dashboard');
     let section=new URLSearchParams(location.search).get('section')||'';
     let profile={...defaults}, access=null, available=null, chatAllowed=false, health=100;
     let autoplay=true, allowSound=true, editorReactions=true, adminPlayOnly=false, pace='balanced', naps=true;
@@ -110,7 +113,7 @@
     let view='chat', opener=null, mood='curious', moodTimer=0, bubbleTimer=0, bubbleKind='', introShown=false;
     let field=null, fieldTip=null, displayedTip='', fieldTimer=0, fieldRequest=null, fieldRevision=0, lastExcerpt='', nextFieldRequest=0;
     let displayedModel=false;
-    let coaching=null, retryTurn=null, useSavedResume=false, chatRequest=null, writing=false, saving=false, localJoke=0;
+    let coaching=null, conversation=[], retryTurn=null, useSavedResume=false, chatRequest=null, writing=false, saving=false, localJoke=0;
     let playIndex=0, denLine='', teaserShown=false, lastPlayAt=0, playingUntil=0;
     let napTimer=0, wasNapping=false, longActs=0, lastNapAttempt=0;
     let lastReaction=0, reactionCount=0;
@@ -126,6 +129,9 @@
     const isSleeping=()=>profile.asleep||isNapping();
     const visibleState=()=>isSleeping()?'sleep':mood;
     const phrase=(english,malay)=>profile.language==='ms'?malay:english;
+    const chatLanguage=text=>profile.language==='auto'
+      ? (/\b(?:saya|awak|nak|boleh|kenal|kat mana|hai|salam|khabar|lawak|pekerjaan)\b/i.test(text)?'ms':'en')
+      : profile.language;
 
     function updateShare() {
       const canShare=field?.isConnected&&fieldTip?.kind&&liveAvailable&&!field.readOnly&&!field.disabled;
@@ -142,7 +148,8 @@
       const pose=visibleState();
       const visible=available===true;
       const sleeping=isSleeping(), supporting=view==='support';
-      floating.hidden=!visible||!!den;
+      floating.hidden = false;
+      if (!entitled) hideBubble();
       (den||floating).dataset.mochiMood=pose;
       panel.dataset.mochiMood=pose;
       floating.dataset.mochiOpen=String(open());
@@ -169,10 +176,10 @@
       }
       document.querySelectorAll('[data-mochi-room-link]').forEach(link=>link.hidden=available===false);
       setText(find('expression'),entitled&&pose!=='curious'?expressions[pose]:'Personal coach');
-      locked.hidden=entitled;
+      locked.hidden=entitled||supporting;
       find('packages').hidden=access!==false;
       setText(find('access-message'),access===false?'Mochi comes with selected ReGen packages.':loadFailed?'I couldn’t check your access. Open Mochi again to retry.':'Checking your Mochi access…');
-      sleepView.hidden=!entitled||!sleeping;
+      sleepView.hidden=!entitled||!sleeping||supporting;
       find('wake').hidden=isNapping();
       setText(find('sleep-copy'),isNapping()?'Mochi dah penat sangat. He’ll wake up on his own in a little while.':'Mochi is asleep. He’ll stay quiet until you wake him.');
       preferenceButton.hidden=!entitled||sleeping;
@@ -180,13 +187,15 @@
       preferenceButton.setAttribute('aria-expanded',String(entitled&&view==='options'));
       intro.hidden=!entitled||sleeping||view!=='intro';
       options.hidden=!entitled||sleeping||view!=='options';
-      chat.hidden=!entitled||sleeping||!(supporting||chatAllowed&&view==='chat');
+      chat.hidden = !supporting && (!entitled || sleeping || !chatAllowed || view !== 'chat');
       find('play-only').hidden=!entitled||chatAllowed||sleeping||view!=='chat';
       history.hidden=supporting;
       supportHistory.hidden=!supporting;
       find('support',chat).hidden=supporting;
       find('back-chat').hidden=!supporting||!chatAllowed;
-      message.placeholder=supporting?'What isn’t working in ReGen?':coaching?.kind==='question'?'Reply with what you know…':'What are you working on?';
+      message.placeholder=supporting ? phrase('Ask Mochi about this page…','Tanya Mochi tentang halaman ini…')
+        : coaching?.kind==='question' ? phrase('Reply with what you know…','Balas dengan maklumat yang awak tahu…')
+        : phrase('What’s on your mind?','Apa yang awak fikirkan?');
       const savedGoal=find('saved-goal');
       savedGoal.hidden=!profile.goal;
       setText(savedGoal,profile.goal?'What we’re working toward: '+profile.goal:'');
@@ -203,8 +212,10 @@
       }
       const modelNote=find('model');
       modelNote.hidden=supporting;
-      setText(modelNote,liveAvailable?'Mochi uses your chat and fields you share to coach you.':'Mochi’s writing coach is currently unavailable.');
-      setText(find('location'),supporting?'ReGen support':locationName());
+      setText(modelNote,liveAvailable
+        ?phrase('Live replies use your chat allowance. You choose what resume details to share for writing help.','Balasan langsung menggunakan kuota sembang. Anda pilih butiran resume yang dikongsi untuk bantuan penulisan.')
+        :phrase('Page help is available while live coaching is offline.','Bantuan halaman tersedia ketika bimbingan langsung di luar talian.'));
+      setText(find('location'),locationName());
       const note=find('field-note');
       note.hidden=supporting||!displayedTip||!!fieldTip?.kind&&!displayedModel;
       setText(note,displayedTip);
@@ -223,9 +234,8 @@
       panel.dataset.saving=String(saving);
       document.querySelectorAll('[data-mochi-open]').forEach(button=>{
         button.setAttribute('aria-expanded',String(open()));
-        if (button.classList.contains('studio-mochi-command')) button.hidden = !visible;
       });
-      if (visible && !rendererPending && window.MochiAvatar) {
+      if (den && visible && !rendererPending && window.MochiAvatar) {
         rendererPending=true;
         playKit.renderWhenVisible(pet,renderer=>{avatar=renderer;avatar.setMood(visibleState());});
       }
@@ -274,6 +284,7 @@
     function clearConversation() {
       cancelChat();
       coaching=null;
+      conversation=[];
       retryTurn=null;
       useSavedResume=false;
       history.replaceChildren();
@@ -309,7 +320,7 @@
         if (open()&&view==='support') seedSupport();
         refresh();
       },Math.max(0,profile.napUntil*1000-Date.now()+100));
-      if (!available&&open()) close();
+      if (!available && open() && view !== 'support') show('support');
       const playNote=find('play-only').querySelector('p');
       setText(playNote,adminPlayOnly?'Jom main! Chat is paused for this account.':'Jom main! For resume and cover letter help, pick a package with Mochi chat.');
       find('play-only').querySelector('a').hidden=adminPlayOnly;
@@ -320,10 +331,16 @@
         mood='curious';
         denLine='';
       }
-      if (!access||profile.asleep) { cancelField(); clearConversation(); hideBubble(); displayedTip=''; }
+      if (!access || profile.asleep) {
+        cancelField();
+        if (view !== 'support') clearConversation();
+        else { cancelChat(); coaching = null; retryTurn = null; history.replaceChildren(); }
+        hideBubble();
+        displayedTip = '';
+      }
       if (isNapping()) {cancelField();cancelChat();hideBubble();tell('');}
       if (access&&!isSleeping()&&open()&&view==='chat') seedChat();
-      if (access&&!isSleeping()&&open()&&view==='support') seedSupport();
+      if (open() && view === 'support') seedSupport();
       update();
       if (previous!==isSleeping()) avatar?.setMood(visibleState());
       const roomForAutomaticPrompts = !matchMedia('(max-width: 760px)').matches && screen !== 'builder';
@@ -379,7 +396,10 @@
       append('assistant',greeting);
     }
     function seedSupport() {
-      if (!supportHistory.children.length) append('assistant','ReGen sangkut dekat mana? Cerita sikit. Mochi boleh tunjuk jalan atau bukakan borang tiket.',null,null,null,true);
+      if (!supportHistory.children.length) append('assistant',phrase(
+        'Hi, I’m Mochi! We’re in '+locationName()+'. Tell me what you’re working on and we’ll take it from there.',
+        'Hai, saya Mochi! Kita di '+locationName()+'. Cerita apa yang awak sedang buat, kita bincang sama-sama.'
+      ),null,null,null,true);
     }
     function show(next, trigger) {
       if (!open()) { opener=trigger||null; panel.hidden=false; }
@@ -392,7 +412,7 @@
         for (const key of ['nickname','goal','stage','tone','language']) intro.elements[key].value=profile[key];
       }
       if (next==='chat'&&access&&!isSleeping()) seedChat();
-      if (next==='support'&&access&&!isSleeping()) seedSupport();
+      if (next==='support') seedSupport();
       update();
       position();
       (next==='intro'?intro.querySelector('input'):panel.querySelector('h2')).focus({preventScroll:true});
@@ -411,8 +431,9 @@
       const speaker=document.createElement('span');
       speaker.className='sr-only';
       speaker.textContent=role==='user'?'You: ':'Mochi: ';
-      row.append(speaker,document.createTextNode(text));
+      row.append(speaker,document.createTextNode(role==='assistant'?withoutEmDash(text):text));
       if (role==='assistant'&&typeof suggestion==='string'&&suggestion) {
+        suggestion=withoutEmDash(suggestion);
         const draft=document.createElement('span');
         draft.className='mochi-suggestion';
         draft.textContent=suggestion;
@@ -468,9 +489,9 @@
       } else log.scrollTop=log.scrollHeight;
     }
     function localReply(prompt) {
-      const ms=profile.language==='ms'||/\b(?:saya|awak|nak|boleh|kenal|kat mana)\b/i.test(prompt);
+      const ms=chatLanguage(prompt)==='ms';
       const name=profile.nickname? ', '+profile.nickname : '';
-      if (assist?.outside(prompt)||/\b(?:weather forecast|what is the weather)\b/i.test(prompt)) return {reply:refusal,mood:'curious'};
+      if (assist?.outside(prompt)) return {reply:ms?'Kod bukan kepakaran Mochi. Kalau ini projek awak, saya boleh bantu terangkan hasilnya untuk resume atau temu duga.':'Coding is outside my lane. If this is your project, I can help you explain what you built on a resume or in an interview.',mood:'curious'};
       if (/^(?:thank(?:s| you)|tq|terima kasih|nice|okay thanks|ok thanks)[.!\s]*$/i.test(prompt)) {
         return {reply:ms?'Sama-sama'+name+'.':'You’re welcome'+name+'.',mood:'bright'};
       }
@@ -489,9 +510,12 @@
         return {reply:(ms?'Sekarang kita di: ':'We’re here: ')+locationName()+'.',mood:'curious'};
       }
       if (/^(?:hi|hai|hello|hey|helo|salam|apa khabar)\b/i.test(prompt)||/\b(?:tickle|geli|geletek|meow|comel|cute|good cat|miss you|sayang|rindu)\b/i.test(prompt)) {
-        return {reply:'Hehe, hai'+name+'! Mochi tengah jaga rumah. Nak main benang dengan Mochi?',mood:'laugh'};
+        return {reply:ms?'Hai'+name+'! Mochi sedia teman awak. Hari ini nak buat apa?':'Hey'+name+'! I was about to take a catnap, but you’re better company. What’s on your mind?',mood:'wave'};
       }
-      return {reply:ms?'Awak tengah siapkan resume atau cover letter? Ceritakan bahagian yang awak nak buat.':'Are you working on a resume or a cover letter? Tell me which part you want to work on.',mood:'curious'};
+      if (/\b(?:interview|temu duga|temuduga)\b/i.test(prompt)) {
+        return {reply:ms?'Pilih satu pengalaman yang berkait dengan jawatan. Terangkan situasi, tindakan awak dan hasilnya. Nak cuba satu soalan?':'Pick one example relevant to the role. Explain what was happening, what you did and what changed. Want to practise an interview question?',mood:'curious'};
+      }
+      return null;
     }
     function shareField() {
       if (!field?.isConnected||!fieldTip?.kind||field.disabled||field.readOnly) return;
@@ -527,7 +551,7 @@
     async function send(text, {share=null,help=false,retry=false}={}) {
       text=text.trim();
       const supporting=view==='support';
-      if (!text||!access||(!supporting&&!chatAllowed)||isSleeping()||writing||saving) return;
+      if (!text || (!supporting && (!access || !chatAllowed || isSleeping())) || writing || saving) return;
       cancelField();
       retryTurn=null;
       message.value='';
@@ -537,27 +561,28 @@
         await sleep();
         return;
       }
-      const starts=assist?.needsWriting(text,share?.data,screen);
-      const continuing=coaching&&!assist?.outside(text)&&!assist?.smallTalk(text);
-      const support=supporting?assist?.support(text,profile.language,true)
-        :share||help||continuing?null:(!starts&&assist?.navigate(text,profile.language))||assist?.support(text,profile.language,false,!!starts);
-      if (supporting||support||(!starts&&!continuing&&!retry)) {
-        const reply=support||(help&&assist?.guides[screen]
-          ? {reply:assist.guides[screen],mood:'curious'} : localReply(text));
+      const language=chatLanguage(text);
+      const starts=!!assist?.needsWriting(text,share?.data,screen);
+      const revising=coaching?.draft && /\b(?:this draft|that draft|shorter|more concise|previous draft|last version|draf tadi|lebih ringkas)\b/i.test(text);
+      const continuing=(coaching?.kind==='question'||revising)&&!assist?.outside(text)&&!assist?.smallTalk(text);
+      const drafting=retry ? retry!=='conversation' : starts||continuing;
+      const support=share?null:assist?.pageHelp(text,screen,language)||assist?.navigate(text,language)||assist?.support(text,language,starts);
+      const guide=assist?.guide(screen,language);
+      const local=share||retry||starts?null:localReply(text);
+      if (local||support||(help&&!drafting)||supporting||!liveAvailable) {
+        const reply=local||support||(guide && (help||drafting||/\b(?:here|page|screen|sini|halaman)\b/i.test(text))
+          ? {reply:guide,mood:'curious'} : {reply:phrase(
+            'I’m here with you. I can help with the steps on '+locationName()+'. What would you like to do next?',
+            'Saya di sini. Saya boleh bantu dengan langkah di '+locationName()+'. Apa yang awak nak buat selepas ini?'
+          ),mood:'curious'});
         append('assistant',reply.reply,null,null,reply.action,supporting);
         emotion(reply.mood);
         return;
       }
-      if (!retry&&(share||help||!coaching)) {
+      if (drafting&&!retry&&(share||!coaching||!continuing)) {
         coaching={request:text,focus:share?.data.field||(field?.isConnected?fieldTip?.kind:null),share,turns:[],kind:null,draft:null};
       }
-      if (!coaching) return;
-      if (!liveAvailable) {
-        tell('Mochi’s writing coach is currently unavailable. Your message is still here.');
-        update();
-        return;
-      }
-      const thread=coaching;
+      const thread=drafting?coaching:null;
       writing=true;
       const controller=chatRequest=new AbortController();
       tell('Mochi is working on your reply…');
@@ -565,11 +590,13 @@
       try {
         const result=await Api.chatWithMochi({
           message:text,screen,section:locationName()===sections.review?'review':section,
-          history:thread.turns,coachingRequest:thread.request,
-          ...(thread.focus?{focusField:thread.focus}:{}),
-          ...(thread.share?{sharedField:thread.share.data}:{}),
-          ...(thread.draft?{previousDraft:thread.draft}:{}),
-          ...(useSavedResume?{useSavedResume:true}:{}),
+          ...(thread?{
+            history:thread.turns,coachingRequest:thread.request,
+            ...(thread.focus?{focusField:thread.focus}:{}),
+            ...(thread.share?{sharedField:thread.share.data}:{}),
+            ...(thread.draft?{previousDraft:thread.draft}:{}),
+            ...(useSavedResume?{useSavedResume:true}:{}),
+          }:{history:conversation,intent:'conversation'}),
         },controller.signal);
         if (chatRequest!==controller||isSleeping()||!access) return;
         tell('');
@@ -579,14 +606,18 @@
         if (result.reason==='asleep'||result.reason==='nap') { refresh(); return; }
         if (result.success&&typeof result.reply==='string'&&result.reply.trim()) {
           if (result.kind!=='outside') {
-            thread.turns=[...thread.turns,{role:'user',text},{role:'assistant',text:result.reply}].slice(-8);
-            thread.kind=result.kind;
-            if (result.suggestion) thread.draft=result.suggestion;
-          } else if (!thread.turns.length) coaching=null;
-          append('assistant',result.reply,result.suggestion,thread.share?.target);
+            const turns=[...(thread?.turns||conversation),{role:'user',text},{role:'assistant',text:result.reply}].slice(-8);
+            if (thread) {
+              thread.turns=turns;
+              thread.kind=result.kind;
+              if (result.suggestion) thread.draft=result.suggestion;
+            } else conversation=turns;
+          } else if (thread&&!thread.turns.length) coaching=null;
+          append('assistant',result.reply,result.suggestion,thread?.share?.target);
           emotion(result.mood);
         } else {
-          retryTurn=text;
+          retryTurn={text,mode:thread?'writing':'conversation'};
+          if(result.reason!=='busy'&&guide) append('assistant',guide);
           tell(result.reason==='busy'||result.status===429
             ? 'Mochi is busy. Try again in a moment.' : 'Mochi couldn’t finish this reply. You can retry without retyping.');
         }
@@ -727,10 +758,10 @@
     document.addEventListener('click',async event=>{
       const button=event.target.closest('button');
       if (!button) return;
-      if(button.matches('[data-mochi-open]')) { if(open()) close(); else show('chat',button); return; }
+      if(button.matches('[data-mochi-open]')) { if(open()) close(); else show(access && chatAllowed ? 'chat' : 'support',button); return; }
       if(!button.closest('#mochi-panel, [data-mochi-float], [data-mochi-den]')) return;
       if(button.matches('[data-mochi-close]')) {close();return;}
-      if(button.matches('[data-mochi-support]')) {if(access) show('support',button);return;}
+      if(button.matches('[data-mochi-support]')) {show('support',button);return;}
       if(button.matches('[data-mochi-back-chat]')) {show('chat',button);return;}
       if(button.matches('[data-mochi-options-button]')) {show(view==='options'?'chat':'options',button);return;}
       if ((button===soundButton||button===roomSound)&&allowSound) {await playKit.toggleSound();update();return;}
@@ -783,7 +814,7 @@
         return;
       }
       if(button.matches('[data-mochi-retry]')&&retryTurn) {
-        send(retryTurn,{retry:true});return;
+        send(retryTurn.text,{retry:retryTurn.mode});return;
       }
     });
     intro.addEventListener('submit',async event=>{

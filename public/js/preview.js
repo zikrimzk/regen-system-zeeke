@@ -1,9 +1,9 @@
 const Preview = (() => {
-  let modal,container,timer,zoom=1,revision=0,focusBefore;
+  let modal, focusBefore, proof, zoom = 1;
   let originalParent, writeMode, previewMode, mobile, inline=false;
-  let request,lastPayload='',lastPdf=null,pendingPayload='';
   function init(){
-    modal=document.getElementById('preview-modal');container=document.getElementById('preview-pdf-pages');
+    modal = document.getElementById('preview-modal');
+    proof = LiveDocumentPreview.create(document.getElementById('preview-pdf-pages'), Api.documentDraft);
     originalParent=modal.parentElement;
     writeMode=document.getElementById('studio-write-mode');
     previewMode=document.getElementById('studio-preview-mode');
@@ -27,7 +27,10 @@ const Preview = (() => {
     });
     mobile.addEventListener('change',()=>close(false));
     document.addEventListener('regen:studio-review',()=>close(false));
-    window.addEventListener('regen:session-expired',()=>{ lastPayload='';lastPdf=null;close(false); });
+    window.addEventListener('regen:session-expired',()=>{ close(false); });
+    window.addEventListener('regen:preview-availability',event=>{
+      if(!event.detail.available){close(false);}
+    });
   }
   function open(useInline=false){
     if(!modal.classList.contains('hidden'))return;
@@ -49,7 +52,7 @@ const Preview = (() => {
   }
   function close(restoreFocus=true){
     if(!modal||modal.classList.contains('hidden'))return;
-    revision++;clearTimeout(timer);request?.abort();pendingPayload='';PdfPages.clear(container);
+    proof.clear();
     modal.classList.add('hidden');
     document.body.classList.remove('preview-open');
     if(inline){
@@ -65,17 +68,17 @@ const Preview = (() => {
     inline=false;
     if(restoreFocus)focusBefore?.focus();
   }
-  function setZoom(value){zoom=Math.max(.5,Math.min(1.6,value));PdfPages.zoom(container,zoom);}
-  async function load(data){
-    clearTimeout(timer);
-    const payload=JSON.stringify(data);if(payload===pendingPayload)return;
-    request?.abort();request=new AbortController();pendingPayload=payload;
-    const current=++revision;container.setAttribute('aria-busy','true');
-    try{const pdf=payload===lastPayload&&lastPdf?lastPdf:await Api.documentDraft(data,{signal:request.signal});if(current===revision){lastPayload=payload;lastPdf=pdf;await PdfPages.render(container,pdf,{zoom,documentType:data.writing?.documentType||'resume',onSettings:()=>{close();document.getElementById('resume-layout-settings')?.click();}});}}
-    catch(error){if(current===revision&&error.name!=='AbortError'){container.textContent=error.message;container.setAttribute('aria-busy','false');}}
-    finally{if(current===revision)pendingPayload='';}
+  function setZoom(value) {
+    zoom = Math.max(.5, Math.min(1.6, value));
+    proof.zoom(zoom);
   }
-  function refreshNow(){if(!modal?.classList.contains('hidden'))load(Stepper.getDraftResume());}
-  function renderDraft(data){if(modal?.classList.contains('hidden'))return;clearTimeout(timer);timer=setTimeout(()=>load(data),700);}
-  return {init,open,close,refreshNow,renderDraft};
+  function refreshNow() {
+    if (modal && !modal.classList.contains('hidden')) {
+      proof.update(Stepper.getDraftResume(), {immediate:true, interactive:!LiveDocumentPreview.allowed()});
+    }
+  }
+  function renderDraft(data) {
+    if (modal && !modal.classList.contains('hidden') && LiveDocumentPreview.allowed()) proof.update(data);
+  }
+  return {init,open,close,refreshNow,renderDraft,isOpen:()=>!!modal && !modal.classList.contains('hidden')};
 })();

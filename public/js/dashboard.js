@@ -2,19 +2,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const home = document.getElementById('resume-home');
   const preview = document.getElementById('dashboard-preview-modal');
   const pdfPages = document.getElementById('dashboard-pdf-pages');
-  const aiTokens = document.getElementById('dashboard-ai-token-card');
-  const nextTask = document.getElementById('dashboard-next-task');
-  const documents = document.getElementById('dashboard-documents');
-  const resumeLink = document.getElementById('dashboard-resume-link');
-  const candidate = document.getElementById('workspace-candidate');
-  const library = document.body.dataset.workspaceView === 'library';
+  const metrics = document.getElementById('dashboard-metrics');
+  const writing = document.getElementById('dashboard-ai-token-card');
   const t = (key, fallback) => ReGenText.get(key, fallback);
-  const safe = value => ZeekeSafe.attr(value ?? '');
-  const icon = name => ReGenIcons.icon(name);
-  const button = (label, path, className) => '<a class="btn ' + className + '" href="' + path + '">' + safe(label) + '</a>';
-  let activeResume = null;
-  let loadingRevision = 0;
-  let renderedSummary;
+  const safe = ReGenCommerce.safe;
+  const number = ReGenCommerce.number;
+  const icon = ReGenIcons.icon;
+  let activeResume;
+  let revision = 0;
+  let signature;
 
   function resumeUrl(id, section) {
     return '/builder?id=' + encodeURIComponent(id) + (section ? '&section=' + encodeURIComponent(section) : '');
@@ -27,83 +23,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).format(date) : t('dashboard.recent');
   }
 
-  function renderAiTokens(ai = {}) {
-    if (library) return;
-    const quota = ai.quota || {};
-    const total = Math.max(0, Number(quota.remaining) || 0);
-    aiTokens.innerHTML = '<section class="overview-availability"><h2>' + safe(t('dashboard.aiTitle', 'Writing assistance'))
-      + '</h2><p>' + safe(ai.enabled === false ? t('dashboard.aiUnavailable') : !total ? t('dashboard.aiEmpty')
-        : new Intl.NumberFormat(ReGenText.locale).format(total) + ' ' + t('commerce.available'))
-      + '</p><a class="text-link" href="/token-activity">' + safe(t('nav.tokens')) + '</a></section>';
-
+  function action(path, label, name, primary = false) {
+    const pricingLabel = path.startsWith('/builder') ? ` data-price-base="${safe(label)}"` : '';
+    return `<a class="btn ${primary ? 'btn-primary' : 'btn-secondary'}" href="${path}"${pricingLabel}>${icon(name)}${safe(label)}</a>`;
   }
 
-  function renderEmpty() {
-    activeResume = null;
-    home.innerHTML = '<section class="overview-panel overview-empty"><h2>' + safe(t('dashboard.empty'))
-      + '</h2><p>' + safe(t('dashboard.emptyText')) + '</p>'
-      + '<a id="empty-create" class="btn btn-primary" href="/templates">' + safe(t('dashboard.choose')) + '</a>' + '</section>';
+  function metric(mark, label, value, detail, progress = null) {
+    return `<div class="overview-metric"><div class="overview-metric-title">${mark}<h2>${safe(label)}</h2></div>
+      <strong>${safe(value)}</strong><p>${safe(detail)}</p>
+      ${progress === null ? '' : `<progress max="100" value="${Number(progress)}" aria-label="${safe(label)}"></progress>`}</div>`;
+  }
+
+  function renderMetrics(dashboard, balance) {
+    const profile = dashboard?.profile;
+    const count = dashboard ? number(dashboard.coverLetterCount) : null;
+    const progress = profile ? number(profile.completion) + '%' : dashboard ? '0%' : '—';
+    metrics.innerHTML = metric(icon('template'), t('overview.resumeProgress'), progress,
+      profile ? t('overview.resumeProgressHelp') : t(dashboard ? 'overview.resumeNone' : 'overview.dataUnavailable'), profile?.completion ?? null)
+      + metric(icon('letter'), t('overview.letterCount'), count ?? '—',
+        t(!dashboard ? 'overview.dataUnavailable' : Number(count) === 0 ? 'dashboard.letterEmpty' : 'overview.letterCountHelp'))
+      + metric(ReGenCommerce.coin('small', balance?.coinColor), t('commerce.wallet'),
+        balance ? number(balance.total) : '—', t(balance ? 'commerce.available' : 'overview.balanceUnavailable'));
+    metrics.setAttribute('aria-busy', 'false');
+    document.querySelector('.overview-store-coin').innerHTML = ReGenCommerce.coin('large', balance?.coinColor);
+  }
+
+  function renderWriting(ai) {
+    const quota = ai?.quota;
+    const available = ai?.enabled === true && Number.isFinite(quota?.remaining);
+    writing.hidden = false;
+    writing.innerHTML = `<h2>${icon('sparkles')}${safe(t('dashboard.aiTitle'))}</h2>
+      <p>${safe(available
+        ? t('overview.aiRemaining').replace('{count}', number(quota.remaining))
+        : t('dashboard.aiUnavailable'))}</p>`;
   }
 
   function renderError(result) {
     activeResume = null;
-    if (result.status === 401) {
-      home.innerHTML = '<section class="overview-panel overview-empty"><h2>' + safe(t('dashboard.authExpired'))
-        + '</h2>' + button(t('common.signIn'), '/login', 'btn-primary') + '</section>';
-      return;
-    }
-    home.innerHTML = '<section class="overview-panel overview-empty"><h2>' + safe(t('dashboard.unavailable'))
-      + '</h2><p>' + safe(result.message || t('dashboard.loadError')) + '</p><button class="btn btn-primary" id="retry-load" type="button">'
-      + safe(t('common.retry')) + '</button></section>';
-    home.querySelector('#retry-load').addEventListener('click', () => loadData(true));
+    const expired = result.status === 401;
+    home.innerHTML = `<div class="overview-panel overview-empty"><h2>${safe(t(expired ? 'dashboard.authExpired' : 'dashboard.unavailable'))}</h2>
+      ${expired ? action('/login', t('common.signIn'), 'arrowRight', true) :
+        `<p>${safe(t('dashboard.loadError'))}</p><button class="btn btn-primary" id="retry-load" type="button">${safe(t('common.retry'))}</button>`}</div>`;
+    home.querySelector('#retry-load')?.addEventListener('click', () => loadData(true));
   }
 
-  function renderSections(profile, completion) {
-    const rows = (profile.sections || []).map(section => {
-      const state = section.complete ? 'complete' : section.optional ? 'optional' : 'required';
-      return '<li><a href="' + resumeUrl(profile.id, section.id) + '"><span>'
-        + safe(t('section.' + section.id, section.label)) + '</span><span class="overview-section-state" data-state="' + state + '">'
-        + safe(t('dashboard.' + state)) + '</span>' + icon('arrowRight') + '</a></li>';
-    }).join('');
-    return rows ? '<details class="overview-sections"><summary>' + safe(t('dashboard.sectionsAll')) + '</summary>'
-      + '<p>' + safe(t('dashboard.completion')) + ' · ' + completion + '%</p><ul class="overview-section-list">' + rows + '</ul></details>' : '';
-  }
-
-  function renderReview(profile) {
-    const url = resumeUrl(profile.id, 'references') + '&review=1';
-    return '<section class="overview-writing"><h2>' + safe(t('dashboard.review')) + '</h2><p>' + safe(t('dashboard.reviewHelp'))
-      + '</p><a class="text-link" href="' + url + '">' + safe(t('dashboard.reviewOpen')) + '</a></section>';
-  }
-
-  function renderProfile(profile) {
-    activeResume = profile.id;
-    Api.setResumeId(profile.id);
-    const completion = Math.max(0, Math.min(100, Number(profile.completion) || 0));
-    const label = profile.title || t('dashboard.untitled');
-    const template = profile.template || {};
-    const printable = /^[a-z]+$/.test(template.id);
-    const next = (profile.sections || []).find(section => section.id === profile.nextSection && !section.complete);
-    const nextLabel = next ? t('section.' + next.id, next.label) : '';
-    const destination = resumeUrl(profile.id, profile.nextSection);
-    resumeLink.href = destination;
-    resumeLink.textContent = label;
-    resumeLink.hidden = false;
-    nextTask.hidden = library;
-    nextTask.innerHTML = next ? '<h2>' + safe(t('dashboard.fieldNext')) + '</h2><p>' + safe(nextLabel)
-      + '</p><a class="text-link" href="' + destination + '">' + safe(t('dashboard.continue')) + '</a>' : renderReview(profile);
-    home.innerHTML = '<section class="overview-document overview-resume"><div class="overview-resume-copy">'
-      + '<p class="overview-document-state">' + safe(t(next ? 'dashboard.resumeStatus' : 'dashboard.resumeReady')) + '</p>'
-      + '<h2>' + safe(label) + '</h2><p class="overview-saved">' + safe(template.name || t('nav.resumes')) + ' · '
-      + safe(t('dashboard.saved')) + ' ' + safe(formatDate(profile.updatedAt)) + '</p>'
-      + '<div class="overview-actions">' + button(t('dashboard.continue'), destination, 'btn-primary')
-      + '<button type="button" class="btn btn-secondary" id="open-resume-preview">' + safe(t('common.preview')) + '</button>'
-      + '<button type="button" class="btn btn-secondary" id="download-resume">' + safe(t('common.download')) + '</button></div>'
-      + '<p class="overview-error" role="alert" hidden></p></div>'
-      + (printable ? '<figure class="overview-template"><img src="/img/templates/' + template.id + '-320.webp" width="320" height="453" alt="">'
-        + '<figcaption>' + safe(t('dashboard.designExample')) + '</figcaption></figure>' : '') + '</section>'
-      + (library ? '' : renderSections(profile, completion) + (next ? renderReview(profile) : ''));
-
-    home.querySelector('#open-resume-preview').addEventListener('click', openPreview);
+  function bindResumeActions(profile) {
+    home.querySelector('#open-resume-preview').addEventListener('click', async () => {
+      if (!activeResume || preview.open) return;
+      preview.showModal();
+      await PdfPages.render(pdfPages, '/api/pdf/' + encodeURIComponent(activeResume) + '/document');
+    });
     home.querySelector('#download-resume').addEventListener('click', async event => {
       const error = home.querySelector('.overview-error');
       error.hidden = true;
@@ -115,57 +84,89 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  async function openPreview() {
-    if (!activeResume || preview.open) return;
-    preview.showModal();
-    await PdfPages.render(pdfPages, '/api/pdf/' + encodeURIComponent(activeResume) + '/document');
+  function recentDocument(title, detail, path, name) {
+    return `<a class="overview-recent-item" href="${path}"><span class="overview-file-icon">${icon(name)}</span>
+      <div><strong>${safe(title)}</strong><small>${safe(detail)}</small></div>${icon('arrowRight')}</a>`;
+  }
+
+  function renderChecklist(profile) {
+    const sections = (profile.sections || []).filter(section => !section.optional);
+    const done = sections.filter(section => section.complete).length;
+    const summary = t('overview.sectionCoverage').replace('{done}', number(done)).replace('{total}', number(sections.length));
+    return `<div class="overview-checklist">
+      <div class="overview-section-meter" aria-hidden="true">${sections.map(section => `<span${section.complete ? ' data-complete' : ''}></span>`).join('')}</div>
+      <p>${safe(summary)}</p><ul aria-label="${safe(t('overview.sectionList'))}">
+      ${sections.map(section => `<li><a href="${resumeUrl(profile.id, section.id)}">${icon(section.complete ? 'check' : 'circle')}
+        ${safe(t('section.' + section.id, section.label))}<span class="sr-only">${safe(t(section.complete ? 'overview.complete' : 'overview.incomplete'))}</span></a></li>`).join('')}
+      </ul></div>`;
+  }
+
+  function renderBoard(profile, latest) {
+    const resume = profile && `<div class="overview-resume-row">${recentDocument(profile.title || t('dashboard.untitled'),
+      t('studio.title') + ' · ' + formatDate(profile.updatedAt), resumeUrl(profile.id, profile.nextSection), 'template')}
+      <div class="overview-document-actions">
+        <button class="btn btn-secondary" type="button" id="open-resume-preview" data-price-base="${safe(t('common.preview'))}">${icon('eye')}<span>${safe(t('common.preview'))}</span></button>
+        <button class="btn btn-secondary" type="button" id="download-resume" data-price-base="${safe(t('common.download'))}">${icon('download')}<span>${safe(t('common.download'))}</span></button>
+      </div><p class="overview-error" role="alert" hidden></p></div>`;
+    const letter = latest && recentDocument([latest.role, latest.company].filter(Boolean).join(' · '),
+      t('nav.shortLetters') + ' · ' + formatDate(latest.updated_at), '/cover-letters?id=' + encodeURIComponent(latest.id), 'letter');
+    const recent = [
+      resume && [profile.updatedAt, resume],
+      letter && [latest.updated_at, letter],
+    ].filter(Boolean).sort(([left], [right]) => Api.parseDate(right) - Api.parseDate(left));
+    const next = profile?.sections?.find(section => section.id === profile.nextSection && !section.complete);
+    const nextLabel = next && t('section.' + next.id, next.label);
+    home.innerHTML = `<section class="overview-recent"><header><h2>${safe(t('overview.recentDocuments'))}</h2></header>
+      ${recent.length ? recent.map(([, row]) => row).join('') : `<div class="overview-empty">
+        <p>${safe(t('dashboard.emptyText'))}</p>${action('/templates', t('dashboard.choose'), 'add', true)}</div>`}</section>
+      ${profile ? `<section class="overview-next"><h2>${safe(t('overview.resumeProgress'))}</h2>${renderChecklist(profile)}
+        ${next ? `<p>${safe(t('overview.nextSection').replace('{section}', nextLabel))}</p>
+          ${action(resumeUrl(profile.id, next.id), t('dashboard.continue'), 'edit', true)}`
+          : `<p>${safe(t('dashboard.reviewHelp'))}</p>
+          ${action(resumeUrl(profile.id, 'references') + '&review=1', t('dashboard.reviewOpen'), 'check', true)}`}</section>` : ''}`;
+    if (profile) bindResumeActions(profile);
   }
 
   async function loadData(showLoading = false) {
-    const revision = ++loadingRevision;
+    const loading = ++revision;
     if (showLoading) {
-      renderedSummary = undefined;
+      signature = undefined;
       home.setAttribute('aria-busy', 'true');
-      home.innerHTML = '<section class="overview-panel overview-skeleton"><p role="status">' + safe(t('dashboard.loading'))
-        + '</p><div aria-hidden="true"><span></span><span></span><span></span></div></section>';
+      home.innerHTML = `<p class="overview-loading" role="status">${safe(t('dashboard.loading'))}</p>`;
+      metrics.setAttribute('aria-busy', 'true');
+      metrics.innerHTML = `<p class="overview-loading" role="status">${safe(t('overview.loadingSummary'))}</p>`;
     }
-    const [user, resume] = await Promise.all([Api.getMe(), Api.listResumes()]);
-    if (revision !== loadingRevision) return;
-    home.setAttribute('aria-busy', 'false');
+    const [user, dashboard, store] = await Promise.all([Api.getMe(), Api.listResumes(), Api.getFeaturePrices()]);
+    if (loading !== revision) return;
     if (user.success) {
       ZeekeAccountMenu.init({userName: user.userName || t('nav.account'), initials: ZeekeAccountMenu.initialsFromUser(user.user)});
     }
-    if (!resume.success) {
-      renderedSummary = undefined;
-      aiTokens.replaceChildren();
-      documents.hidden = true;
-      nextTask.hidden = true;
-      candidate.hidden = true;
-      renderError(resume);
+    document.querySelector('.dash-page-title').textContent = user.userName
+      ? t('dashboard.welcomeName').replace('{name}', user.userName) : t('nav.overview');
+    renderMetrics(dashboard.success ? dashboard : null, store?.success ? store.balance : null);
+    renderWriting(dashboard.ai);
+    if (!dashboard.success) {
+      home.setAttribute('aria-busy', 'false');
+      signature = undefined;
+      renderError(dashboard);
       return;
     }
-    if (!library && user.success && user.userName) {
-      candidate.textContent = user.userName + ' · ';
-      candidate.hidden = false;
-    }
-    documents.hidden = false;
-    const letterCount = Math.max(0, Number(resume.coverLetterCount) || 0);
-    document.getElementById('cover-letter-count').textContent = letterCount || '';
-    document.getElementById('dashboard-letter-note').textContent = t(letterCount ? 'dashboard.letterSaved' : 'dashboard.letterEmpty');
-    renderAiTokens(resume.ai);
-    document.getElementById('dashboard-design-link').href = resume.profile
-      ? resumeUrl(resume.profile.id, resume.profile.nextSection) + '&designs=1' : '/templates';
-    const summary = JSON.stringify(resume.profile ?? null);
-    if (summary === renderedSummary) return;
-    renderedSummary = summary;
-    const focused = home.contains(document.activeElement) ? document.activeElement.id : '';
-    if (resume.profile) renderProfile(resume.profile);
-    else {
-      nextTask.hidden = true;
-      resumeLink.hidden = true;
-      renderEmpty();
-    }
-    if (focused) document.getElementById(focused)?.focus({preventScroll:true});
+    const profile = dashboard.profile;
+    activeResume = profile?.id;
+    const access = store?.prices?.cover_letters;
+    const letters = dashboard.coverLetterCount && access && !access.hiddenByPackage
+      && (access.mode !== 'package_only' || access.packageUnlocked || access.packageUses)
+      ? await Api.listCoverLetters() : null;
+    if (loading !== revision) return;
+    const latest = letters?.success ? letters.data?.[0] : null;
+    home.setAttribute('aria-busy', 'false');
+    const nextSignature = JSON.stringify([profile, latest]);
+    if (nextSignature === signature) return;
+    signature = nextSignature;
+    document.getElementById('dashboard-open-resume').href = profile ? resumeUrl(profile.id, profile.nextSection) : '/builder';
+    document.getElementById('dashboard-design-link').href = profile
+      ? resumeUrl(profile.id, profile.nextSection) + '&designs=1' : '/templates';
+    renderBoard(profile, latest);
   }
 
   document.getElementById('dashboard-preview-close').addEventListener('click', () => preview.close());
@@ -177,15 +178,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let liveReload;
   const updateDashboard = event => {
-    if (event.detail?.topic && !['documents', 'profile', 'ai', 'feedback'].includes(event.detail.topic)) return;
+    if (event.detail?.topic && !['documents', 'profile', 'ai', 'feedback', 'wallet', 'store', 'pricing'].includes(event.detail.topic)) return;
     clearTimeout(liveReload);
     liveReload = setTimeout(loadData, 180);
   };
-  window.addEventListener('regen:bonus-updated', async () => {
-    const result = await Api.getAIStatus();
-    if (result.success) renderAiTokens(result);
-  });
+  window.addEventListener('regen:bonus-updated', updateDashboard);
+  window.addEventListener('regen:wallet-changed', updateDashboard);
   window.addEventListener('regen:live-change', updateDashboard);
+  window.addEventListener('regen:prices-updated', updateDashboard);
   window.addEventListener('regen:reconcile', updateDashboard);
   window.addEventListener('pagehide', () => clearTimeout(liveReload));
   await loadData(true);

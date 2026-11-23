@@ -99,10 +99,10 @@ final class NotificationService
         $q->execute($id === null ? [$userId] : [$userId,$id]);
         if($q->rowCount())(new RealtimeEvents($this->db))->publish('notifications','user',$userId);
     }
-    public function remove(int $userId,int $id): void
+    public function remove(int $userId, ?int $id = null): void
     {
-        $query=$this->db->prepare('UPDATE user_notifications SET removed_at=UTC_TIMESTAMP() WHERE user_id=? AND id=? AND removed_at IS NULL');
-        $query->execute([$userId,$id]);
+        $query=$this->db->prepare('UPDATE user_notifications SET removed_at=UTC_TIMESTAMP() WHERE user_id=? AND removed_at IS NULL'.($id === null ? '' : ' AND id=?'));
+        $query->execute($id === null ? [$userId] : [$userId,$id]);
         if($query->rowCount())(new RealtimeEvents($this->db))->publish('notifications','user',$userId);
     }
     public function campaign(array $data, int $adminId): int

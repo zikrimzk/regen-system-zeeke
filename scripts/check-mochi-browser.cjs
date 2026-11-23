@@ -22,9 +22,6 @@ const profilePage=view('profile.html');
 const letterPage=view('cover-letters.html').replace('id="letter-workspace" hidden','id="letter-workspace"');
 const roomPage=view('mochi.html');
 const supportPage=view('support.html').replace('</body>','<script src="/js/support-attachments.js"></script><script src="/js/service-centre.js"></script></body>');
-const landing=view('landing.html').replace('{{CANONICAL}}','');
-const landingWithPreview=landing.replace('data-mochi-demo hidden','data-mochi-demo').replace('data-mochi-demo-link hidden','data-mochi-demo-link')
-  .replace('</head>','<script type="application/json" id="mochi-preview-status">{"available":true,"autoplay":false}</script></head>');
 const adminView=renderView('admin.html');
 
 async function fixture(browser,options,config) {
@@ -33,9 +30,8 @@ async function fixture(browser,options,config) {
   await context.route('**/*',async route=>{
     const request=route.request(), url=new URL(request.url());
     if(url.origin!==site)return route.abort();
-    const pageHtml={'/builder':builder,'/cover-letters':letterPage,'/dashboard':dashboard,'/profile':profilePage,'/mochi':roomPage,'/support':supportPage,'/':state.serverPreview?landingWithPreview:landing,'/admin':adminView}[url.pathname];
+    const pageHtml={'/builder':builder,'/cover-letters':letterPage,'/dashboard':dashboard,'/profile':profilePage,'/mochi':roomPage,'/support':supportPage,'/admin':adminView}[url.pathname];
     if(pageHtml)return route.fulfill({contentType:'text/html; charset=utf-8',body:pageHtml});
-    if(url.pathname==='/site/mochi.json'){state.previewRequests=(state.previewRequests??0)+1;return route.fulfill({json:{available:state.available,health:100}});}
     if(url.pathname==='/api/auth/me')return route.fulfill({json:{success:true,user:{},csrfToken:'mochi-fixture'}});
     if(url.pathname==='/api/capabilities')return route.fulfill({json:{success:true,features:{}}});
     if(url.pathname==='/api/support/configuration')return route.fulfill({json:{success:true,message:'Here to help'}});
@@ -75,6 +71,9 @@ async function fixture(browser,options,config) {
       assert.equal(request.headers()['x-csrf-token'],'mochi-fixture');
       state.chat.push(input);
       if (state.failNext) {state.failNext=false;return route.fulfill({json:{success:true,reason:'busy'}});}
+      if (input.intent==='conversation') {
+        return route.fulfill({json:{success:true,kind:'advice',mood:'bright',reply:'Take five minutes to stretch — then pick one small task.'}});
+      }
       if (input.screen==='cover-letters') {
         return route.fulfill({json:{success:true,kind:'question',mood:'curious',reply:input.sharedField
           ? 'What stock reporting have you done that would help in this role?'
@@ -125,7 +124,7 @@ async function noFeedbackCollision(page, selector) {
 async function fits(page) {
   const out=await page.evaluate(()=>{
     const element=document.querySelector('#mochi-panel');
-    const bar=document.querySelector('.workspace-header');
+    const bar=document.querySelector('.workspace-header,.workbench-header');
     const rect=element.getBoundingClientRect();
     return document.documentElement.scrollWidth>innerWidth+1||bar.scrollWidth>bar.clientWidth+1||
       (!element.hidden&&(rect.top<bar.getBoundingClientRect().bottom+6||rect.left<-1||rect.bottom>innerHeight+1||rect.right>innerWidth+1));
@@ -141,7 +140,9 @@ async function fits(page) {
     await locked.page.goto(site+'/dashboard');
     await locked.page.locator('[data-mochi-float]').waitFor();
     await launch(locked.page);
-    await panel(locked.page).getByRole('link',{name:'See packages with Mochi'}).waitFor();
+    await panel(locked.page).getByText('We’re in Overview.',{exact:false}).waitFor();
+    await say(locked.page,'Tell me a joke');
+    await mood(locked.page,'laugh');
     assert.equal(await locked.page.locator('.workspace-header [data-mochi-open]').count(),0);
     assert.equal(locked.state.chat.length,0);
     assert.deepEqual(locked.errors,[]);
@@ -149,22 +150,17 @@ async function fits(page) {
 
     const desktop=await fixture(browser,{viewport:{width:1366,height:900}},{profile:{...profileDefaults,intro:'known',nickname:'Ari'}});
     await desktop.page.goto(site+'/dashboard');
-    await desktop.page.locator('[data-mochi-renderer="webgl"]').waitFor();
-    const pet=desktop.page.getByRole('button',{name:'Pet Mochi',exact:true});
-    for (const line of ['Ingat saya tak nampak', 'Parkour level', 'my turn to kacau', 'Tiny dance break']) {
-      await pet.click();
-      await desktop.page.getByText(line,{exact:false}).waitFor();
-    }
-    assert.equal(desktop.state.chat.length,0);
-    const original=await pet.boundingBox();
-    await desktop.page.mouse.move(original.x+original.width/2, original.y+original.height/2);
-    await desktop.page.mouse.down();
-    await desktop.page.mouse.move(360,420,{steps:6});
-    await desktop.page.mouse.up();
-    assert(await pet.evaluate(el=>el.closest('.mochi-float').classList.contains('mochi-positioned')),'Drag moves the floating dashboard mascot');
-    await pet.press('Escape');
-    await desktop.page.getByRole('button',{name:'Chat with Mochi',exact:true}).click();
-    await panel(desktop.page).getByText('Resume dashboard',{exact:true}).waitFor();
+    await desktop.page.locator('.mochi-float-chat img').waitFor();
+    await desktop.page.waitForFunction(()=>document.querySelector('[data-mochi-float]').dataset.mochiMood);
+    assert.equal(await desktop.page.locator('[data-mochi-renderer="webgl"]').count(),0);
+    await launch(desktop.page);
+    await panel(desktop.page).getByText('Overview',{exact:true}).waitFor();
+    await say(desktop.page,'How can I reset after a long afternoon?');
+    await panel(desktop.page).getByText('Take five minutes to stretch, then pick one small task.').waitFor();
+    assert.equal(desktop.state.chat[0].intent,'conversation');
+    await say(desktop.page,'Can you write a Python script for me?');
+    await panel(desktop.page).getByText('Coding is outside my lane.',{exact:false}).waitFor();
+    assert.equal(desktop.state.chat.length,1);
     await fits(desktop.page);
     await noFeedbackCollision(desktop.page,'#mochi-panel');
     await desktop.page.screenshot({path:out+'/dashboard-mochi.png'});
@@ -173,27 +169,25 @@ async function fits(page) {
 
     const {context,page,state,errors}=await fixture(browser,{viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1},{});
     await page.goto(site+'/builder?section=projects');
-    await page.locator('[data-mochi-renderer="webgl"]').waitFor();
+    await page.locator('.mochi-float-chat img').waitFor();
+    await page.waitForFunction(()=>document.querySelector('[data-mochi-float]').dataset.mochiMood);
     const project=page.locator('#proj-qa'), email=page.locator('#p-email');
     await project.focus();
-    await page.getByText('Can I know you better? Let’s kenal!',{exact:true}).waitFor();
     assert.equal(await project.evaluate(el=>el===document.activeElement),true);
     await page.screenshot({path:out+'/mobile-hello.png'});
-    await page.getByRole('button',{name:'Let’s kenal',exact:true}).click();
+    await launch(page);
+    await panel(page).getByRole('button',{name:'Options'}).click();
+    await panel(page).getByRole('button',{name:'Tell Mochi about you'}).click();
     await panel(page).getByLabel('What should I call you?').fill('Ari');
     await panel(page).getByLabel('What are you working toward?').fill('My first design internship');
     await panel(page).getByLabel('Career stage').selectOption('student');
     await panel(page).getByRole('button',{name:'Remember this'}).click();
-    await panel(page).getByText('Hi, Ari! Want help here, or shall we chat for a bit?',{exact:false}).waitFor().catch(async error=>{
+    await panel(page).getByText('Nice to meet you, Ari!',{exact:false}).waitFor().catch(async error=>{
       console.error('Introduction panel:',await panel(page).innerText(), 'Saved:', state.changes, 'Browser errors:', errors);
       throw error;
     });
     assert.equal(state.profile.goal,'My first design internship');
     await panel(page).getByRole('button',{name:'Close Mochi'}).click();
-    await page.getByRole('button',{name:'Pet Mochi',exact:true}).dblclick();
-    await mood(page,'laugh');
-    assert.equal(state.chat.length,0);
-    await page.screenshot({path:out+'/mobile-laugh.png'});
     await launch(page);
     await say(page,'I got rejected today.');
     await panel(page).getByText('That sounds rough, Ari.',{exact:false}).waitFor();
@@ -260,10 +254,10 @@ async function fits(page) {
     await project.fill('More writing while the coach sleeps should stay in the editor.');
     await page.waitForTimeout(1750);
     assert.equal(state.comments.length,callsBefore);
-    await page.locator('[data-mochi-pet]').click();
+    await launch(page);
+    await panel(page).getByRole('button',{name:'Wake Mochi'}).click();
     await mood(page,'wave');
     assert.equal(state.profile.asleep,false);
-    await launch(page);
     await panel(page).getByRole('button',{name:'Options'}).click();
     await panel(page).getByText('What we’re working toward: My first design internship').waitFor();
     await panel(page).getByRole('button',{name:'Forget my details'}).click();
@@ -276,16 +270,16 @@ async function fits(page) {
     const offline=await fixture(browser,{viewport:{width:320,height:640},isMobile:true,hasTouch:true,deviceScaleFactor:1,reducedMotion:'reduce'},
       {model:false,profile:{...profileDefaults,intro:'skipped'}});
     await offline.page.goto(site+'/builder');
-    await offline.page.locator('[data-mochi-renderer="webgl"]').waitFor();
+    await offline.page.locator('.mochi-float-chat img').waitFor();
+    await offline.page.waitForFunction(()=>document.querySelector('[data-mochi-float]').dataset.mochiMood);
     await offline.page.evaluate(()=>document.documentElement.setAttribute('data-theme','dark'));
     await launch(offline.page);
-    await panel(offline.page).getByText('Mochi’s writing coach is currently unavailable.',{exact:false}).waitFor();
+    await panel(offline.page).getByText('Page help is available while live coaching is offline.',{exact:false}).waitFor();
     await say(offline.page,'Tell me a joke');
     await mood(offline.page,'laugh');
     assert.equal(offline.state.chat.length,0);
     await fits(offline.page);
     await offline.page.screenshot({path:out+'/mochi-chat-320-dark.png'});
-    await offline.page.locator('canvas').evaluate(el=>el.dispatchEvent(new Event('webglcontextlost')));
     assert.equal(await offline.page.locator('[data-mochi-renderer="webgl"]').count(),0);
     assert.deepEqual(offline.errors,[]);
     await offline.context.close();
@@ -315,52 +309,13 @@ async function fits(page) {
     await letter.context.close();
     const mobile=await fixture(browser,{viewport:{width:360,height:720},isMobile:true,hasTouch:true},{chatAllowed:false,model:false,profile:{...profileDefaults,intro:'known'}});
     await mobile.page.goto(site+'/profile');
-    await mobile.page.getByRole('button',{name:'Pet Mochi',exact:true}).waitFor();
+    await mobile.page.locator('.mochi-float-chat img').waitFor();
     await noFeedbackCollision(mobile.page,'[data-mochi-float-stage], .mochi-float-stage');
     await launch(mobile.page);
-    await panel(mobile.page).getByRole('link',{name:'See Mochi chat packages'}).waitFor();
+    await panel(mobile.page).getByText('We’re in Profile.',{exact:false}).waitFor();
     await noFeedbackCollision(mobile.page,'#mochi-panel');
     assert.equal(mobile.state.chat.length,0);
     await mobile.context.close();
-    const publicPreview=await fixture(browser,{viewport:{width:390,height:844},isMobile:true,hasTouch:true},{});
-    await publicPreview.page.addInitScript(()=>{
-      window.playedMochiSounds=0;
-      const start=OscillatorNode.prototype.start;
-      OscillatorNode.prototype.start=function(...args){window.playedMochiSounds++;return start.apply(this,args);};
-    });
-    await publicPreview.page.clock.install();
-    await publicPreview.page.goto(site+'/');
-    const demoPet=publicPreview.page.getByRole('button',{name:'Play with Mochi'});
-    await demoPet.scrollIntoViewIfNeeded();
-    await publicPreview.page.clock.fastForward(3500);
-    await publicPreview.page.getByText('Eh benang!',{exact:false}).waitFor();
-    await publicPreview.page.screenshot({path:out+'/mochi-hero-mobile.png'});
-    await publicPreview.page.clock.fastForward(11000);
-    await publicPreview.page.getByText('Tinggi sikit je',{exact:false}).waitFor();
-    assert.equal(await publicPreview.page.evaluate(()=>playedMochiSounds),0,'Landing animation is quiet by default');
-    const sound=publicPreview.page.getByRole('button',{name:'Sound off',exact:true});
-    await sound.press('Enter');
-    await publicPreview.page.waitForFunction(()=>playedMochiSounds>0);
-    assert.equal(await publicPreview.page.getByRole('button',{name:'Sound on',exact:true}).getAttribute('aria-pressed'),'true');
-    await demoPet.click();
-    await mood(publicPreview.page,'wave');
-    assert.equal(publicPreview.state.chat.length,0);
-    await publicPreview.context.close();
-    const landingDesktop=await fixture(browser,{viewport:{width:1440,height:900},colorScheme:'dark'},{serverPreview:true});
-    await landingDesktop.page.goto(site+'/');
-    const showcase=landingDesktop.page.locator('.mochi-hero');
-    await showcase.getByRole('button',{name:'Say hi'}).click();
-    await showcase.getByText('Mochi boleh tolong.',{exact:false}).waitFor();
-    assert.equal(landingDesktop.state.previewRequests,undefined,'The hero uses server-rendered preview settings on its first paint.');
-    await landingDesktop.page.getByRole('link',{name:'Mochi',exact:true}).click();
-    await landingDesktop.page.waitForFunction(()=>{
-      const header=document.querySelector('.site-header').getBoundingClientRect();
-      const stage=document.querySelector('.mochi-hero .mochi-den-stage').getBoundingClientRect();
-      return stage.top>=header.bottom&&stage.bottom<=innerHeight;
-    });
-    await landingDesktop.page.evaluate(()=>{document.documentElement.dataset.theme='dark';scrollTo({top:0,behavior:'instant'});});
-    await landingDesktop.page.screenshot({path:out+'/mochi-hero-desktop.png'});
-    await landingDesktop.context.close();
     const playroom=await fixture(browser,{viewport:{width:1366,height:900},deviceScaleFactor:2},{chatAllowed:false,model:false});
     await playroom.page.goto(site+'/mochi');
     const choose=playroom.page.getByLabel('Choose an activity');
@@ -370,6 +325,10 @@ async function fits(page) {
       const canvas=document.querySelector('.mochi-room canvas');
       return canvas.width>=canvas.clientWidth*1.9&&canvas.clientWidth>256;
     });
+    const roomPet=playroom.page.locator('[data-mochi-den] [data-mochi-pet]');
+    await roomPet.press('ArrowRight');
+    assert.equal(await roomPet.evaluate(el=>el.classList.contains('mochi-positioned')),true,'The animated room mascot is still movable by keyboard.');
+    await roomPet.press('Escape');
     assert.equal(await choose.locator('option').count(),48);
     await choose.selectOption({label:'Sofa zoomies'});
     await playroom.page.getByRole('button',{name:'Play',exact:true}).click();
@@ -439,6 +398,6 @@ async function fits(page) {
     await admin.page.evaluate(()=>scrollTo(0,0));
     await admin.page.screenshot({path:out+'/mochi-admin.png'});
     await admin.context.close();
-    console.log('Interactive Mochi passed: hero, 48 room activities, napping, drag, sound, support handoff, writing, mobile layout, and admin limits.');
+    console.log('Interactive Mochi passed: static launcher, casual conversation, writing, phone layouts, 48 room activities, napping, keyboard movement, support handoff and admin limits.');
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

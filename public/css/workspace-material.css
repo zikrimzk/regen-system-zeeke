@@ -1,0 +1,97 @@
+/* Translucent navigation and controls over an opaque, readable candidate workspace. */
+body.user-workspace {
+  --workspace-material: #faf9fa;
+  --workspace-material-tint: #eceaee;
+  --workspace-canvas: #f1f0f3;
+  --workspace-canvas-light: #fbfbfd;
+  --workspace-canvas-warm: #efd9d7;
+  --workspace-edge-light: #fff;
+  --workspace-glass: color-mix(in srgb, var(--workspace-material) 88%, transparent);
+  --workspace-glass-line: color-mix(in srgb, var(--border) 84%, var(--workspace-edge-light));
+  --workspace-red: #942722;
+  --workspace-red-deep: #701918;
+  --workspace-accent-ink: #8f2924;
+  --workspace-selected: #f1e3e3;
+  --workspace-surface-shadow: 0 16px 40px #21192213, 0 2px 5px #21192208;
+  --primary: var(--workspace-accent-ink);
+  --primary-lt: var(--workspace-selected);
+  --workspace-action-fill: linear-gradient(160deg, #ae3a35, var(--workspace-red) 46%, var(--workspace-red-deep));
+  --workspace-lighting: radial-gradient(ellipse 70% 28rem at 93% 0%, var(--workspace-canvas-warm), transparent),
+    radial-gradient(ellipse 92% 30rem at 8% 0%, var(--workspace-canvas-light), transparent);
+  background: var(--workspace-lighting), var(--workspace-canvas);
+}
+:root[data-theme="dark"] body.user-workspace {
+  --workspace-material: #232228;
+  --workspace-material-tint: #2d2b33;
+  --workspace-canvas: #17161c;
+  --workspace-canvas-light: #25232d;
+  --workspace-canvas-warm: #382328;
+  --workspace-edge-light: #49434b;
+  --workspace-red: #ac3129;
+  --workspace-red-deep: #791f1c;
+  --workspace-accent-ink: #ffa798;
+  --workspace-selected: #3e2c32;
+  --workspace-surface-shadow: 0 14px 42px #0005, 0 2px 4px #0004;
+}
+.user-workspace :is(.workspace-header,.workspace-sidebar,.mobile-product-nav,.workbench-header,.account-menu-panel) {
+  background: var(--workspace-material);
+  border-color: var(--workspace-glass-line);
+}
+@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .user-workspace :is(.workspace-header,.mobile-product-nav,.workbench-header,.account-menu-panel) {
+    background: var(--workspace-glass);
+    -webkit-backdrop-filter: blur(16px) saturate(1.22);
+    backdrop-filter: blur(16px) saturate(1.22);
+  }
+}
+.user-workspace :is(.mobile-product-nav,.account-menu-panel) { box-shadow: inset 0 1px var(--workspace-edge-light), var(--workspace-surface-shadow); }
+.user-workspace :is(.workspace-sidebar,.mobile-product-nav) :is(a,button):is([aria-current="page"],[data-current="true"]) {
+  background: var(--workspace-selected);
+  color: var(--workspace-accent-ink);
+}
+.user-workspace .btn-primary:not(:disabled,.is-package-locked), .studio-workbench .studio-icon.studio-primary:not(:disabled) {
+  background: var(--workspace-action-fill);
+  color: #fff;
+  border-color: transparent;
+}
+.user-workspace .btn-primary:not(:disabled,.is-package-locked):hover,
+.studio-workbench .studio-icon.studio-primary:not(:disabled):hover { filter: brightness(1.08); }
+.user-workspace :is(.workbench-header,.workspace-header,.mobile-product-nav,.account-menu-panel) {
+  transition: background-color var(--duration-standard) ease, border-color var(--duration-standard) ease;
+}
+.user-workspace .btn:has(> .token-action-status) { flex-wrap: wrap; row-gap: 3px; }
+.user-workspace .token-action-status { line-height: 1.2; white-space: nowrap; }
+
+.user-workspace .mochi-float .mochi-pet { display: none; }
+.user-workspace .mochi-float-stage { flex-basis: 52px; width: 52px; height: 52px; }
+.user-workspace .mochi-float-chat {
+  inset: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--workspace-glass-line);
+  background: var(--workspace-glass);
+  box-shadow: inset 0 1px var(--workspace-edge-light), var(--workspace-surface-shadow);
+  backdrop-filter: blur(12px);
+}
+.user-workspace .mochi-float-chat img { display: block; width: 42px; height: 42px; object-fit: contain; }
+.user-workspace .mochi-float-chat:hover { background: var(--workspace-material); }
+body.user-workspace.studio-workbench { --mochi-dock: 18px; }
+body.user-workspace.studio-workbench.builder-page { --mochi-dock: 78px; }
+.notification-inbox-actions .ui-icon { width: 17px; height: 17px; flex: none; }
+.notification-inbox-actions #clear-all-notifications:not(:disabled) { color: var(--workspace-accent-ink); }
+
+@media (max-width: 760px) {
+  body.user-workspace.studio-workbench.cover-letter-page { --mochi-dock: 16px; }
+  body.user-workspace.studio-workbench.builder-page { --mochi-dock: 82px; }
+  .notification-inbox-actions { display: flex; flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .user-workspace :is(.workspace-header,.mobile-product-nav,.workbench-header,.account-menu-panel) {
+    background: var(--workspace-material);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .user-workspace .mochi-float-chat { background: var(--workspace-material); backdrop-filter: none; }
+}

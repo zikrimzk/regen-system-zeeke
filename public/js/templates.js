@@ -68,7 +68,7 @@ window.ReGenTemplates = (() => {
       const alreadyApplied = !creating && access.state === 'current';
       if (alreadyApplied) return '';
       const label = creating ? 'Create resume' : 'Use design';
-      const text = busy ? 'Applying…' : cost ? label + ' (' + cost + ' ' + (cost === 1 ? 'token' : 'tokens') + ')' : label;
+      const text = busy ? 'Applying…' : cost ? label + ' (' + cost + ' Coin)' : label;
       return blocked
         ? `<a class="btn btn-secondary" href="/store?feature=${packageFeature}#package-offers">See packages</a>`
         : `<button type="button" class="btn btn-primary" data-apply-design ${busy ? 'disabled' : ''}>${text}</button>`;

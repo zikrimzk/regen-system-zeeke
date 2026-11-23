@@ -94,9 +94,9 @@ window.ReGenAssist = (() => {
       else window.ReGenTokens?.bind(generate,'ai_assist','Generate draft');
       window.ReGenTokens?.setAiCosts({assist:cost});
       const price = dialog.querySelector('.assist-price');
-      price.textContent = reviewing ? '' : status?.loaded && cost>0 ? `${remaining.toLocaleString()} tokens available` : '';
+      price.textContent = reviewing ? '' : status?.loaded && cost>0 ? `${remaining.toLocaleString()} Coin available` : '';
       if (!busy && !reviewing && status?.loaded && !status.enabled) tell('AI is unavailable right now. You can keep writing your resume yourself.');
-      else if (!busy && !reviewing && status?.enabled && remaining < cost) tell(`You have ${remaining} tokens. This draft needs ${cost}. You can still write your resume yourself.`);
+      else if (!busy && !reviewing && status?.enabled && remaining < cost) tell(`You have ${remaining} Coin. This draft needs ${cost}. You can still write your resume yourself.`);
       const unavailable = status?.loaded && !status.enabled && !busy && !pending;
       if (opener.disabled !== Boolean(unavailable)) opener.disabled = Boolean(unavailable);
       const note = launcher.querySelector('.assist-launcher-note');
@@ -204,7 +204,7 @@ window.ReGenAssist = (() => {
       tell('Writing from your notes… You can close this window and come back to your draft.'); update();
       let response;
       try { response = await Api.assistResumeSection({ section: target.key, answers, target: { ...target.metadata, format: target.format }, expectedCost: getCost() }); }
-      catch { response = { success: false, message: 'We couldn’t complete the request. Check your connection and token balance before trying again.' }; }
+      catch { response = { success: false, message: 'We couldn’t complete the request. Check your connection and Coin balance before trying again.' }; }
       busy = false; card.setAttribute('aria-busy', 'false'); dialog.setAttribute('aria-busy', 'false');
       dialog.querySelectorAll('.assist-inputs textarea,.assist-inputs select').forEach(input => { input.disabled = false; });
       inFlight.delete(requestKey);

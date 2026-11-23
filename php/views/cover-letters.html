@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{LANGUAGE}}">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"><title>{{i18n.nav.letters}} | {{BRAND_NAME}}</title><link rel="icon" href="/img/app-icon-192.png"><script src="/js/theme.js?v=20261105r15"></script>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"><title>{{i18n.studio.lettersTitle}} | {{BRAND_NAME}}</title><link rel="icon" href="/img/app-icon-192.png"><script src="/js/theme.js?v=20261105r15"></script>
   <link rel="stylesheet" href="/css/main.css?v=20261105r15"><link rel="stylesheet" href="/css/workspace.css?v=20261105r15">
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/css/product.css?v=20261105r15">
@@ -59,44 +59,86 @@
   <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-portrait.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
   <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/css/cover-letters.css"></head>
-<body class="user-workspace cover-letter-page">
+<body class="user-workspace cover-letter-page studio-workbench">
   <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
   {{WORKSPACE_HEADER}}
+  <header class="workbench-header letter-workbench-header" aria-label="{{i18n.studio.lettersTitle}}">
+    <div class="workbench-identity">{{STUDIO_BACK}}<div class="studio-identity"><span>{{i18n.studio.lettersTitle}}</span><h1 id="letter-editor-title">{{i18n.letter.new}}</h1></div></div>
+    <div class="workbench-file-actions" id="letter-file-actions">
+      <button type="button" id="letter-library-toggle" hidden class="studio-icon" title="{{i18n.letter.saved}}" aria-haspopup="dialog" aria-expanded="false" aria-controls="letter-library-dialog">{{icon.folder}}<span class="sr-only">{{i18n.letter.saved}}</span></button>
+      <button type="button" id="new-letter" hidden class="studio-icon " title="{{i18n.letter.new}}">{{icon.add}}<span class="sr-only">{{i18n.letter.new}}</span></button>
+    </div>
+    <div class="workbench-tools" id="letter-workbench-tools" hidden>
+      <button type="button" id="letter-design-settings" class="studio-icon " title="{{i18n.common.appearance}}" data-price-feature="document_settings">{{icon.settings}}<span class="sr-only">{{i18n.common.appearance}}</span></button>
+      <button type="button" id="letter-writing-mode" class="studio-icon" aria-pressed="true" aria-controls="letter-form" title="{{i18n.studio.write}}">{{icon.edit}}<span class="sr-only">{{i18n.studio.write}}</span></button>
+      <button type="button" id="letter-proof-toggle" class="studio-icon letter-proof-toggle" aria-pressed="false" title="{{i18n.studio.workingPreview}}" aria-controls="letter-working-preview" aria-expanded="false">{{icon.eye}}<span class="sr-only">{{i18n.studio.workingPreview}}</span></button>
+      <button type="button" id="preview-letter" class="studio-icon " title="{{i18n.studio.checkPdf}}" data-price-base="{{i18n.studio.checkPdf}}">{{icon.expand}}<span class="sr-only">{{i18n.studio.checkPdf}}</span></button>
+      <button type="button" id="download-letter" class="studio-icon" title="{{i18n.common.download}}" data-review-uses>{{icon.download}}<span class="sr-only">{{i18n.common.download}}</span></button>
+      <button type="submit" id="save-letter" class="studio-icon studio-primary" title="{{i18n.letter.save}}" form="letter-form" data-review-uses>{{icon.save}}<span class="sr-only">{{i18n.letter.save}}</span></button>
+    </div>
+  </header>
   <main id="main-content" tabindex="-1" class="workspace-main">
-    <header class="workspace-heading"><div><h1>{{i18n.studio.lettersTitle}}</h1><p>{{i18n.studio.lettersIntro}}</p></div></header>
     <p id="letter-message" class="workspace-message" role="status" aria-live="polite"></p>
+    <button type="button" class="btn btn-secondary letter-reload" id="letter-retry-load" hidden>{{i18n.common.retry}}</button>
     <section id="letter-start" class="letter-start" hidden aria-labelledby="letter-start-title">
       <div class="letter-start-icon" aria-hidden="true"></div>
-      <h2 id="letter-start-title">Start with your resume.</h2>
-      <p>Your letter will use its design and contact details.</p>
-      <a class="btn btn-primary" href="/templates">Create my resume <span aria-hidden="true">→</span></a>
+      <h2 id="letter-start-title">{{i18n.letter.startTitle}}</h2>
+      <p>{{i18n.letter.startHelp}}</p>
+      <a class="btn btn-primary" href="/templates">{{i18n.dashboard.choose}} {{icon.next}}</a>
     </section>
     <div class="letter-layout" id="letter-workspace" hidden>
-      <aside class="letter-sidebar"><button type="button" class="btn btn-secondary" id="new-letter">{{i18n.letter.new}}</button><details id="saved-letters" open><summary>{{i18n.letter.saved}} <span id="letter-count" class="letter-count">0</span></summary><label class="letter-search-label" for="letter-search"><span class="sr-only">{{i18n.letter.find}}</span><input type="search" id="letter-search" placeholder="{{i18n.letter.search}}"></label><div class="letter-list" id="letter-list"></div><nav class="letter-pagination" id="letter-pagination" aria-label="Saved letter pages" hidden></nav></details></aside>
+      <aside class="letter-sidebar" id="letter-library" aria-labelledby="saved-letters-title">
+        <header class="letter-library-header">
+          <h2 id="saved-letters-title">{{i18n.letter.saved}} <span id="letter-count" class="letter-count"></span></h2>
+          <button type="button" class="studio-icon" data-close-library title="{{i18n.common.close}}" hidden>{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button>
+        </header>
+        <label class="letter-search-label" for="letter-search">{{icon.search}}<span class="sr-only">{{i18n.letter.find}}</span><input type="search" id="letter-search" placeholder="{{i18n.letter.search}}"></label>
+        <div class="letter-list" id="letter-list"></div>
+        <nav class="letter-pagination" id="letter-pagination" aria-label="{{i18n.letter.libraryPages}}" hidden></nav>
+      </aside>
       <section class="letter-editor" aria-labelledby="letter-editor-title">
-        <div class="letter-editor-heading"><div><h2 id="letter-editor-title">{{i18n.letter.new}}</h2><p class="muted" id="letter-template-note"></p></div><a class="btn btn-secondary" id="letter-design-settings" href="/builder?settings=1">{{i18n.common.appearance}}</a></div>
+        <div class="letter-document-status">
+          <span class="letter-editor-active">{{icon.edit}} {{i18n.studio.write}}</span>
+          <p class="muted" id="letter-template-note"></p>
+          <p class="letter-save-state" id="letter-save-state" role="status">{{i18n.letter.newState}}</p>
+        </div>
         <form id="letter-form">
-          <div class="letter-fields">
-            <div class="letter-field"><label for="letter-company">{{i18n.letter.company}} <span aria-hidden="true">*</span></label><input id="letter-company" name="company" required maxlength="200" placeholder="e.g. Syarikat Contoh" autocomplete="organization"></div>
-            <div class="letter-field"><label for="letter-date">{{i18n.letter.date}}</label><input id="letter-date" name="letter_date" type="date" required></div><div class="letter-field wide"><label for="letter-role">{{i18n.letter.role}} <span aria-hidden="true">*</span></label><input id="letter-role" name="role" required maxlength="200" placeholder="e.g. Operations Specialist"></div>
-          </div>
-          <details class="letter-context" id="letter-context"><summary><span>Recipient &amp; address</span><small>Optional</small></summary><div class="letter-fields"><div class="letter-field wide"><label for="letter-recipient">Recipient</label><input id="letter-recipient" name="recipient" maxlength="200" placeholder="Hiring Manager"></div><div class="letter-field wide"><label for="letter-recipient-address">Company address</label><textarea id="letter-recipient-address" name="recipient_address" rows="3" maxlength="1000" placeholder="Optional postal address"></textarea></div></div></details><details class="letter-context" id="letter-job-context"><summary><span>Job details for AI</span><small>Optional</small></summary><div class="letter-fields"><div class="letter-field wide"><label for="letter-company-details">Company details</label><textarea id="letter-company-details" name="company_details" rows="3" maxlength="5000" placeholder="What interests you about this company?"></textarea></div>
-            <div class="letter-field wide"><label for="letter-job-description">Job description <span class="muted">(optional)</span></label><textarea id="letter-job-description" name="job_description" rows="4" maxlength="8000" placeholder="Paste the responsibilities and requirements that matter most."></textarea></div>
+          <details class="letter-context" id="letter-target" open><summary><span>{{i18n.letter.target}}</span><small id="letter-target-meta" hidden></small></summary><div class="letter-fields">
+            <div class="letter-field"><label for="letter-company">{{i18n.letter.company}} <span aria-hidden="true">*</span></label><input id="letter-company" name="company" required maxlength="200" placeholder="{{i18n.letter.companyExample}}" autocomplete="organization"></div>
+            <div class="letter-field"><label for="letter-date">{{i18n.letter.date}}</label><input id="letter-date" name="letter_date" type="date" required></div><div class="letter-field wide"><label for="letter-role">{{i18n.letter.role}} <span aria-hidden="true">*</span></label><input id="letter-role" name="role" required maxlength="200" placeholder="{{i18n.letter.roleExample}}"></div>
+          </div></details>
+          <details class="letter-context" id="letter-context"><summary><span>{{i18n.letter.recipientTitle}}</span><small>{{i18n.letter.optional}}</small></summary><div class="letter-fields"><div class="letter-field wide"><label for="letter-recipient">{{i18n.letter.recipient}}</label><input id="letter-recipient" name="recipient" maxlength="200" placeholder="{{i18n.letter.recipientExample}}"></div><div class="letter-field wide"><label for="letter-recipient-address">{{i18n.letter.address}}</label><textarea id="letter-recipient-address" name="recipient_address" rows="3" maxlength="1000" placeholder="{{i18n.letter.optional}}"></textarea></div></div></details><details class="letter-context" id="letter-job-context"><summary><span>{{i18n.letter.aiContext}}</span><small>{{i18n.letter.optional}}</small></summary><div class="letter-fields"><div class="letter-field wide"><label for="letter-company-details">{{i18n.letter.companyDetails}}</label><textarea id="letter-company-details" name="company_details" rows="3" maxlength="5000" placeholder="{{i18n.letter.companyPrompt}}"></textarea></div>
+            <div class="letter-field wide"><label for="letter-job-description">{{i18n.letter.jobDescription}} <span class="muted">({{i18n.letter.optional}})</span></label><textarea id="letter-job-description" name="job_description" rows="4" maxlength="8000" placeholder="{{i18n.letter.jobPrompt}}"></textarea></div>
 </div></details>
-          <div class="letter-ai"><div><h3 id="letter-ai-heading">Draft with AI</h3><p id="letter-ai-description">Use your resume and job details.</p></div><button type="button" class="btn btn-secondary" id="generate-letter">Generate draft</button><p id="letter-ai-quota" role="status"></p></div>
-          <section id="letter-suggestion" class="ai-suggestion" hidden aria-labelledby="suggestion-title"><h3 id="suggestion-title">{{i18n.letter.reviewSuggestion}}</h3><pre id="letter-suggestion-text"></pre><div class="letter-actions"><button type="button" class="btn btn-primary" id="apply-letter-suggestion">Use this draft</button><button type="button" class="btn btn-secondary" id="discard-letter-suggestion">Dismiss</button></div></section>
-          <div class="letter-field letter-body-field"><label for="letter-body">{{i18n.letter.body}} <span id="letter-word-count" role="status" aria-live="polite">0 words</span></label><textarea id="letter-body" name="body" rows="11" maxlength="16000" data-preserve-spaces="true" placeholder="Introduce yourself and explain why you’re a good fit.
-
-Write only the body, with a blank line between paragraphs. Your heading, greeting and closing are added automatically."></textarea></div>
-          <footer class="letter-form-footer"><p class="letter-save-state" id="letter-save-state" role="status">Not saved yet</p><div class="letter-actions"><button type="button" class="btn btn-ghost delete-letter" id="delete-letter" hidden>Delete</button><button type="button" class="btn btn-secondary" id="preview-letter">{{i18n.common.preview}}</button><button type="button" class="btn btn-secondary" id="download-letter">{{i18n.common.download}}</button><button type="submit" class="btn btn-primary" id="save-letter">{{i18n.letter.save}}</button></div>
-
-</footer>
+          <div class="letter-field letter-body-field">
+            <div class="letter-composer-tools">
+              <div><label for="letter-body">{{i18n.letter.body}}</label><span id="letter-word-count" role="status" aria-live="polite"></span></div>
+              <button type="button" class="btn btn-secondary" id="generate-letter" aria-describedby="letter-ai-quota">{{icon.sparkles}}<span class="button-label">{{i18n.letter.aiGenerate}}</span></button>
+            </div>
+            <p id="letter-ai-quota" role="status"></p>
+            <textarea id="letter-body" name="body" rows="11" maxlength="16000" data-preserve-spaces="true" placeholder="{{i18n.letter.bodyPrompt}}"></textarea>
+          </div>
+          <section id="letter-suggestion" class="ai-suggestion" hidden aria-labelledby="suggestion-title"><h3 id="suggestion-title">{{i18n.letter.reviewSuggestion}}</h3><pre id="letter-suggestion-text"></pre><div class="letter-actions"><button type="button" class="btn btn-primary" id="apply-letter-suggestion">{{i18n.letter.aiApply}}</button><button type="button" class="btn btn-secondary" id="discard-letter-suggestion">{{i18n.letter.aiDiscard}}</button></div></section>
+          <footer class="letter-form-footer"><button type="button" id="delete-letter" class="studio-icon delete-letter" title="{{i18n.common.delete}}" hidden>{{icon.trash}}<span class="sr-only">{{i18n.common.delete}}</span></button></footer>
         </form>
       </section>
+      <aside class="letter-working-preview" id="letter-working-preview" aria-labelledby="letter-working-title" hidden>
+        <header class="studio-preview-header"><h2 id="letter-working-title">{{i18n.studio.pdfCanvas}}</h2><span class="studio-paper-label">{{i18n.studio.live}}</span></header>
+        <p class="studio-preview-status" id="letter-preview-access" hidden>{{i18n.studio.previewRestricted}}</p>
+        <div class="studio-preview-scroll"><div id="letter-working-paper" class="live-proof"></div></div>
+      </aside>
     </div>
+    <dialog id="letter-library-dialog" class="letter-library-dialog" aria-labelledby="saved-letters-title"></dialog>
   </main>
-  <dialog class="letter-preview-dialog" id="letter-preview" aria-labelledby="letter-preview-title"><div class="letter-preview-head"><strong id="letter-preview-title">Cover letter preview</strong><button type="button" class="btn btn-secondary" id="close-letter-preview">Close</button></div><div class="letter-preview-stage"><div id="letter-pdf-pages" class="pdf-pages"></div></div></dialog>
+  <dialog class="letter-preview-dialog" id="letter-preview" aria-labelledby="letter-preview-title"><div class="letter-preview-head"><strong id="letter-preview-title">{{i18n.letter.preview}}</strong><div class="studio-preview-tools" role="group" aria-label="{{i18n.studio.zoom}}">
+          <button type="button" class="studio-icon" id="letter-zoom-out" title="{{i18n.studio.zoomOut}}">{{icon.minus}}<span class="sr-only">{{i18n.studio.zoomOut}}</span></button>
+          <button type="button" class="studio-icon" id="letter-zoom-fit" title="{{i18n.studio.zoomFit}}">{{icon.expand}}<span class="sr-only">{{i18n.studio.zoomFit}}</span></button>
+          <button type="button" class="studio-icon" id="letter-zoom-in" title="{{i18n.studio.zoomIn}}">{{icon.add}}<span class="sr-only">{{i18n.studio.zoomIn}}</span></button>
+          <button type="button" id="close-letter-preview" class="studio-icon " title="{{i18n.common.close}}">{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button></div></div><div class="letter-preview-stage"><div id="letter-pdf-pages" class="live-proof"></div></div></dialog>
   <script src="/js/pdf-pages.js?v=20261105r15"></script>
+  <script src="/js/live-document-preview.js"></script>
+  <script src="/js/templates.js"></script>
+  <script src="/js/document-settings.js"></script>
   <script src="/js/api.js?v=20261105r15"></script><script src="/js/cover-letters.js?v=20261105r15"></script>
   <script src="/js/ui.js?v=20261105r15" defer></script>
   <script src="/js/mobile-viewport.js?v=20261105r15" defer></script>

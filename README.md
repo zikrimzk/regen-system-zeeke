@@ -25,7 +25,11 @@ ReGen runs on PHP 8.3+ and MySQL/MariaDB. The frontend is plain HTML, CSS and br
 3. Configure the single root `.env`. The current local development settings have been retained. `.env.example` is a blank production template, not a second configuration source.
 4. Run `php -S localhost:8080 -t public public/router.php` and open `http://localhost:8080`.
 
+Regular candidate sessions have a two-hour idle timeout by default. Set `CANDIDATE_SESSION_IDLE_TTL` in seconds to change it. The session also follows the absolute limit. Remember me retains its opt-in expiry, and administrators use their separate idle policy.
+
 `Config` reads only `.env`; it does not load PHP configuration files, production override files or inherited shell configuration. Values can be quoted. Double quotes and backslashes inside double-quoted values use `\"` and `\\`. Secrets stay out of Git and browser assets.
+
+Browser captures, traces and fixture databases are generated locally. Historical reviews may refer to captures from older designs. Local archives of those captures can be kept under the ignored `output/visual-evidence/` directory, using the original directory structure.
 
 ## Deployment
 

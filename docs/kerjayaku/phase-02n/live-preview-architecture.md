@@ -1,0 +1,9 @@
+# Live preview architecture
+
+Editor inputs mark a draft pending. Resume Studio coalesces draft reads on an animation frame. Letter Studio coalesces updates with the same frame mechanism. `StudioPaper` reuses keyed nodes, updates text with `textContent` and applies allowlisted styling. Hidden panes skip layout work. The working proof is kept in memory and uses the existing preview access state from the server as its display gate.
+
+Resume inputs use the existing 900ms save cadence. Letter edits to a persisted record use a 780ms quiet interval, validity check and single in-flight save. New letters still require an explicit save because creation may use a benefit. Revisions prevent an older acknowledgement from labelling a newer draft saved. Realtime letter reads recheck document ID and revision after the request resolves.
+
+The desktop Resume Studio PDF command saves applicable pending edits first and then requests the owned PDF. Edits during a render invalidate that pane and return it to the working proof. Explicit draft PDF mode reuses `Api.documentDraft`, cancels the old request as soon as the draft changes and waits 1.1s before a replacement render. Cover Letter Studio uses its existing authoritative saved-document PDF after a successful save. A request to view a preview never calls either export route automatically.
+
+The inexpensive proof covers content, supported font choices, text sizes, margins, spacing, accent and resume section order. PDF.js displays the authoritative server layout. Exact fonts, pagination, photo framing, template-specific hierarchy and complex letter formatting may differ in the working proof. The authoritative PDF uses `ResumeTemplate` or `CoverLetterTemplate` and the existing render engine. Existing paid export and template eligibility still apply at the server. The old per-use export GET contract remains in place.

@@ -20,15 +20,35 @@ $check($fonts->length===1&&$fonts->item(0)->getAttribute('href')==='/fonts/Inter
 $check(str_contains(file_get_contents($root.'/public/css/main.css'),'--font: "Inter",system-ui')&&!str_contains(file_get_contents($root.'/public/css/landing.css'),'ReGen Interface'),'Use one shared UI type family across the public and signed-in experiences.');
 $check($xpath->query('//*[@id="comfort-title"]')->length===0,'The appearance-only feature section must be removed.');
 $check($xpath->query('//*[@id="the-difference"]')->length===0,'The removed application steps section must not return.');
-$check($xpath->query('//*[@id="hero-template-controls"]')->length === 1, 'The first screen exposes the template comparison.');
-foreach ([640 => 50000, 1120 => 150000] as $width => $budget) {
-    $skyline = $root . '/public/img/kl-skyline-' . $width . '.webp';
-    $size = getimagesize($skyline);
-    $check($size !== false && $size[0] === $width && $size['mime'] === 'image/webp' && filesize($skyline) < $budget,
-        'The skyline rendition must fit its responsive size budget.');
+$check($xpath->query('//*[@id="goals"]//li')->length === 4, 'Four compact career steps connect the product story.');
+$check($xpath->query('//*[@id="studio"]//a[@href="/resume-templates"]')->length === 1, 'Resume Studio points to the public templates gallery.');
+$check($xpath->query('//*[@id="letters"]//a[@href="/cover-letters"]')->length === 1, 'The letters CTA opens the actual signed-in workspace.');
+$check($xpath->query('//*[@id="premium"]//a[@href="/pricing"]')->length === 1, 'The packages invitation opens the real catalogue.');
+$check($xpath->query('//*[contains(@class,"tool-grid")]/article')->length === 6, 'The mobile-first grid presents six primary career tools.' );
+$check($xpath->query('//*[@id="faq-title"]//details')->length === 8, 'The public FAQ answers eight questions.');
+$check(!str_contains(file_get_contents($root.'/php/views/landing.html'), 'kerjayaku-world.svg'), 'Legacy landmark artwork must stay off the public critical path.');
+foreach (ReGen\PublicProduct::MEDIA as [$name, $width, $height]) {
+    foreach (['en','ms'] as $locale) {
+        $file = "$root/public/img/marketing/studios/$name-$locale.webp";
+        $size = getimagesize($file);
+        $check($size && $size[0] === $width && $size[1] === $height && $size['mime'] === 'image/webp' && filesize($file) < 120000,
+            'Invalid marketing screenshot: '.basename($file));
+    }
 }
-$check($xpath->query('//iframe[@src]')->length === 0 && $xpath->query('//iframe[@loading="lazy"]')->length === 3,
-    'Sample documents load when revealed, keeping iframe requests off the landing critical path.');
+foreach (['resume','letter'] as $studio) {
+    foreach (['en','ms'] as $locale) {
+        $file = "$root/public/img/marketing/studios/$studio-mobile-2x-$locale.webp";
+        $size = getimagesize($file);
+        $check($size && $size[0] === 780 && $size[1] === 1688 && $size['mime'] === 'image/webp' && filesize($file) < 120000,
+            'The 2x phone capture must preserve the mobile viewport.');
+    }
+}
+$future = gmdate('Y-m-d H:i:s', time() + 3600);
+$past = gmdate('Y-m-d H:i:s', time() - 3600);
+$sampleOffer = ['name'=>'Fixture <offer>', 'discount_percent'=>15, 'promotion_ends_at'=>$future];
+$check(str_contains(ReGen\PublicProduct::promotion([$sampleOffer]), 'Fixture &lt;offer&gt;'), 'Active public offers use escaped catalogue copy.');
+$check(!str_contains(ReGen\PublicProduct::promotion([['promotion_ends_at'=>$past] + $sampleOffer]), 'data-offer-until'), 'Expired offers fall back to the evergreen product message.');
+$check($xpath->query('//iframe')->length === 0, 'The landing must keep sample documents off its critical path.');
 foreach ($xpath->query('//button[@aria-label]') as $button) {
     foreach ((new DOMXPath($dom))->query('.//*[@aria-hidden="true"]', $button) as $decorative) $decorative->parentNode->removeChild($decorative);
     $text = trim((string) preg_replace('/\s+/', ' ', $button->textContent));

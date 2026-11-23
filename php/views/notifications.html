@@ -2,5 +2,16 @@
 <html lang="{{LANGUAGE}}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>{{i18n.nav.notifications}} | {{BRAND_NAME}}</title><link rel="icon" href="/img/app-icon-192.png"><script src="/js/theme.js"></script><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/product.css"><link rel="stylesheet" href="/css/appearance.css"><link rel="stylesheet" href="/css/privacy.css"><script src="/js/privacy.js" defer></script></head>
 <body class="user-workspace service-page" data-service-page="notifications"><a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
 {{WORKSPACE_HEADER}}
-<main class="service-main" id="main-content" tabindex="-1"><header class="service-page-head"><div><h1>Notifications</h1><p>Account updates, support replies and announcements.</p></div><div class="service-actions"><a class="btn btn-secondary" href="/profile#notification-settings">Preferences</a><button type="button" class="btn btn-secondary" id="read-all-notifications">Mark all as read</button></div></header><div id="service-feedback" role="status" aria-live="polite"></div><div id="service-content" aria-live="polite"><section class="service-panel"><p>Loading your notifications…</p></section></div></main>
+<main class="service-main" id="main-content" tabindex="-1">
+  <header class="service-page-head">
+    <div><h1>{{i18n.nav.notifications}}</h1><p>{{i18n.notifications.description}}</p></div>
+    <div class="service-actions notification-inbox-actions">
+      <a class="btn btn-secondary" href="/profile#notification-settings">{{icon.settings}}{{i18n.notifications.preferences}}</a>
+      <button type="button" class="btn btn-secondary" id="read-all-notifications" disabled>{{icon.check}}{{i18n.notifications.markAll}}</button>
+      <button type="button" class="btn btn-secondary" id="clear-all-notifications" disabled>{{icon.trash}}{{i18n.notifications.clear}}</button>
+    </div>
+  </header>
+  <div id="service-feedback" role="status" aria-live="polite"></div>
+  <div id="service-content" aria-live="polite"><section class="service-panel"><p>{{i18n.notifications.loading}}</p></section></div>
+</main>
 <script src="/js/api.js"></script><script src="/js/pwa.js" defer></script><script src="/js/mobile-viewport.js" defer></script></body></html>

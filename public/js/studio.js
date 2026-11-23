@@ -1,82 +1,78 @@
-/* Presentation of the existing section editor and saved document preview. */
+/* Resume commands and the live PDF canvas. */
 const Studio = (() => {
-  const t = (key, fallback) => ReGenText.get('studio.' + key, fallback);
+  const t = key => ReGenText.get('studio.' + key);
 
   function init(title, templateId) {
-    document.getElementById('studio-document-title').textContent = title || t('title', 'Resume Studio');
+    const titleElement = document.getElementById('studio-document-title');
+    titleElement.textContent = title || ReGenText.get('dashboard.untitled');
+    bindRename(titleElement);
     const pane = document.getElementById('studio-preview');
-    const status = document.getElementById('studio-preview-status');
     const pages = document.getElementById('studio-pdf-pages');
+    const status = document.getElementById('studio-preview-status');
     const sample = document.getElementById('studio-preview-sample');
-    const refresh = document.getElementById('studio-preview-refresh');
+    const proof = LiveDocumentPreview.create(pages, Api.documentDraft);
+    const showPdf = document.getElementById('studio-preview-refresh');
     const save = document.getElementById('studio-save');
-    const bar = document.querySelector('.studio-command-bar');
     const layout = document.querySelector('.builder-layout');
     const toggle = document.createElement('button');
     const wide = matchMedia('(min-width: 1200px)');
-    let viewed = false;
-    let outdated = false;
-    let pending = false;
-    const showSample = id => {
-      templateId = id;
-      if (!wide.matches || !/^[a-z]+$/.test(id)) return;
-      const image = sample.querySelector('img');
-      image.src = '/img/templates/' + id + '-320.webp';
-      image.hidden = false;
-    };
-
-    function updateStatus() {
-      const locked = window.ReGenTokens?.getPrice('document_preview')?.hiddenByPackage;
-      const message = locked ? t('previewRestricted', 'This preview follows your account’s document access.')
-        : !viewed ? t('previewExample', 'Template example. Load your saved document when you need it.') : Stepper.hasUnsavedChanges()
-        ? t('draftAhead', 'Preview shows the last saved version.')
-        : outdated ? t('previewStale', 'Saved version changed. Refresh to see it here.')
-          : t('previewHelp', 'See the last saved version here. Open Preview to check your current draft.');
-      if (status.textContent !== message) status.textContent = message;
+    let pending = false, signedIn = true;
+    const structure = document.getElementById('studio-structure-toggle');
+    let compactSections = false;
+    try { compactSections = localStorage.getItem('regen-resume-sections-collapsed') === '1'; } catch {}
+    function updateStructure() {
+      layout.classList.toggle('structure-compact', compactSections);
+      structure.setAttribute('aria-expanded', String(!compactSections));
     }
+    structure.addEventListener('click', () => {
+      compactSections = !compactSections;
+      updateStructure();
+      try { localStorage.setItem('regen-resume-sections-collapsed', compactSections ? '1' : '0'); } catch {}
+    });
+    updateStructure();
 
-    async function loadSavedPreview() {
-      if (!wide.matches || pane.hidden || refresh.disabled) return;
-      const price = window.ReGenTokens?.getPrice('document_preview');
-      if (price?.hiddenByPackage) return;
-      viewed = true;
-      outdated = false;
-      refresh.disabled = true;
-      try {
-        sample.hidden = true;
-        pages.hidden = false;
-        await PdfPages.render(pages, Api.documentUrl());
-      } finally {
-        refresh.disabled = false;
-        updateStatus();
+    function updatePreview(immediate = false, draft = Stepper.getDraftResume()) {
+      if (!wide.matches || pane.hidden || layout.querySelector('.builder-left.is-final')) return;
+      const available = signedIn && LiveDocumentPreview.allowed();
+      status.hidden = available;
+      status.textContent = available ? '' : t('previewRestricted');
+      sample.hidden = available || !signedIn;
+      pages.hidden = !available;
+      if (!available) {
+        proof.clear();
+        if (!sample.hidden && /^[a-z]+$/.test(templateId)) {
+          const image = sample.querySelector('img');
+          image.src = '/img/templates/' + templateId + '-320.webp';
+          image.hidden = false;
+        }
+      } else {
+        proof.update(draft, {immediate});
       }
     }
 
-    function clearPreview() {
-      viewed = false;
-      outdated = false;
-      PdfPages.clear(pages);
-      pages.hidden = true;
-      sample.hidden = false;
-      updateStatus();
-    }
-
     toggle.type = 'button';
-    toggle.className = 'btn btn-secondary studio-panel-toggle';
+    toggle.className = 'studio-icon studio-panel-toggle';
     toggle.setAttribute('aria-controls', 'studio-preview');
-    toggle.setAttribute('aria-expanded', 'true');
-    toggle.textContent = t('hidePreview', 'Hide preview panel');
-    bar.querySelector('.studio-commands').prepend(toggle);
-    toggle.onclick = () => {
-      const hidden = !pane.hidden;
+    toggle.innerHTML = ReGenIcons.icon('previewPane');
+    document.querySelector('.studio-commands').prepend(toggle);
+    function setPanel(hidden) {
       pane.hidden = hidden;
       layout.classList.toggle('studio-panel-hidden', hidden);
       toggle.setAttribute('aria-expanded', String(!hidden));
-      toggle.textContent = hidden ? t('showPreview', 'Show preview panel') : t('hidePreview', 'Hide preview panel');
-      if (hidden) clearPreview();
+      toggle.title = t(hidden ? 'showPreview' : 'hidePreview');
+      toggle.setAttribute('aria-label', toggle.title);
+      if (hidden) proof.clear();
+      else updatePreview(true);
+    }
+    let folded = false;
+    try { folded = localStorage.getItem('regen-resume-preview-collapsed') === '1'; } catch {}
+    setPanel(folded);
+    toggle.onclick = () => {
+      setPanel(!pane.hidden);
+      try { localStorage.setItem('regen-resume-preview-collapsed', pane.hidden ? '1' : '0'); } catch {}
     };
-    wide.addEventListener('change', event => { if (event.matches) showSample(templateId); else clearPreview(); });
-    refresh.addEventListener('click', loadSavedPreview);
+    wide.addEventListener('change', event => { if (event.matches) updatePreview(true); else proof.clear(); });
+    showPdf.addEventListener('click', () => Preview.open());
     document.getElementById('studio-review').addEventListener('click', async () => {
       if (pending) return;
       pending = true;
@@ -85,20 +81,76 @@ const Studio = (() => {
     save.addEventListener('click', () => Stepper.saveCurrentStep());
     document.addEventListener('regen:studio-save-state', event => {
       save.disabled = ['saving', 'saved'].includes(event.detail.state);
-      updateStatus();
     });
-    window.addEventListener('regen:prices-updated', updateStatus);
-    window.addEventListener('regen:session-expired', clearPreview);
-    document.addEventListener('regen:studio-saved-content', () => { outdated = viewed; updateStatus(); });
+    for (const event of ['regen:prices-updated', 'regen:preview-availability', 'online']) {
+      window.addEventListener(event, () => updatePreview(true));
+    }
+    window.addEventListener('regen:session-expired', () => { signedIn = false; proof.clear(); updatePreview(); });
+    window.addEventListener('regen:session-restored', () => { signedIn = true; updatePreview(true); });
+    document.addEventListener('regen:studio-draft', event => updatePreview(false, event.detail));
     document.addEventListener('regen:template-changed', event => {
-      showSample(event.detail.id);
-      outdated = viewed;
-      updateStatus();
+      templateId = event.detail.id;
+      updatePreview(true);
     });
-    document.addEventListener('regen:writing-settings-changed', () => { outdated = viewed; updateStatus(); });
-    document.addEventListener('regen:studio-review', clearPreview);
-    showSample(templateId);
-    updateStatus();
+    document.addEventListener('regen:writing-settings-changed', () => updatePreview(true));
+    document.addEventListener('regen:studio-review', () => proof.clear());
+    updatePreview(true);
+  }
+
+  function bindRename(title) {
+    const button = document.getElementById('resume-rename');
+    const dialog = document.getElementById('resume-rename-dialog');
+    const form = dialog.querySelector('form');
+    const input = form.elements.title;
+    const submit = form.querySelector('[type="submit"]');
+    const message = form.querySelector('[role="alert"]');
+    const allowance = form.querySelector('.studio-rename-allowance');
+    function showAllowance() {
+      const price = window.ReGenTokens?.getPrice('resume_rename');
+      button.toggleAttribute('data-package-hidden', price?.hiddenByPackage === true);
+      let description = '';
+      if (price && !price.packageUnlocked) {
+        if (price.packageUses > 0) description = t('renamePackageUses').replace('{count}', price.packageUses);
+        else if (price.mode === 'package_only') description = t(price.packageIncluded ? 'renameLimit' : 'renameAccess');
+        else if (price.credits > 0) description = t('renamePrepaidUses').replace('{count}', price.credits);
+        else if (price.cost > 0 && !price.unlocked) description = t('renamePrice').replace('{count}', price.cost);
+      }
+      allowance.textContent = description;
+      allowance.hidden = !description;
+    }
+    window.addEventListener('regen:prices-updated', showAllowance);
+    showAllowance();
+    button.addEventListener('click', () => {
+      input.value = title.textContent;
+      message.textContent = '';
+      showAllowance();
+      dialog.showModal();
+      input.select();
+    });
+    dialog.querySelector('[data-close]').onclick = () => dialog.close();
+    dialog.addEventListener('cancel', event => { if (submit.disabled) event.preventDefault(); });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const next = input.value.trim();
+      if (!next) { message.textContent = t('titleRequired'); return; }
+      if (next === title.textContent) { dialog.close(); return; }
+      submit.disabled = true;
+      dialog.querySelector('[data-close]').disabled = true;
+      try {
+        const result = await Api.renameResume(Api.getResumeId(), next);
+        if (!result.success) {
+          if (!result.handled) message.textContent = result.message || t('renameFailed');
+          return;
+        }
+        title.textContent = result.title || next;
+        dialog.close();
+        window.ReGenTokens?.refresh();
+      } finally {
+        submit.disabled = false;
+        dialog.querySelector('[data-close]').disabled = false;
+      }
+    });
+    dialog.addEventListener('close', () => button.focus({preventScroll:true}));
   }
 
   return {init};

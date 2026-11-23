@@ -8,9 +8,9 @@
   function reveal(){
     const field=document.activeElement;
     if(!mobile.matches||!editable(field)||(viewport&&Math.abs(viewport.scale-1)>.01))return;
-    const area=field.closest('dialog[open]')||field.closest('#step-content');
+    const area=field.closest('dialog[open]')||field.closest('#step-content')||field.closest('.letter-editor')&&document.scrollingElement;
     if(!area)return;
-    const bounds=area.getBoundingClientRect(),rect=field.getBoundingClientRect();
+    const bounds=area===document.scrollingElement?{top:0,bottom:window.innerHeight}:area.getBoundingClientRect(),rect=field.getBoundingClientRect();
     const top=Math.max(bounds.top,viewport?.offsetTop||0)+12;
     const bottom=Math.min(bounds.bottom,(viewport?.offsetTop||0)+(viewport?.height||window.innerHeight))-12;
     if(bottom<=top)return;

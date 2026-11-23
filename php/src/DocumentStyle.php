@@ -66,6 +66,17 @@ CSS;
         return DocumentFonts::css($fontKey) . $base . $design;
     }
 
+    public static function accent(string $choice, string $template): string
+    {
+        return match ($choice) {
+            'accent' => $template,
+            'crimson' => '#802822',
+            'navy' => '#233b61',
+            'jade' => '#254a3c',
+            default => '#333333',
+        };
+    }
+
     public static function appearance(mixed $id, mixed $preferences, bool $resume = false): string
     {
         $s = Sanitizer::appearance($preferences);
@@ -88,7 +99,7 @@ CSS;
         $meta = max(10, $size - .5);
         $role = max($size, match ($template['id']) { 'keystone'=>12, 'precision'=>11.5, default=>11 });
         $margin = match ($s['margins']) { 'compact'=>12.7, 'generous'=>22, default=>$resume ? 16 : 18 };
-        $color = $s['color'] === 'accent' ? $template['accent'] : '#333333';
+        $color = self::accent($s['color'], $template['accent']);
         $css = "@page{margin:{$margin}mm}body{font-family:{$font};font-size:{$size}pt;line-height:{$line}}"
             .".cv-summary,.bullets,.cv-skill-row,.cv-extra-item{font-size:{$size}pt;line-height:{$line}}"
             .".cv-entry-left{font-size:{$role}pt}"
@@ -106,6 +117,11 @@ CSS;
         if ($s['headingStyle'] !== 'template') $css .= '.sec-hdr{text-transform:'.($s['headingStyle']==='title'?'none':'uppercase').'}';
         if ($s['dates'] === 'inline') $css .= '.cv-entry-left{width:100%;padding-right:0}.cv-entry-date{display:block;width:100%;text-align:left;margin-top:2pt}';
         if ($s['photoShape'] === 'square') $css .= '.cv-masthead{min-height:60pt}.cv-photo{height:60pt}';
+        if ($s['color'] !== 'black') $css .= ".cv-name{color:{$color}}";
+        if ($s['headerAlign'] !== 'template') $css .= '.cv-header{text-align:'.$s['headerAlign'].'}';
+        if ($s['headingRule'] !== 'template') {
+            $css .= '.cv-header{border:0'.($s['headingRule'] === 'line' ? ';border-bottom:.65pt solid '.$color : '').'}';
+        }
         return $css . "@media screen{body{padding:{$margin}mm}}";
     }
 }

@@ -102,6 +102,7 @@ final class Config
             'db.password' => (string) $read('DB_PASSWORD', ''),
             'session.name' => (string) $read('SESSION_NAME', 'regen_sid'),
             'session.ttl' => max(900, (int) $read('SESSION_TTL', 86400)),
+            'session.candidate_idle_ttl' => $validatedLimit($read('CANDIDATE_SESSION_IDLE_TTL', 7200), 7200, 86400),
             'session.idle_ttl' => max(900, (int) $read('SESSION_IDLE_TTL', 7200)),
             'session.driver' => strtolower((string) $read(
                 'SESSION_DRIVER',

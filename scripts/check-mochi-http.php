@@ -39,6 +39,8 @@ try {
     $csrf = $locked['csrfToken'] ?? '';
     $check($locked['access'] === false && $locked['liveAvailable'] === false && $csrf !== '', 'Locked accounts see a teaser and receive the normal CSRF token.');
     $check($call('/api/mochi/comment','POST',$payload,$csrf)[0] === 403, 'A direct model request cannot bypass package access.');
+    $casual=['intent'=>'conversation','screen'=>'cover-letters','message'=>'How can I calm my interview nerves?'];
+    $check($call('/api/mochi/chat','POST',$casual,$csrf)[0]===403,'Casual live replies use the existing chat entitlement.');
     $check($call('/api/store/access','POST',['feature'=>'mochi_coach','version'=>0,'reference'=>'mochi-not-a-token-purchase'],$csrf)[0] === 422, 'Token purchase cannot bypass Mochi’s package requirement.');
 
     $db = new PDO('mysql:host='.Config::get('db.host').';port='.Config::get('db.port').';dbname='.$f['database'].';charset=utf8mb4',
@@ -85,6 +87,12 @@ try {
     $check($call('/api/mochi/preferences','PUT',['action'=>'live','enabled'=>true],$csrf)[0]===200,'The user can opt in to live field feedback.');
     $check(($call('/api/mochi/chat','POST',['message'=>'I got rejected.'],$csrf)[1]['reason']??null)==='local'
         && (new MochiPolicy($db))->usedToday()===0,'Local chat cannot spend any of the AI budget even through the endpoint.');
+    $blocked = array_replace($casual,['message'=>'Can you write a Python script for me?']);
+    $check(($call('/api/mochi/chat','POST',$blocked,$csrf)[1]['reason']??null)==='local'
+        && (new MochiPolicy($db))->usedToday()===0,'Programming requests are handled without a model call or API budget.');
+    $casualReply=$call('/api/mochi/chat','POST',$casual+['useSavedResume'=>true,'sharedField'=>['field'=>'letter','text'=>'Synthetic private letter.']],$csrf)[1];
+    $check(($casualReply['reply']??null)==='Practise one example aloud, then take a break.'
+        && !isset($casualReply['suggestion']),'The eligible user gets a page-aware reply without sharing a document or receiving an editable draft.');
     [$chatStatus,$chatReply]=$call('/api/mochi/chat','POST',['message'=>'Polish my resume summary after I got rejected. Use my saved resume.',
         'screen'=>'builder','section'=>'projects','useSavedResume'=>true],$csrf);
     $check($chatStatus===200 && ($chatReply['mood']??null)==='sad','Chat sends saved context and the current screen to OpenAI.');
@@ -173,9 +181,12 @@ try {
         }
     };
     $ageSession((int)$f['userId'],301);
-    $ageSession($other,301);
+    $check($call('/api/auth/me')[0]===200, 'An ordinary session survives five idle minutes.');
+    $idle=(int)Config::get('session.candidate_idle_ttl')+1;
+    $ageSession((int)$f['userId'],$idle);
+    $ageSession($other,$idle);
     $check($call('/api/auth/me')[0]===401 && $call('/api/auth/me',other:true)[0]===200,
-        'Five idle minutes expire an ordinary session while Remember Me survives.');
+        'The configured idle limit expires an ordinary session while Remember Me survives.');
     echo "Mochi authenticated HTTP, memory isolation, sleep, package access and OpenAI transport passed ($checks assertions; fictional accounts and model).\n";
 } finally {
     $fixture->close();

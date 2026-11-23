@@ -2,6 +2,7 @@
 window.ReGenTokens=(()=>{
   let queue=Promise.resolve(),prices={},aiCosts={},request=null,refreshTimer,observer,lastPriceSignature='',pollTimer,balanceRevision=0,accessDialog=null;
   const originalLabels=new WeakMap();
+  const reviewedControls=new WeakSet(), pendingReviews=new WeakSet();
   const safe=value=>ReGenCommerce.safe(value);
   const priceLocked=price=>price?.mode==='package_only'&&!price.packageUnlocked&&!price.packageUses;
   const storeUrl=key=>key?'/store?feature='+encodeURIComponent(key)+'#package-offers':'/store';
@@ -23,7 +24,7 @@ window.ReGenTokens=(()=>{
     if (price.packageUses>0) return {kind:'uses',text:price.packageUses+' left',hint:price.packageUses+' package '+(price.packageUses===1?'use':'uses')+' left.'};
     if (price.credits>0) return {kind:'uses',text:price.credits+' left',hint:price.credits+' prepaid '+(price.credits===1?'use':'uses')+' left.'};
     if (price.mode==='free'||price.unlocked) return {kind:'',text:'',hint:''};
-    const label=price.cost+' '+(price.cost===1?'token':'tokens');
+    const label=price.cost+' Coin';
     return {kind:'tokens',text:String(price.cost),hint:label+(price.mode==='unlock'?' to unlock.':' per use.')};
   }
   function bind(element,key,base){
@@ -48,7 +49,7 @@ window.ReGenTokens=(()=>{
     }
     if(label.textContent!==base)label.textContent=base;
     let badge=element.querySelector('.token-action-status');
-    if(!state.kind){badge?.remove();}
+    if(!state.kind||element.classList.contains('studio-icon')){badge?.remove();}
     else{
       if(!badge){
         badge=document.createElement('span');
@@ -56,11 +57,13 @@ window.ReGenTokens=(()=>{
         badge.setAttribute('aria-hidden','true');
         element.append(badge);
       }
-      const signature=state.kind+state.text;
+      const signature=state.kind + state.text;
       if(badge.dataset.state!==signature){
         badge.dataset.state=signature;
         badge.className='token-action-status is-'+state.kind;
-        badge.innerHTML=state.kind==='locked'?ReGenIcons.icon('lock'):state.kind==='tokens'?ReGenCommerce.coin('small')+safe(state.text):safe(state.text);
+        badge.innerHTML=state.kind==='locked'?ReGenIcons.icon('lock'):state.kind==='tokens'
+          ? ReGenCommerce.coin('small') + safe(state.text)
+          : safe(state.text);
       }
     }
     element.classList.toggle('is-package-locked',state.kind==='locked');
@@ -92,22 +95,30 @@ window.ReGenTokens=(()=>{
   ];
   const interfaceLabels = {
     'Preview':'common.preview', 'Download':'common.download', 'Page setup':'studio.pageSettings', 'Appearance':'common.appearance',
-    'Continue editing':'dashboard.continue', 'Create resume':'public.build', 'Save letter':'letter.save',
+    'Continue editing':'dashboard.continue', 'Create resume':'public.build', 'Save letter':'letter.save', 'Generate draft':'letter.aiGenerate',
   };
   function sync(){
-    for(const [selector,key] of [['.assist-launcher','ai_assist'],['.ai-refine-row,.ai-section-result','ai_refine'],['.ats-review-request','ai_review'],['#generate-letter,.letter-ai','ai_cover_letter']]){
+    for(const [selector,key] of [['.assist-launcher','ai_assist'],['.ai-refine-row,.ai-section-result','ai_refine'],['.ats-review-request','ai_review'],['#generate-letter','ai_cover_letter']]){
       document.querySelectorAll(selector).forEach(element=>element.toggleAttribute('data-package-hidden',prices[key]?.hiddenByPackage===true));
     }
     for(const [selector,key,base] of controls)document.querySelectorAll(selector).forEach(element=>{
       // Save is priced only when it creates a letter; later edits are free.
       if(element.id==='save-letter'&&Object.hasOwn(element.dataset,'priceBase')){paint(element);return;}
-      if(key)bind(element,key, window.ReGenText?.get(interfaceLabels[base], base) ?? base);
+      if(key)bind(element,key, element.dataset.priceBase || (window.ReGenText?.get(interfaceLabels[base], base) ?? base));
     });
     document.querySelectorAll('[data-price-feature]').forEach(paint);
     document.querySelectorAll('a[href="/cover-letters"]').forEach(link=>{
       const locked=priceLocked(prices.cover_letters);
       const existing=link.querySelector('.nav-access-icon');
-      if(!locked){existing?.remove();link.removeAttribute('title');return;}
+      if(!locked){
+        if(existing){
+          existing.remove();
+          const label=link.getAttribute('aria-label');
+          if(label)link.title=label;
+          else link.removeAttribute('title');
+        }
+        return;
+      }
       link.title='See packages with cover letters';
       if(existing)return;
       const icon=document.createElement('span');
@@ -129,7 +140,7 @@ window.ReGenTokens=(()=>{
   }
   function updateBalance(value){
     balanceRevision++;
-    document.querySelectorAll('[data-token-total]').forEach(element=>{element.textContent=ReGenCommerce.number(value.total);const link=element.closest('a');if(link){link.title=`${value.base} base + ${value.bonus} bonus & saved tokens`;link.setAttribute('aria-label',`${ReGenCommerce.number(value.total)} tokens. View balance`);}});
+    document.querySelectorAll('[data-token-total]').forEach(element=>{element.textContent=ReGenCommerce.number(value.total);const link=element.closest('a');if(link){link.title=`${value.base} base + ${value.bonus} bonus & saved Coin`;link.setAttribute('aria-label',`${ReGenCommerce.number(value.total)} ${window.ReGenText?.get('commerce.available', 'Coin available') || 'Coin available'}`);}});
   }
   function setAiCosts(costs){Object.assign(aiCosts,costs);sync();}
   async function review(input){
@@ -141,7 +152,7 @@ window.ReGenTokens=(()=>{
     return new Promise(resolve=>{
       const dialog=document.createElement('dialog');dialog.className='token-dialog';dialog.setAttribute('aria-labelledby','token-dialog-title');
       const enough=result.wallet.available>=price.cost,reference=crypto.randomUUID();let sending=false;
-      dialog.innerHTML=`<div class="token-dialog-content"><button class="token-close" type="button" aria-label="Close">×</button><p class="token-eyebrow">Confirm token use</p><h2 id="token-dialog-title">${safe(price.name)}</h2><p>${price.mode==='unlock'?'Unlock access for your account.':'One use. An unsuccessful action keeps your prepaid credit available.'}</p><div class="token-review-total"><span>${price.mode==='unlock'?'One-time unlock':'One use'}</span><strong>${price.cost.toLocaleString()} <small>${price.cost===1?'Token':'Tokens'}</small></strong></div><p class="token-review-balance">Saved tokens available <strong>${Number(result.wallet.available).toLocaleString()}</strong></p><p class="token-dialog-error" role="status">${enough?'':'You need '+(price.cost-result.wallet.available).toLocaleString()+' more saved tokens.'}</p><div class="token-dialog-actions"><button class="btn btn-primary" data-spend ${enough?'':'disabled'}>Use ${price.cost.toLocaleString()} ${price.cost===1?'Token':'Tokens'}</button><button class="btn btn-secondary" data-cancel>Cancel</button></div><a class="text-link" href="/store">View packages &amp; balance ↗</a></div>`;
+      dialog.innerHTML=`<div class="token-dialog-content"><button class="token-close" type="button" aria-label="Close">×</button><p class="token-eyebrow">Confirm Coin use</p><h2 id="token-dialog-title">${safe(price.name)}</h2><p>${price.mode==='unlock'?'Unlock access for your account.':'One use. An unsuccessful action keeps your prepaid credit available.'}</p><div class="token-review-total"><span>${price.mode==='unlock'?'One-time unlock':'One use'}</span><strong>${price.cost.toLocaleString()} <small>Coin</small></strong></div><p class="token-review-balance">Saved Coin available <strong>${Number(result.wallet.available).toLocaleString()}</strong></p><p class="token-dialog-error" role="status">${enough?'':'You need '+(price.cost-result.wallet.available).toLocaleString()+' more saved Coin.'}</p><div class="token-dialog-actions"><button class="btn btn-primary" data-spend ${enough?'':'disabled'}>Use ${price.cost.toLocaleString()} Coin</button><button class="btn btn-secondary" data-cancel>Cancel</button></div><a class="text-link" href="/store">View packages &amp; balance ↗</a></div>`;
       const returnFocus=document.activeElement;
       const finish=accepted=>{dialog.close();dialog.remove();returnFocus?.isConnected&&returnFocus.focus();resolve(accepted);};
       dialog.querySelector('[data-cancel]').onclick=()=>finish(false);dialog.querySelector('.token-close').onclick=()=>{if(!sending)finish(false);};
@@ -151,7 +162,7 @@ window.ReGenTokens=(()=>{
         try{
           const me=await Api.getMe();if(!me.success)throw new Error('Sign in again to continue.');
           const purchase=await Api.purchaseFeatureAccess({feature:price.key,version:price.version,reference});
-          if(!purchase.success)throw new Error(purchase.message||'Token use could not complete.');
+          if(!purchase.success)throw new Error(purchase.message||'Coin use could not complete.');
           window.dispatchEvent(new CustomEvent('regen:wallet-changed'));finish(true);
         }catch(error){dialog.querySelector('.token-dialog-error').textContent=error.message;sending=false;dialog.querySelectorAll('button').forEach(button=>button.disabled=false);}
       };
@@ -188,12 +199,30 @@ window.ReGenTokens=(()=>{
       const data=await response.clone().json().catch(()=>({}));if(data.code!=='TOKEN_ACCESS_REQUIRED'||!await authorize(data))return response;
     }
   }
-  document.addEventListener('click',event=>{
+  document.addEventListener('click',async event=>{
     const control=event.target.closest('[data-price-feature]');
-    if(!control||control.disabled||!priceLocked(prices[control.dataset.priceFeature]))return;
+    if(!control||control.disabled)return;
+    const price=prices[control.dataset.priceFeature];
+    const locked=priceLocked(price);
+    const review=control.hasAttribute('data-review-uses')&&actionState(price).kind==='uses'
+      && (!control.form||control.form.checkValidity());
+    if(!locked&&(!review||reviewedControls.delete(control)))return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    showAccess({price:prices[control.dataset.priceFeature]});
+    if(locked){showAccess({price});return;}
+    if(pendingReviews.has(control))return;
+    pendingReviews.add(control);
+    try {
+      const key=price.packageUses>0?'studio.packageUseReview':'studio.prepaidUseReview';
+      const description=ReGenText.get(key).replace('{count}',price.packageUses||price.credits);
+      if(await ReGenDialog.confirm({title:control.dataset.priceBase,message:description,confirmLabel:ReGenText.get('studio.confirmUse')})&&control.isConnected&&!control.disabled){
+        reviewedControls.add(control);
+        control.click();
+        reviewedControls.delete(control);
+      }
+    } finally {
+      pendingReviews.delete(control);
+    }
   },true);
   document.addEventListener('DOMContentLoaded',()=>{
     const key=document.body.dataset.requiredFeature;

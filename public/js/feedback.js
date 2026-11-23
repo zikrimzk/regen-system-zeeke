@@ -24,7 +24,7 @@ window.ReGenFeedback = (() => {
     dialog.className = 'feedback-dialog';
     dialog.setAttribute('aria-labelledby','feedback-title');
     const reward = status.rewardEligible && status.policy.reward > 0
-      ? `<p class="feedback-reward">This feedback earns <strong>${Number(status.policy.reward)} bonus tokens</strong>. They stay available until used. Every rating receives the same reward. ${Number(status.rewardsRemaining)} ${Number(status.rewardsRemaining)===1?'rewarded response':'rewarded responses'} remaining.</p>` : '';
+      ? `<p class="feedback-reward">This feedback earns <strong>${Number(status.policy.reward)} bonus Coin</strong>. They stay available until used. Every rating receives the same reward. ${Number(status.rewardsRemaining)} ${Number(status.rewardsRemaining)===1?'rewarded response':'rewarded responses'} remaining.</p>` : '';
     dialog.innerHTML = `<form method="post"><header><div><p class="service-eyebrow">Help shape ReGen</p><h2 id="feedback-title">How can we make this better?</h2></div><button type="button" class="feedback-close" aria-label="Close feedback">×</button></header><div class="feedback-body"><p class="feedback-intro">Tell us what really happened. Critical feedback is just as useful as praise.</p>${reward}${ratingField('rating','Your overall experience')}
       <details class="feedback-extra"><summary>Rate the features and ease of use</summary>${ratingField('functionalityRating','How well did the features work?',true)}${ratingField('easeRating','How easy was ReGen to use?',true)}</details>
       <label class="feedback-field">What is your feedback about?<select name="area">${[['overall','The overall experience'],['resume','Resume editor'],['ai','AI assistance'],['templates','Resume designs'],['downloads','PDF downloads'],['cover_letters','Cover letters'],['account','Account and sign-in'],['support','Support']].map(([key,label])=>`<option value="${key}"${source==='resume_download'&&key==='downloads'?' selected':''}>${label}</option>`).join('')}</select></label>
@@ -53,7 +53,7 @@ window.ReGenFeedback = (() => {
       prompted = true;
       window.dispatchEvent(new CustomEvent('regen:bonus-updated',{detail:result.bonus}));
       window.ReGenAI?.loadStatus({force:true});
-      const bonusMessage = result.rewardGranted > 0 ? `${Number(result.rewardGranted)} bonus tokens have been added. Your bonus balance is ${Number(result.bonus.balance)}.` : 'Your feedback is with the team. It will help us decide what to improve next.';
+      const bonusMessage = result.rewardGranted > 0 ? `${Number(result.rewardGranted)} bonus Coin have been added. Your bonus balance is ${Number(result.bonus.balance)}.` : 'Your feedback is with the team. It will help us decide what to improve next.';
       dialog.classList.add('is-complete');
       form.innerHTML = `<div class="feedback-thanks"><span aria-hidden="true">✓</span><p class="service-eyebrow">Feedback received</p><h2 id="feedback-title">Thank you for being honest.</h2><p>${escape(bonusMessage)}</p><button class="btn btn-primary" type="button">Back to ReGen</button></div>`;
       form.querySelector('button').onclick = close;

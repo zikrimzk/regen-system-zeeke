@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en-MY" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Kerjaya. — Malaysian AI Career Platform · Phase 02D Prototype</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="prototype.css">
+  <script src="prototype.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content" data-i18n="skip">Skip to content</a>
+
+  <!-- Global Application Header -->
+  <header class="site-header">
+    <div class="site-container">
+      <a href="index.html" class="wordmark" aria-label="Kerjaya. home">
+        Kerjaya<span>.</span>
+      </a>
+
+      <nav class="header-nav" aria-label="Main Navigation">
+        <a href="#journeys" data-i18n="navJourneys">Career Stages</a>
+        <a href="#features" data-i18n="navFeatures">Features</a>
+        <a href="#walkthrough" data-i18n="walkthroughTitle">Workflow</a>
+        <a href="#templates" data-i18n="navTemplates">Templates</a>
+        <a href="#pricing" data-i18n="navPricing">Pricing</a>
+        <a href="#faq" data-i18n="navFaq">FAQ</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="lang-toggle" id="lang-toggle-btn" aria-label="Switch to Bahasa Melayu">BM</button>
+        <button type="button" class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle dark mode">☾ Dark</button>
+        <a href="#pricing" class="btn btn-secondary" data-i18n="signIn">Sign In</a>
+        <a href="#pricing" class="btn btn-primary" data-i18n="createAccount">Create Account</a>
+        <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Dropdown -->
+  <nav id="mobile-nav" class="mobile-nav-panel" hidden aria-label="Mobile Navigation">
+    <div class="site-container" style="padding-block: var(--s4); display: grid; gap: var(--s2); background: var(--color-panel); border-bottom: 1px solid var(--color-line);">
+      <a href="#journeys" data-i18n="navJourneys" class="btn btn-ghost" style="justify-content: flex-start;">Career Stages</a>
+      <a href="#features" data-i18n="navFeatures" class="btn btn-ghost" style="justify-content: flex-start;">Features</a>
+      <a href="#walkthrough" data-i18n="walkthroughTitle" class="btn btn-ghost" style="justify-content: flex-start;">Workflow</a>
+      <a href="#templates" data-i18n="navTemplates" class="btn btn-ghost" style="justify-content: flex-start;">Templates</a>
+      <a href="#pricing" data-i18n="navPricing" class="btn btn-ghost" style="justify-content: flex-start;">Pricing</a>
+      <a href="#faq" data-i18n="navFaq" class="btn btn-ghost" style="justify-content: flex-start;">FAQ</a>
+    </div>
+  </nav>
+
+  <main id="main-content" tabindex="-1">
+    <!-- Hero Section -->
+    <section class="hero-section" aria-labelledby="hero-title">
+      <div class="site-container hero-grid">
+        <div class="hero-content">
+          <div class="hero-badge" data-i18n="heroBadge">Malaysia’s Career Companion</div>
+          <h1 id="hero-title" data-i18n="heroTitle">Your next career move, <em>in one workspace.</em></h1>
+          <p data-i18n="heroDesc">
+            Craft an ATS-ready Malaysian resume, pair it with a role-tailored cover letter, and receive actionable writing suggestions. Built with care for every career stage.
+          </p>
+          <div class="hero-actions">
+            <a href="#walkthrough" class="btn btn-primary" data-i18n="heroStartBtn">Create Your Free Resume &rarr;</a>
+            <a href="#templates" class="text-link" data-i18n="heroDemoBtn">Explore Sample Workspace &darr;</a>
+          </div>
+        </div>
+
+        <!-- Interactive Hero Stage -->
+        <div class="hero-stage" aria-label="Interactive Malaysian Resume Sample">
+          <div class="hero-stage-head">
+            <strong>Kerjaya. Studio Preview</strong>
+            <span data-i18n="previewVerified">ATS-Friendly & Formatted for Malaysia</span>
+          </div>
+
+          <!-- Persona Selector Bar -->
+          <div class="persona-selector" role="group" aria-label="Choose candidate persona">
+            <button type="button" class="persona-btn" data-persona="operations" aria-pressed="true" data-i18n="personaOperations">Operations Specialist</button>
+            <button type="button" class="persona-btn" data-persona="graduate" aria-pressed="false" data-i18n="personaGrad">Fresh Graduate</button>
+            <button type="button" class="persona-btn" data-persona="tech" aria-pressed="false" data-i18n="personaTech">Software Developer</button>
+          </div>
+
+          <!-- Live Resume Paper Card -->
+          <div class="resume-preview-box">
+            <article class="paper-sheet" id="hero-paper">
+              <header>
+                <h2 id="preview-name">Aina Rahman</h2>
+                <div class="paper-role" id="preview-role">Operations Coordinator</div>
+                <div class="paper-contact" id="preview-contact">Petaling Jaya, Selangor · aina.rahman@example.my</div>
+              </header>
+
+              <section class="paper-section">
+                <h3 data-i18n="profile">Profile</h3>
+                <p id="preview-summary">
+                  Experienced operations coordinator with 3+ years managing retail logistics, supplier dispatch, and daily store stock audits in Klang Valley.
+                </p>
+              </section>
+
+              <section class="paper-section">
+                <h3 data-i18n="experience">Experience</h3>
+                <strong id="preview-exp-title">Operations Specialist · Jaya Retail Sdn Bhd</strong>
+                <p id="preview-exp-desc">
+                  Coordinated weekly stock audits across 4 outlets, reduced inventory variance by 18%, and liaised directly with regional suppliers.
+                </p>
+              </section>
+
+              <section class="paper-section">
+                <h3 data-i18n="education">Education</h3>
+                <p id="preview-edu">
+                  Diploma in Business Studies · Politeknik Sultan Salahuddin Abdul Aziz Shah
+                </p>
+              </section>
+
+              <section class="paper-section">
+                <h3 data-i18n="skills">Skills</h3>
+                <p id="preview-skills">
+                  Inventory Audit, ERP Systems, Supplier Relations, Microsoft Excel
+                </p>
+              </section>
+            </article>
+          </div>
+
+          <div class="hero-stage-footer">
+            <span>Modern Template · A4 Standard</span>
+            <button type="button" class="text-link" data-open-modal style="font-size: var(--type-meta);" data-i18n="viewPdfSample">View Sample PDF &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Career Stages Pillars -->
+    <section class="section-pad" id="journeys" aria-labelledby="journeys-title">
+      <div class="site-container">
+        <header class="section-header">
+          <h2 id="journeys-title" data-i18n="journeysTitle">Tailored for Your Malaysian Career Journey</h2>
+          <p data-i18n="journeysDesc">
+            Whether landing your first internship or stepping into executive leadership, Kerjaya. provides structure, guidance, and dignified tools.
+          </p>
+        </header>
+
+        <div class="journey-grid">
+          <article class="journey-card">
+            <span class="journey-badge" data-i18n="journey1Badge">Students & Interns</span>
+            <h3 data-i18n="journey1Title">Internships & First Roles</h3>
+            <p data-i18n="journey1Desc">Structure academic coursework, leadership activities, and university projects into a persuasive resume for industrial training.</p>
+            <a href="#walkthrough" class="text-link">Explore intern templates &rarr;</a>
+          </article>
+
+          <article class="journey-card">
+            <span class="journey-badge" data-i18n="journey2Badge">Fresh Graduates</span>
+            <h3 data-i18n="journey2Title">Entry-Level Career Launch</h3>
+            <p data-i18n="journey2Desc">Highlight transferable skills, internships, and capstone achievements with clean layouts trusted by Malaysian employers.</p>
+            <a href="#walkthrough" class="text-link">Explore graduate tools &rarr;</a>
+          </article>
+
+          <article class="journey-card">
+            <span class="journey-badge" data-i18n="journey3Badge">Experienced</span>
+            <h3 data-i18n="journey3Title">Mid-Career & Advancement</h3>
+            <p data-i18n="journey3Desc">Condense years of professional impact, key metrics, and managerial experience into concise, multi-page executive formats.</p>
+            <a href="#walkthrough" class="text-link">Explore executive formats &rarr;</a>
+          </article>
+
+          <article class="journey-card">
+            <span class="journey-badge" data-i18n="journey4Badge">Career Changers</span>
+            <h3 data-i18n="journey4Title">Industry Pivot & Upskilling</h3>
+            <p data-i18n="journey4Desc">Reframe TVET certifications, vocational training, and past accomplishments toward new high-demand industries.</p>
+            <a href="#walkthrough" class="text-link">Explore career pivot tools &rarr;</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Platform Capabilities -->
+    <section class="section-pad features-section" id="features" aria-labelledby="features-title">
+      <div class="site-container">
+        <header class="section-header">
+          <h2 id="features-title" data-i18n="featuresTitle">Built for High-Stakes Career Applications</h2>
+          <p data-i18n="featuresDesc">Everything you need to create, refine, and deliver job applications with absolute confidence.</p>
+        </header>
+
+        <div class="features-grid">
+          <div class="feature-box">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            </div>
+            <h3 data-i18n="feature1Title">Resume Studio</h3>
+            <p data-i18n="feature1Desc">Structured sections, instant live PDF preview, and full keyboard accessibility. Switch between 16 proven designs anytime.</p>
+            <a href="#templates" class="text-link">Explore Studio features &rarr;</a>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            </div>
+            <h3 data-i18n="feature2Title">Cover Letter Studio</h3>
+            <p data-i18n="feature2Desc">Generate tailored cover letters matching your resume typography and design. One cohesive application package.</p>
+            <a href="#walkthrough" class="text-link">See matching letters &rarr;</a>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="9" cy="10" r="1"/><circle cx="15" cy="10" r="1"/><path d="M8 15s1.5 2 4 2 4-2 4-2"/></svg>
+            </div>
+            <h3 data-i18n="feature3Title">Mochi Career Assistant</h3>
+            <p data-i18n="feature3Desc">Calm, human-in-the-loop writing assistance. Accepts or dismisses suggestions with complete candidate ownership.</p>
+            <a href="#walkthrough" class="text-link">Meet Mochi &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Walkthrough Workflow -->
+    <section class="section-pad" id="walkthrough" aria-labelledby="walkthrough-title">
+      <div class="site-container">
+        <header class="section-header">
+          <h2 id="walkthrough-title" data-i18n="walkthroughTitle">Try the Application Workflow</h2>
+          <p data-i18n="walkthroughDesc">See how effortlessly Kerjaya. transforms raw bullet points into compelling career statements.</p>
+        </header>
+
+        <div class="walkthrough-box">
+          <!-- Step Controls -->
+          <div class="walkthrough-left">
+            <div class="walkthrough-steps-nav" role="tablist" aria-label="Walkthrough Steps">
+              <button type="button" class="step-nav-btn" role="tab" aria-selected="true" data-i18n="step1Nav">1. Layout</button>
+              <button type="button" class="step-nav-btn" role="tab" aria-selected="false" data-i18n="step2Nav">2. Details</button>
+              <button type="button" class="step-nav-btn" role="tab" aria-selected="false" data-i18n="step3Nav">3. Wording Review</button>
+              <button type="button" class="step-nav-btn" role="tab" aria-selected="false" data-i18n="step4Nav">4. Cover Letter</button>
+            </div>
+
+            <!-- Panel 1: Design -->
+            <div class="step-panel" id="step-panel-0">
+              <h3 data-i18n="step1Title">Choose Your Layout</h3>
+              <p class="step-desc" data-i18n="step1Desc">Select an authentic layout. Your content seamlessly adapts across all designs.</p>
+              <div class="form-field">
+                <label for="step-design-select">Resume Design</label>
+                <select id="step-design-select">
+                  <option value="modern" selected>Modern (Clean two-column header with jade accents)</option>
+                  <option value="classic">Classic (Centered nameplate with traditional rules)</option>
+                  <option value="executive">Executive (High-density format for managerial depth)</option>
+                  <option value="minimal">Minimal (Single column, maximum whitespace)</option>
+                </select>
+              </div>
+              <p class="ai-notice">Switching templates never deletes your drafted text or work history.</p>
+            </div>
+
+            <!-- Panel 2: Details -->
+            <div class="step-panel" id="step-panel-1" hidden>
+              <h3 data-i18n="step2Title">Refine Your Details</h3>
+              <p class="step-desc" data-i18n="step2Desc">Input your verified career facts. AI never invents skills or employment dates.</p>
+              <div class="form-field">
+                <label for="sample-input-name">Full Name</label>
+                <input id="sample-input-name" type="text" value="Aina Rahman">
+              </div>
+              <div class="form-field">
+                <label for="sample-input-role">Target Role</label>
+                <input id="sample-input-role" type="text" value="Operations Coordinator">
+              </div>
+            </div>
+
+            <!-- Panel 3: Review / AI Diff -->
+            <div class="step-panel" id="step-panel-2" hidden>
+              <h3 data-i18n="step3Title">Review Writing Suggestions</h3>
+              <p class="step-desc" data-i18n="step3Desc">Compare your original wording with active, metric-focused suggestions.</p>
+              <div class="ai-diff-box">
+                <div class="diff-original">
+                  <strong data-i18n="originalWording">Original Draft:</strong>
+                  <p>Helped check the store stock every week and talked with suppliers when things were missing.</p>
+                </div>
+                <div class="diff-suggested">
+                  <strong data-i18n="suggestedWording">Suggested Improvement:</strong>
+                  <p>Coordinated weekly stock audits across 4 outlets, reduced inventory variance by 18%, and liaised directly with regional suppliers.</p>
+                </div>
+              </div>
+              <button type="button" class="btn btn-primary" id="apply-suggestion-btn" data-i18n="applySuggestionBtn">Apply Suggestion &rarr;</button>
+              <p id="appliedNotice" class="ai-notice" hidden data-i18n="appliedNotice" style="color: var(--color-success); font-weight: var(--weight-strong);">✓ Suggestion applied to resume draft</p>
+              <p class="ai-notice" data-i18n="aiDisclosure">AI suggestions are optional. You maintain full editorial control.</p>
+            </div>
+
+            <!-- Panel 4: Cover Letter -->
+            <div class="step-panel" id="step-panel-3" hidden>
+              <h3 data-i18n="step4Title">Pair with Matching Letter</h3>
+              <p class="step-desc" data-i18n="step4Desc">Generate a matching cover letter addressed to your target Malaysian employer.</p>
+              <div class="form-field">
+                <label for="sample-letter-company">Company Name</label>
+                <input id="sample-letter-company" type="text" value="Jaya Retail Sdn Bhd">
+              </div>
+              <div class="form-field">
+                <label for="sample-letter-manager">Hiring Manager / Team</label>
+                <input id="sample-letter-manager" type="text" value="Operations Hiring Team">
+              </div>
+              <p class="ai-notice">Your cover letter automatically shares the exact font, margin, and color hierarchy as your resume.</p>
+            </div>
+          </div>
+
+          <!-- Walkthrough Live Document Stage -->
+          <div class="walkthrough-right">
+            <div class="preview-caption-bar">
+              <span>Interactive Draft Stage</span>
+              <span id="walkthrough-status">Modern Design</span>
+            </div>
+            <article class="paper-sheet" style="font-size: 0.68rem;">
+              <header>
+                <h2>Aina Rahman</h2>
+                <div class="paper-role">Operations Coordinator</div>
+                <div class="paper-contact">Petaling Jaya, Selangor · aina.rahman@example.my</div>
+              </header>
+              <section class="paper-section">
+                <h3>Work Experience</h3>
+                <strong>Operations Specialist · Jaya Retail Sdn Bhd</strong>
+                <p id="walkthrough-preview-exp">
+                  Coordinated weekly stock audits across 4 outlets, reduced inventory variance by 18%, and liaised directly with regional suppliers.
+                </p>
+              </section>
+              <section class="paper-section">
+                <h3>Education</h3>
+                <p>Diploma in Business Studies · Politeknik Sultan Salahuddin Abdul Aziz Shah</p>
+              </section>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16 Templates Showcase -->
+    <section class="section-pad features-section" id="templates" aria-labelledby="templates-title">
+      <div class="site-container">
+        <header class="section-header">
+          <h2 id="templates-title" data-i18n="templatesTitle">16 Professionally Designed Templates</h2>
+          <p data-i18n="templatesDesc">Engineered for ATS parsing, legible typography, and Malaysian hiring standards.</p>
+        </header>
+
+        <div class="gallery-nav">
+          <div class="gallery-filters" role="group" aria-label="Filter template designs">
+            <button type="button" class="gallery-filter-btn" data-filter="all" aria-pressed="true" data-i18n="filterAll">All Designs (16)</button>
+            <button type="button" class="gallery-filter-btn" data-filter="basic" aria-pressed="false" data-i18n="filterBasic">Basic Unlocks</button>
+            <button type="button" class="gallery-filter-btn" data-filter="premium" aria-pressed="false" data-i18n="filterPremium">Premium Collection</button>
+          </div>
+          <button type="button" class="btn btn-secondary" data-open-modal data-i18n="viewPdfSample">Preview Sample PDF &rarr;</button>
+        </div>
+
+        <div class="templates-grid">
+          <article class="template-card" data-tier="basic">
+            <div class="template-thumb-box">
+              <img src="../../../public/img/templates/modern-640.webp" width="320" height="452" alt="Modern template sample" loading="lazy">
+            </div>
+            <div class="template-info">
+              <h4>Modern</h4>
+              <p>Balanced two-column structure with crisp forest-green section dividers. Ideal for operations and corporate roles.</p>
+              <button type="button" class="btn btn-secondary" data-open-modal>Preview Layout &rarr;</button>
+            </div>
+          </article>
+
+          <article class="template-card" data-tier="basic">
+            <div class="template-thumb-box">
+              <img src="../../../public/img/templates/classic-640.webp" width="320" height="452" alt="Classic template sample" loading="lazy">
+            </div>
+            <div class="template-info">
+              <h4>Classic</h4>
+              <p>Centered formal nameplate with clean horizontal rules. Standard format preferred by government, banking, and legal firms.</p>
+              <button type="button" class="btn btn-secondary" data-open-modal>Preview Layout &rarr;</button>
+            </div>
+          </article>
+
+          <article class="template-card" data-tier="premium">
+            <div class="template-thumb-box">
+              <img src="../../../public/img/templates/modern-640.webp" width="320" height="452" alt="Executive template sample" loading="lazy">
+            </div>
+            <div class="template-info">
+              <h4>Executive</h4>
+              <p>High-density format designed for seasoned leaders, multi-year achievements, and extensive project portfolios.</p>
+              <button type="button" class="btn btn-secondary" data-open-modal>Preview Layout &rarr;</button>
+            </div>
+          </article>
+
+          <article class="template-card" data-tier="premium">
+            <div class="template-thumb-box">
+              <img src="../../../public/img/templates/classic-640.webp" width="320" height="452" alt="Minimal template sample" loading="lazy">
+            </div>
+            <div class="template-info">
+              <h4>Minimal</h4>
+              <p>Understated typography with generous breathing room. Excellent for creative practitioners and technology specialists.</p>
+              <button type="button" class="btn btn-secondary" data-open-modal>Preview Layout &rarr;</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="section-pad" id="pricing" aria-labelledby="pricing-title">
+      <div class="site-container">
+        <header class="section-header">
+          <h2 id="pricing-title" data-i18n="pricingTitle">Simple, Transparent Malaysian Pricing</h2>
+          <p data-i18n="pricingDesc">Pay once in Malaysian Ringgit (RM). No hidden subscriptions, no automatic recurring charges.</p>
+        </header>
+
+        <div class="pricing-grid">
+          <!-- Starter Package -->
+          <article class="package-card">
+            <h3 data-i18n="pkg1Name">Free Starter</h3>
+            <p class="package-desc" data-i18n="pkg1Desc">Ideal for trying the workspace and creating your first draft.</p>
+            <div class="package-price">
+              <strong data-i18n="pkg1Price">RM 0</strong>
+              <span>/ free forever</span>
+            </div>
+            <ul class="package-features">
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg1Feature1">Access to Classic & Modern templates</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg1Feature2">Standard PDF download</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg1Feature3">Basic Cover Letter Studio</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg1Feature4">Full privacy & data export</span></li>
+            </ul>
+            <a href="#main-content" class="btn btn-secondary" data-i18n="pkg1Btn">Start Free</a>
+          </article>
+
+          <!-- Pro Package -->
+          <article class="package-card is-featured">
+            <span class="package-badge" data-i18n="pkg2Badge">Most Popular</span>
+            <h3 data-i18n="pkg2Name">Career Pro</h3>
+            <p class="package-desc" data-i18n="pkg2Desc">For active jobseekers targeting competitive roles.</p>
+            <div class="package-price">
+              <strong data-i18n="pkg2Price">RM 29</strong>
+              <span>/ one-time payment</span>
+            </div>
+            <ul class="package-features">
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg2Feature1">All 16 ATS-ready resume templates</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg2Feature2">Unlimited high-res PDF downloads</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg2Feature3">50 AI writing assistance uses</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg2Feature4">Mochi career companion access</span></li>
+            </ul>
+            <a href="#main-content" class="btn btn-primary" data-i18n="pkg2Btn">Get Career Pro &rarr;</a>
+          </article>
+
+          <!-- Ultimate Package -->
+          <article class="package-card">
+            <h3 data-i18n="pkg3Name">Career Ultimate</h3>
+            <p class="package-desc" data-i18n="pkg3Desc">Comprehensive suite with upcoming job tracker & prep.</p>
+            <div class="package-price">
+              <strong data-i18n="pkg3Price">RM 49</strong>
+              <span>/ one-time payment</span>
+            </div>
+            <ul class="package-features">
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg3Feature1">Permanent access to all current & future designs</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg3Feature2">150 AI writing & tailoring tokens</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg3Feature3">Priority queue for upcoming Job Tracker</span></li>
+              <li><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg> <span data-i18n="pkg3Feature4">1-on-1 formatting review support</span></li>
+            </ul>
+            <a href="#main-content" class="btn btn-secondary" data-i18n="pkg3Btn">Get Ultimate &rarr;</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust & PDPA Assurance Bar -->
+    <section class="trust-bar" aria-label="Trust and Privacy Assurance">
+      <div class="site-container trust-grid">
+        <div class="trust-item">
+          <h4 data-i18n="trustItem1Title">Zero Credential Invention</h4>
+          <p data-i18n="trustItem1Desc">We never fabricate degrees, employers, or skills. You provide the facts; we provide polish.</p>
+        </div>
+        <div class="trust-item">
+          <h4 data-i18n="trustItem2Title">Private & Secure</h4>
+          <p data-i18n="trustItem2Desc">Your resumes remain encrypted. No candidate data is sold or shared with recruiters without permission.</p>
+        </div>
+        <div class="trust-item">
+          <h4 data-i18n="trustItem3Title">Malaysian Privacy Compliant</h4>
+          <p data-i18n="trustItem3Desc">Hosted and operated in strict compliance with Personal Data Protection Act (PDPA) standards.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="section-pad" id="faq" aria-labelledby="faq-title">
+      <div class="site-container faq-grid">
+        <div>
+          <h2 id="faq-title" data-i18n="faqTitle">Frequently Asked Questions</h2>
+          <p style="margin-top: var(--s2); color: var(--color-muted);">Everything you need to know about Kerjaya., templates, AI assistance, and privacy.</p>
+        </div>
+
+        <div class="faq-list">
+          <details open>
+            <summary>
+              <span data-i18n="faq1Q">Can I change my template later without losing my writing?</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p data-i18n="faq1A">Yes! Your profile data, work history, and custom bullets remain intact when switching between any of our 16 designs.</p>
+          </details>
+
+          <details>
+            <summary>
+              <span data-i18n="faq2Q">Does Kerjaya. work on mobile phones?</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p data-i18n="faq2A">Absolutely. Kerjaya. is built as a progressive web app (PWA). You can draft on your phone in Write mode, preview the final PDF, and save seamlessly.</p>
+          </details>
+
+          <details>
+            <summary>
+              <span data-i18n="faq3Q">Will the AI rewrite my resume without my consent?</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p data-i18n="faq3A">Never. You must explicitly review and accept each wording suggestion. You maintain complete editorial ownership over every word.</p>
+          </details>
+
+          <details>
+            <summary>
+              <span data-i18n="faq4Q">What happens to my account after I pay?</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <p data-i18n="faq4A">All package purchases are one-time payments in RM. We never automatically renew or charge your card without your explicit authorization.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="site-footer">
+    <div class="site-container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="index.html" class="wordmark">Kerjaya<span>.</span></a>
+          <p data-i18n="footerEntity">Kerjaya. is an enterprise product by Zeeke Software Solution (AS0482253-X), Malaysia.</p>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col">
+            <h5>Product</h5>
+            <a href="#features">Resume Studio</a>
+            <a href="#features">Cover Letter Studio</a>
+            <a href="#templates">16 Templates</a>
+            <a href="#pricing">Packages & Pricing</a>
+          </div>
+
+          <div class="footer-col">
+            <h5>Career Pillars</h5>
+            <a href="#journeys">Students & Interns</a>
+            <a href="#journeys">Fresh Graduates</a>
+            <a href="#journeys">Mid-Career & Exec</a>
+            <a href="#journeys">Career Pivot</a>
+          </div>
+
+          <div class="footer-col">
+            <h5>Legal & Privacy</h5>
+            <a href="#" data-i18n="footerPrivacy">Privacy Policy</a>
+            <a href="#" data-i18n="footerTerms">Terms of Service</a>
+            <a href="#" data-i18n="footerSecurity">Security & PDPA</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span data-i18n="footerCopyright">© 2026 Zeeke Software Solution. Built with care for Malaysian career seekers.</span>
+        <span>Version Phase 02D.1 Prototype · English (MY) / Bahasa Melayu</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Sample PDF Modal Dialog -->
+  <dialog class="preview-modal" id="pdf-sample-modal" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <h3 id="modal-title">Sample PDF Document Preview</h3>
+      <button type="button" class="btn btn-secondary btn-icon" id="close-modal-btn" aria-label="Close dialog">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: var(--s4); color: var(--color-muted);">This is a true-to-scale representation of the exported PDF using the Modern layout.</p>
+      <div style="background: var(--color-subtle); padding: var(--s4); border-radius: var(--radius-panel); display: flex; justify-content: center;">
+        <img src="../../../public/img/templates/modern-640.webp" width="480" height="678" alt="PDF sample preview" style="max-width: 100%; height: auto; box-shadow: var(--elevation-overlay); border-radius: 4px;">
+      </div>
+      <div style="margin-top: var(--s5); display: flex; justify-content: flex-end; gap: var(--s3);">
+        <a href="../../../public/samples/modern.pdf" target="_blank" rel="noopener" class="btn btn-secondary">Open Raw PDF ↗</a>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('pdf-sample-modal').close()">Done</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

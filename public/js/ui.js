@@ -50,7 +50,7 @@
 
 // SHARED MOBILE DESTINATIONS KEEP THE WORKSPACE HEADER COMPACT.
 document.addEventListener('DOMContentLoaded', () => {
-  if (!document.body.classList.contains('user-workspace') || document.body.matches('.auth-page,.builder-page')) return;
+  if (!document.body.classList.contains('user-workspace') || document.body.matches('.auth-page,.studio-workbench')) return;
   if(document.querySelector('.mobile-product-nav')){document.body.classList.add('has-mobile-nav');return;}
   const nav = document.createElement('nav');
   nav.className = 'mobile-product-nav';
@@ -71,13 +71,15 @@ window.ReGenDialog = (() => {
       const dialog=document.createElement('dialog');active=dialog;
       const id='workspace-confirm-'+(++sequence);
       dialog.className='workspace-confirm-dialog';dialog.setAttribute('aria-labelledby',id);
-      dialog.innerHTML='<div class="workspace-confirm-copy"><p class="workspace-confirm-kicker">Please confirm</p><h2></h2><p data-message></p></div><footer><button type="button" class="btn btn-secondary" data-cancel>Cancel</button><button type="button" class="btn btn-primary" data-confirm></button></footer>';
+      dialog.innerHTML='<div class="workspace-confirm-copy"><h2></h2><p data-message></p></div><footer><button type="button" class="btn btn-secondary" data-cancel></button><button type="button" class="btn btn-primary" data-confirm></button></footer>';
       const heading=dialog.querySelector('h2');heading.id=id;heading.textContent=title;
       dialog.querySelector('[data-message]').textContent=message;
       const accept=dialog.querySelector('[data-confirm]');accept.textContent=confirmLabel;accept.classList.toggle('is-danger',danger);
-      accept.onclick=()=>dialog.close('confirmed');dialog.querySelector('[data-cancel]').onclick=()=>dialog.close();
+      const cancel=dialog.querySelector('[data-cancel]');
+      cancel.textContent=window.ReGenText?.get('common.cancel','Cancel')||'Cancel';
+      accept.onclick=()=>dialog.close('confirmed');cancel.onclick=()=>dialog.close();
       dialog.addEventListener('close',()=>{const accepted=dialog.returnValue==='confirmed';dialog.remove();active=null;if(previous?.isConnected)previous.focus();resolve(accepted);},{once:true});
-      document.body.append(dialog);dialog.showModal();dialog.querySelector('[data-cancel]').focus();
+      document.body.append(dialog);dialog.showModal();cancel.focus();
     });
   }
   return {confirm};

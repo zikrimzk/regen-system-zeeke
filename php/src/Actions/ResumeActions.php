@@ -37,7 +37,7 @@ trait ResumeActions
         if (!TemplateCatalog::valid($body['templateId'] ?? null) && $this->resumes->getPrimaryByUser(Session::userId()) === null) {
             Http::json(['success'=>false, 'message'=>'Choose a resume template first.'], 422);
         }
-        $title = Sanitizer::cleanText($body['title'] ?? '', false, 200) ?: 'My Resume';
+        $title = Sanitizer::cleanText($body['title'] ?? '', false, 200) ?: \ReGen\InterfaceText::text('dashboard.untitled');
         try { $resume = $this->resumes->getOrCreatePrimary(Session::userId(), $user, $title, TemplateCatalog::get($body['templateId'] ?? 'classic')['id']); }
         catch (\ReGen\TemplateAccessDenied $error) { $this->templateAccessError($error); }
         catch (\DomainException $error) { Http::json(['success'=>false,'message'=>$error->getMessage()],422); }
@@ -65,7 +65,7 @@ trait ResumeActions
             Http::json(['success' => false, 'message' => 'Resume not found.'], 404);
         }
         $this->resumes->updateTitle($id, Session::userId(), $title);
-        Http::json(['success' => true]);
+        Http::json(['success' => true, 'title' => $title]);
     }
 
     private function getResume(int $id): never

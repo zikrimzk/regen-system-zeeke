@@ -123,6 +123,7 @@ window.PdfPages = (() => {
       }
       status.remove();
       if (documentType) container.prepend(fitAdvice(state.pdf.numPages, documentType, onSettings));
+      return true;
     } catch (error) {
       if (!current(state)) return;
       console.error('PDF preview failed:',error);

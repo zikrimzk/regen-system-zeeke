@@ -17,7 +17,9 @@
     root.style.colorScheme = theme;
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.append(meta); }
-    meta.content = theme === 'dark' ? '#111b16' : '#f4f6f3';
+    meta.content = root.hasAttribute('data-commercial-appearance')
+      ? (theme === 'dark' ? '#15161a' : '#f8f7f4')
+      : (theme === 'dark' ? '#111b16' : '#f4f6f3');
     document.querySelectorAll('.appearance-toggle').forEach(button=>{button.dataset.mode=theme;button.setAttribute('aria-label', label('changeAppearance', 'Change appearance'));button.querySelector('svg').innerHTML=theme==='dark'?'<path d="M20.7 13A9 9 0 0 1 11 3.3 9 9 0 1 0 20.7 13Z"/>':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>';});
     document.querySelectorAll('[data-appearance-choice]').forEach(button => {
       button.setAttribute('aria-checked', String(button.dataset.appearanceChoice === preference));

@@ -107,7 +107,7 @@ trait CommerceActions
     private function packageAccessError(array $price,?string $path=null): never
     {
         $strict=$price['mode']==='package_only';$exhausted=!empty($price['packageIncluded']);
-        $message=$strict?($exhausted?'Your package allowance for '.$price['name'].' is used up.':'Your active packages do not include '.$price['name'].'.'):'Review the token price to continue.';
+        $message=$strict?($exhausted?'Your package allowance for '.$price['name'].' is used up.':'Your active packages do not include '.$price['name'].'.'):'Review the Coin price to continue.';
         if($path!==null&&!str_starts_with($path,'/api/'))PageRenderer::render($this->projectRoot,'feature-access.html',['{{FEATURE_KEY}}'=>htmlspecialchars($price['key'],ENT_QUOTES,'UTF-8'),'{{FEATURE_NAME}}'=>htmlspecialchars($price['name'],ENT_QUOTES,'UTF-8'),'{{ACCESS_MESSAGE}}'=>htmlspecialchars($strict?'Explore a package with this feature to continue.':$message,ENT_QUOTES,'UTF-8'),'{{STORE_FEATURE}}'=>rawurlencode($price['key'])],$strict?403:402);
         Http::json(['success'=>false,'code'=>$strict?($exhausted?'PACKAGE_LIMIT_REACHED':'PACKAGE_ACCESS_REQUIRED'):'TOKEN_ACCESS_REQUIRED','message'=>$message,'price'=>$price,'storeUrl'=>'/store'],$strict?403:402);
     }
@@ -120,7 +120,10 @@ trait CommerceActions
         if (in_array('resume_create', $keys, true) && $this->resumes->getPrimaryByUser(Session::userId()) !== null) $keys = array_values(array_diff($keys, ['resume_create']));
         if (!$keys) return;
         $pricing = new FeaturePricing($this->db);
-        $access = $pricing->reserve(Session::userId(), $keys);
+        $automaticPreview = $method === 'POST' && str_ends_with($path, '/document')
+            && in_array('document_preview', $keys, true)
+            && ($_SERVER['HTTP_X_REGEN_PREVIEW'] ?? '') === 'automatic';
+        $access = $pricing->reserve(Session::userId(), $keys, $automaticPreview);
         if (!$access['allowed']) {
             $this->packageAccessError($access['price'],$path);
         }

@@ -13,7 +13,27 @@ final class WorkspaceShell
         'account'=>'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
         'feedback'=>'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/>',
         'logout'=>'<path d="M10 17l5-5-5-5M15 12H3M21 3v18"/>',
-        'store'=>'<circle cx="12" cy="12" r="9"/><path d="M9 17V7h5a3 3 0 0 1 0 6H9m4 0 4 4"/>',
+        'store'=>'<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10c0 3 5 3 6 0 1 3 5 3 6 0 1 3 6 3 6 0M10 20v-5h4v5"/>',
+        'coin'=>'<circle cx="12" cy="12" r="9"/><path d="M9 16V8m0 5 6-5m-4 4 4 4"/>',
+        'back'=>'<path d="M20 12H4m7-7-7 7 7 7"/>',
+        'next'=>'<path d="M4 12h16m-7-7 7 7-7 7"/>',
+        'sections'=>'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+        'edit'=>'<path d="m16 3 5 5-12 12H4v-5zM14 5l5 5"/>',
+        'eye'=>'<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/>',
+        'save'=>'<path d="M4 4h13l3 3v13H4zM8 4v5h8V4m-8 16v-6h8v6"/>',
+        'check'=>'<path d="m5 12 4 4 10-10"/>',
+        'download'=>'<path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/>',
+        'add'=>'<path d="M12 5v14M5 12h14"/>',
+        'close'=>'<path d="m6 6 12 12M6 18 18 6"/>',
+        'retry'=>'<path d="M20 6v5h-5m4 0a7 7 0 1 0 1 5"/>',
+        'trash'=>'<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v6m4-6v6"/>',
+        'minus'=>'<path d="M5 12h14"/>',
+        'expand'=>'<path d="M8 4H4v4m12-4h4v4m0 8v4h-4m-8 0H4v-4"/>',
+        'templates'=>'<rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="15" width="7" height="5" rx="1"/><rect x="14" y="15" width="7" height="5" rx="1"/>',
+        'search'=>'<circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/>',
+        'folder'=>'<path d="M3 8V6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Zm0 2h18"/>',
+        'sparkles'=>'<path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8L10 3Zm8 10 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z"/>',
+        'design'=>'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18m-12 0v11"/>',
         'payments'=>'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6m-6 4h3"/>',
         'home'=>'<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-6h6v6"/>',
         'target'=>'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="m12 12 8-8"/>',
@@ -22,9 +42,10 @@ final class WorkspaceShell
         'conversation'=>'<path d="M20 5H4v11h5l3 4 3-4h5V5ZM8 10h8m-8 3h5"/>',
         'settings'=>'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/>',
         'more'=>'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+        'sidebar'=>'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m7-11-3 3 3 3"/>',
     ];
 
-    private static function icon(string $name): string
+    public static function icon(string $name): string
     {
         return '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">'.self::ICONS[$name].'</svg>';
     }
@@ -32,23 +53,17 @@ final class WorkspaceShell
     public static function header(string $file): string
     {
         $active = Navigation::workspaceActive($file);
-        $editor = $file === 'builder.html';
-        $preview = $editor ? '<div class="mobile-editor-heading" aria-live="polite"><strong id="mobile-section-title">'
-            . InterfaceText::html('nav.personal') . '</strong><span id="mobile-section-count"></span></div>'
-            . '<button type="button" class="btn btn-ghost studio-mochi-command" aria-haspopup="dialog" aria-controls="mochi-panel" aria-label="' . InterfaceText::html('studio.mochi') . '" hidden data-mochi-open>'
-            . self::icon('mochi') . '<span>' . InterfaceText::html('studio.mochi') . '</span></button>' : '';
         $bell = '<a class="workspace-notification-bell" href="/notifications" aria-label="' . InterfaceText::html('nav.notifications')
             . '"' . ($active === 'notifications' ? ' aria-current="page"' : '') . '>' . self::icon('notifications')
             . '<span class="workspace-notification-count" data-notification-count hidden></span></a>';
         $account = '';
-        foreach (['profile', 'settings', 'tokens', 'payments', 'mochi', 'support'] as $key) {
+        foreach (['profile', 'billing', 'support'] as $key) {
             $account .= self::link($key, $active, 'account-menu-item', menu: true);
         }
-        return '<header class="topbar workspace-header">' . self::brand()
-            . ($editor ? '' : '<nav class="workspace-nav" aria-label="' . InterfaceText::html('nav.workspace') . '">'
-                . self::primaryNavigation($active) . '</nav>') . '<div class="topbar-spacer"></div>' . $preview
+        return self::sidebar($active) . '<header class="topbar workspace-header">' . self::brand()
+            . '<div class="topbar-spacer"></div>'
             . '<div class="workspace-tools"><a class="workspace-token-balance" href="/store" aria-label="'
-            . InterfaceText::html('nav.balance') . '">' . self::icon('store') . '<span data-token-total>…</span></a>'
+            . InterfaceText::html('nav.balance') . '">' . self::icon('coin') . '<span data-token-total>…</span></a>'
             . $bell . '<div class="topbar-user account-menu"><button type="button" class="account-menu-toggle" id="account-menu-toggle" aria-label="'
             . InterfaceText::html('nav.account') . '" aria-expanded="false" aria-haspopup="menu"><span class="topbar-avatar" id="topbar-avatar">U</span></button>'
             . '<div class="account-menu-panel hidden" id="account-menu-panel" role="menu"><div class="account-menu-identity" role="presentation"><strong class="topbar-user-name" id="topbar-user-name">'
@@ -56,6 +71,23 @@ final class WorkspaceShell
             . '<button type="button" class="account-menu-item" data-feedback-open role="menuitem">' . self::icon('feedback') . InterfaceText::html('nav.feedback') . '</button>'
             . '<button type="button" class="account-menu-item" id="account-menu-logout" role="menuitem">' . self::icon('logout') . InterfaceText::html('common.signOut')
             . '</button></div></div></div></header>';
+    }
+
+    public static function studioBack(): string
+    {
+        $label = InterfaceText::html('studio.exit');
+        return '<a class="studio-icon studio-exit" href="/dashboard" aria-label="' . $label . '" title="' . $label . '">'
+            . self::icon('back') . '</a>';
+    }
+
+    public static function storeNavigation(): string
+    {
+        $active = Navigation::workspaceActive('store.html');
+        return '<nav class="store-navigation" aria-label="' . InterfaceText::html('nav.billing') . '">'
+             . '<a href="/store"' . ($active === 'billing' ? ' aria-current="page"' : '') . '>' . self::icon('store')
+            . '<span>' . InterfaceText::html('store.packages') . '</span></a>'
+            . self::link('tokens', $active)
+            . self::link('payments', $active) . '</nav>';
     }
 
     private static function brand(): string
@@ -69,22 +101,35 @@ final class WorkspaceShell
         [$path, $label, $icon] = Navigation::WORKSPACE[$key];
         return '<a href="' . $path . '"' . ($class ? ' class="' . $class . '"' : '') . ($key === $active ? ' aria-current="page"' : ($key === 'billing' && in_array($active, ['tokens', 'payments'], true) ? ' data-current="true"' : ''))
             . ($menu ? ' role="menuitem"' : '') . ($key === 'mochi' ? ' data-mochi-room-link' : '')
-            . ' aria-label="' . InterfaceText::html($label) . '">' . self::icon($icon) . '<span>' . InterfaceText::html($shortLabel ?? $label) . '</span></a>';
+            . ' aria-label="' . InterfaceText::html($label) . '" title="' . InterfaceText::html($label) . '">' . self::icon($icon) . '<span>' . InterfaceText::html($shortLabel ?? $label) . '</span></a>';
     }
 
     private static function primaryNavigation(string $active): string
     {
-        return self::link('overview', $active) . self::link('resumes', $active)
+        return self::link('overview', $active) . self::link('studio', $active, shortLabel: 'nav.shortResume')
             . self::link('letters', $active, shortLabel: 'nav.shortLetters')
+            . self::link('billing', $active)
             . '<button type="button" data-workspace-more aria-haspopup="dialog" aria-controls="workspace-more" aria-label="' . InterfaceText::html('common.more') . '"'
-            . (!in_array($active, ['overview', 'resumes', 'letters'], true) ? ' data-current="true"' : '')
+            . (!in_array($active, ['overview', 'studio', 'letters', 'billing', 'tokens', 'payments'], true) ? ' data-current="true"' : '')
             . '>' . self::icon('more') . '<span>' . InterfaceText::html('common.more') . '</span></button>';
     }
 
-    private static function groupedNavigation(string $active): string
+    private static function sidebar(string $active): string
     {
-        $markup = '<nav class="workspace-destinations" aria-label="' . InterfaceText::html('nav.workspace') . '">';
+        $label = InterfaceText::html('nav.toggleSidebar');
+        return '<aside class="workspace-sidebar"><div class="workspace-sidebar-head">' . self::brand()
+            . '<button type="button" data-workspace-collapse aria-controls="workspace-sidebar-nav" aria-expanded="true" aria-label="'
+            . $label . '" title="' . $label . '">' . self::icon('sidebar') . '</button></div>'
+            . self::groupedNavigation($active, false) . '</aside>';
+    }
+
+    private static function groupedNavigation(string $active, bool $secondaryOnly = true): string
+    {
+        $markup = '<nav class="workspace-destinations"' . ($secondaryOnly ? '' : ' id="workspace-sidebar-nav"')
+            . ' aria-label="' . InterfaceText::html($secondaryOnly ? 'common.more' : 'nav.workspace') . '">';
         foreach (Navigation::WORKSPACE_GROUPS as $label => $links) {
+            if ($secondaryOnly) $links = array_diff($links, ['overview', 'studio', 'letters', 'billing']);
+            if ($links === []) continue;
             $markup .= '<section><h2>' . InterfaceText::html($label) . '</h2>';
             foreach ($links as $key) $markup .= self::link($key, $active);
             $markup .= '</section>';
@@ -95,7 +140,7 @@ final class WorkspaceShell
     public static function mochiPanel(): string
     {
         return <<<'HTML'
-<aside class="mochi-float" data-mochi-float aria-label="Mochi companion" hidden>
+<aside class="mochi-float" data-mochi-float aria-label="Mochi">
   <div class="mochi-bubble" data-mochi-bubble hidden>
     <p data-mochi-bubble-text role="status"></p>
     <div class="mochi-bubble-actions" data-mochi-invite hidden>
@@ -111,8 +156,8 @@ final class WorkspaceShell
       <img src="/img/mochi-coach.webp" width="124" height="124" alt="" decoding="async" aria-hidden="true">
       <span class="mochi-fx" aria-hidden="true" data-mochi-fx></span>
     </button>
-    <button type="button" class="mochi-float-chat" data-mochi-open aria-label="Chat with Mochi" aria-haspopup="dialog" aria-controls="mochi-panel" aria-expanded="false">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.3-.7L5 19l1-3.7a7.5 7.5 0 1 1 14-3.8Z"/><path d="M9 12h.01m3.5 0h.01m3.5 0h.01"/></svg>
+    <button type="button" class="mochi-float-chat" data-mochi-open aria-label="{{i18n.studio.mochi}}" aria-haspopup="dialog" aria-controls="mochi-panel" aria-expanded="false">
+      <img src="/img/mochi-coach.webp" width="42" height="42" alt="">
     </button>
   </div>
 </aside>
@@ -149,6 +194,7 @@ final class WorkspaceShell
   <div class="mochi-empty" data-mochi-sleep-view hidden>
     <p data-mochi-sleep-copy>Mochi is asleep. He’ll stay quiet until you wake him.</p>
     <button class="btn btn-primary" type="button" data-mochi-wake>Wake Mochi</button>
+    <button type="button" class="btn btn-secondary" data-mochi-support>Ask about ReGen</button>
   </div>
   <form class="mochi-intro" data-mochi-intro hidden>
     <div><h3>Can I know you better?</h3><p>Let’s kenal! Share only what you want me to remember.</p></div>
@@ -171,7 +217,7 @@ final class WorkspaceShell
       <a class="btn btn-secondary" href="/mochi" data-mochi-room-link>Visit Mochi’s room</a>
       <button type="button" class="btn btn-secondary" data-mochi-forget hidden>Forget my details</button>
     </div>
-    <p class="mochi-fine">Writing requests send your coaching conversation and any field you share to OpenAI. Sharing a cover letter also includes the role, employer and job description. Use saved resume includes professional details when selected. Your chat clears when you leave this page.</p>
+    <p class="mochi-fine">Live replies send your conversation to OpenAI. For writing help, you can share a field or choose to include professional details from your saved resume. Sharing a cover letter field also includes the role, employer and job description. Chat clears when you leave this page.</p>
   </div>
   <div class="mochi-chat" data-mochi-chat hidden>
     <div class="mochi-history" data-mochi-history role="log" aria-label="Mochi conversation" aria-live="polite" aria-relevant="additions"></div>
@@ -202,7 +248,6 @@ HTML;
 
     public static function mobileNavigation(string $file): string
     {
-        if ($file === 'builder.html') return '';
         $active = Navigation::workspaceActive($file);
         return '<nav class="mobile-product-nav" aria-label="' . InterfaceText::html('nav.workspace') . '">' . self::primaryNavigation($active) . '</nav>'
             . '<dialog class="workspace-more" id="workspace-more" aria-labelledby="workspace-more-title"><header><h2 id="workspace-more-title">'

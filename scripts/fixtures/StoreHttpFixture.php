@@ -16,7 +16,7 @@ final class StoreHttpFixture
     private bool $created = false;
     private bool $schemaReady = false;
 
-    public function __construct(private readonly string $root, private readonly bool $mockMochi = false)
+    public function __construct(private readonly string $root, private readonly bool $mockMochi = false, private readonly ?int $mailSinkPort = null)
     {
         $suffix = bin2hex(random_bytes(6));
         $this->directory = $root . '/tmp/store-http-' . $suffix;
@@ -26,7 +26,7 @@ final class StoreHttpFixture
 
     public function start(): array
     {
-        Config::load($this->root);
+        Config::load(getenv('REGEN_HTTP_FIXTURE_CONFIG') ?: $this->root);
         if (!in_array(Config::get('app.env'), ['development','test','testing'], true)
             || !in_array(Config::get('db.host'), ['localhost','127.0.0.1','::1'], true)) {
             throw new RuntimeException('HTTP checks require local development MySQL.');
@@ -83,6 +83,7 @@ final class StoreHttpFixture
         $router = '<?php $root=' . var_export($this->root,true) . ';$fixtureDatabase=' . var_export($this->database,true)
             . ';$base=' . var_export($this->base,true) . ';$hitpayWebhookSalt=' . var_export($this->hitpayWebhookSalt,true)
             . ';$mockMochi=' . var_export($this->mockMochi,true)
+            . ';$mailSinkPort=' . var_export($this->mailSinkPort,true)
             . ';return require ' . var_export(__DIR__ . '/store-router.php',true) . ';';
         file_put_contents($this->directory . '/router.php', $router);
         $this->server = proc_open([PHP_BINARY,'-d','upload_max_filesize=8M','-d','post_max_size=32M','-S',$address,'-t',$this->root . '/public',$this->directory . '/router.php'],

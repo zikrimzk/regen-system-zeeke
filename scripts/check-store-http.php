@@ -58,6 +58,22 @@ $cursor=$call('user','/api/realtime/session')['data']['cursor'];$version=(int)$c
 $check($call('admin','/api/admin/tickets/'.$ticket,'PATCH',['version'=>$version,'status'=>'waiting_user','body'=>'Our team received your screenshots.'],$adminCsrf)['status']===200,'The administrator can send a real reply.');
 $batch=$call('user','/api/realtime/changes?since='.$cursor)['data'];$topics=array_column($batch['events'],'topic');$check(in_array('support',$topics,true)&&in_array('notifications',$topics,true),'The user receives both a conversation update and a persistent notification event.');
 $preferences=['account_email'=>false,'support_email'=>false,'announcement_email'=>false,'security_email'=>false,'in_app_enabled'=>true,'browser_enabled'=>false];$check($call('user','/api/notifications/preferences','PUT',$preferences,$userCsrf)['status']===200,'On-screen notification consent can be enabled without enabling any emails.');
+$dsn='mysql:host='.ReGen\Config::get('db.host').';port='.ReGen\Config::get('db.port').';dbname='.$f['database'];
+$db=new PDO($dsn,ReGen\Config::get('db.user'),ReGen\Config::get('db.password'));
+$otherId=(int)$db->query("SELECT id FROM users WHERE email='other@qa.regen.local'")->fetchColumn();
+$notices=new ReGen\NotificationService($db);
+$notices->notify($otherId,'account','Another inbox','Only the second account can clear this.','/notifications','other-inbox',false);
+$notices->notify($f['userId'],'announcement','QA announcement','Synthetic announcement.','/notifications','qa-announcement',false);
+$check($call('anonymous','/api/notifications','DELETE')['status']===401
+    && $call('user','/api/notifications','DELETE')['status']===403,'Bulk notification clearing requires authentication and CSRF.');
+$check($call('user','/api/notifications','DELETE',null,$userCsrf)['status']===200
+    && $call('user','/api/notifications','DELETE',null,$userCsrf)['status']===200,'Clearing the same inbox twice is safe.');
+$notices->notify($f['userId'],'announcement','QA announcement','Synthetic announcement.','/notifications','qa-announcement',false);
+$check((int)$call('user','/api/notifications')['data']['counts']['total']===0
+    && (int)$call('user','/api/notifications/count')['data']['counts']['unread']===0
+    && (int)$call('other','/api/notifications')['data']['counts']['total']>0,'Clearing resets the unread count, preserves deduplication and leaves other accounts alone.');
+$notices->notify($f['userId'],'account','New inbox item','Arrives after clearing.','/notifications','qa-after-clear',false);
+$check((int)$call('user','/api/notifications/count')['data']['counts']['unread']===1,'New notifications still arrive after clearing.');
 $check($call('admin','/api/admin/settings/support-attachments','PUT',['maxFiles'=>2,'maxFileBytes'=>5242880,'maxTotalBytes'=>20971520],$adminCsrf)['status']===200,'System settings can change the attachment limit.');
 $check($call('user','/api/support/configuration')['data']['attachments']['maxFiles']===2,'The user receives the current administrator-configured limit.');
 $check($call('user','/api/support/tickets','POST',$body,$userCsrf,[$png,$png,$png])['status']===422,'The revised limit applies to new uploads immediately.');
@@ -70,7 +86,9 @@ $check($call('admin','/api/admin/store/packages/'.$package['id'].'/grant','POST'
 $check($call('admin','/api/admin/store/packages/'.$package['id'].'/grant','POST',$grant,$adminCsrf)['status']===201,'Pricing administrators can grant a package without payment.');
 $granted=$call('user','/api/store')['data'];$balance=$granted['balance'];
 $check(count($granted['grants'])===1&&$balance['total']===$balance['base']+$balance['bonus'],'The store shows the granted package and a consistent balance breakdown.');
-$check($call('user','/token-activity')['status']===200&&$call('anonymous','/api/store/activity')['status']===401,'Token activity has its own authenticated destination.');
+$check($call('user','/store/activity')['status']===200&&$call('anonymous','/api/store/activity')['status']===401,'Coin activity has its own authenticated K-Store destination.');
+$legacyActivity=$call('user','/token-activity?lang=ms');
+$check($legacyActivity['status']===302&&str_contains($legacyActivity['headers'],'Location: /store/activity?lang=ms'),'The old activity page forwards the selected language to K-Store.');
 $public=$call('anonymous','/site/pricing.json')['data'];$check($public['success']&&count($public['items'])===3&&!isset($public['wallet']),'The landing catalogue shares published packages without exposing account balances.');
 $asset=$call('anonymous','/js/commerce-ui.js');$check($asset['status']===200&&str_contains($asset['raw'],'ReGenCommerce')&&str_contains(strtolower($asset['headers']),'javascript'),'The disposable HTTP fixture serves real frontend assets.');
 echo "HTTP token access, package grants, shared public catalogue, disabled checkout, private uploads and permissions passed ($count assertions; isolated fixture).\n";

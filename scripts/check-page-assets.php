@@ -5,7 +5,7 @@ require dirname(__DIR__).'/vendor/autoload.php';
 $root=dirname(__DIR__);
 if(($argv[1]??'')==='--render'){
     $file=$argv[2]??'';$base=$argv[3]??$root;
-    if(!in_array($file,['admin.html','dashboard.html','mochi.html','maintenance.html','upcoming.html','builder.html'],true))exit(2);
+    if(!in_array($file,['admin.html','dashboard.html','mochi.html','maintenance.html','upcoming.html','builder.html','cover-letters.html','store.html','token-activity.html','payments.html'],true))exit(2);
     $_SERVER['REQUEST_URI'] = $argv[4] ?? '/';
     parse_str((string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $_GET);
     ReGen\PageRenderer::render($base,$file);
@@ -32,13 +32,14 @@ try{
     foreach(['/php/views','/php','/public/js','/public',''] as $folder)if(is_dir($fixture.$folder))rmdir($fixture.$folder);
 }
 $check(str_contains($html, 'id="regen-admin-navigation"') && str_contains($html, 'data-view="support" hidden'), 'Administrator navigation is initially hidden pending scoped permissions.');
-$library=$render('dashboard.html',$root,'/resumes?lang=ms');
-$check(str_contains($library, '<html lang="ms">') && str_contains($library, 'data-workspace-view="library"'), 'The resume library uses the selected language.');
-$check(str_contains($library, 'href="/resumes?lang=en"') && str_contains($library, 'Buka resume yang disimpan'), 'The language switch preserves the current destination.');
+$overview=$render('dashboard.html',$root,'/dashboard?lang=ms');
+$check(str_contains($overview, '<html lang="ms">') && str_contains($overview, 'data-workspace-view="overview"'), 'Overview uses the selected language.');
+$check(ReGen\Routes::returnTarget('/resumes?lang=ms') === '/dashboard?lang=ms', 'Legacy resume library opens Overview with the query intact.');
 $upcoming=$render('upcoming.html',$root,'/jobs/saved?lang=ms');
 $check(str_contains($upcoming, '<h1>Kerja disimpan</h1>') && str_contains($upcoming, 'Akan datang'), 'Future routes show the appropriate localised upcoming state.');
 $html=$render('dashboard.html',$root);$dom=new DOMDocument();libxml_use_internal_errors(true);$dom->loadHTML($html);libxml_clear_errors();$xpath=new DOMXPath($dom);
-$check($xpath->query('//*[contains(concat(" ",normalize-space(@class)," ")," workspace-nav ")]/a')->length===3,'Primary client navigation contains document destinations and the token store.');
+$check($xpath->query('//*[@id="workspace-sidebar-nav"]/section[1]/a')->length===4,'The candidate sidebar includes Overview, both studios and Mochi.');
+$check($xpath->query('//*[@id="workspace-sidebar-nav"]//a[@href="/builder"]')->length===1,'Resume Studio opens the editor directly.');
 $check($xpath->query('//*[@id="account-menu-panel"]/a[@href="/support"]')->length===1,'Support belongs in the account dropdown.');
 $check($xpath->query('//*[@id="account-menu-panel"]/*[@href="/notifications"]')->length===0,'Notification destination is not duplicated in the account dropdown.');
 $check($xpath->query('//a[contains(@class,"workspace-notification-bell")][@href="/notifications"]')->length===1,'Notifications have one shared header bell.');
@@ -49,7 +50,18 @@ $check(str_contains($room,'has-mobile-nav')&&str_contains($room,'/css/workspace-
 $studio=$render('builder.html',$root,'/builder?id=5&section=skills&lang=ms');
 $check(substr_count($studio, 'id="preview-open-top"')===1 && str_contains($studio,'id="studio-pdf-pages"'), 'The editor has one draft preview command plus a saved-preview pane.');
 $check(str_contains($studio,'/css/studio.css?v=') && str_contains($studio,'/js/studio.js?v='), 'Resume Studio assets load through the existing versioned renderer.');
-$check(str_contains($studio,'Pratonton tersimpan') && str_contains($studio,'href="/builder?id=5&amp;section=skills&amp;lang=en"'), 'Studio copy and the language link keep the resume and selected section.');
+$check(str_contains($studio,'Pratonton draf') && str_contains($studio,'class="studio-icon studio-exit" href="/dashboard"'), 'The localized editor has a dedicated exit.');
+$check(!str_contains($studio,'class="workspace-sidebar"') && !str_contains($studio,'class="mobile-product-nav"'), 'Resume Studio renders without workspace navigation.');
+$check($xpath->query('//*[@id="workspace-sidebar-nav"]//a[@href="/store"]')->length===1, 'K-Store is a workspace destination.');
+$check($xpath->query('//a[@href="/settings" or @href="/token-activity" or @href="/payments" or @href="/store/activity" or @href="/store/payments"]')->length===0, 'Workspace navigation excludes the duplicate settings and store history pages.');
+$store=$render('store.html',$root,'/store?lang=ms');
+$check(str_contains($store,'<h1>K-Store</h1>') && str_contains($store,'href="/store/activity"') && str_contains($store,'href="/store/payments"'), 'K-Store links to both history pages.');
+$check(ReGen\Routes::returnTarget('/settings?lang=ms') === '/profile?lang=ms'
+    && ReGen\Routes::returnTarget('/payments?order=example') === '/store/payments?order=example'
+    && ReGen\Routes::returnTarget('/token-activity') === '/store/activity', 'Old candidate links retain the query and resolve to their canonical destinations.');
+$letter = $render('cover-letters.html', $root, '/cover-letters?lang=ms');
+$check(str_contains($letter,'Pratonton draf') && str_contains($letter,'id="letter-form"'), 'The cover-letter workspace renders the working preview and its form in Malay.');
+$check(!str_contains($letter,'class="workspace-sidebar"') && !str_contains($letter,'class="mobile-product-nav"'), 'Cover Letter Studio renders without workspace navigation.');
 $html=$render('maintenance.html',$root);
 $check(str_contains($html,'/js/maintenance.js?v=')&&str_contains($html,'/js/realtime.js?v='),'Maintenance must retain live status and automatic restoration scripts.');
 $check(!str_contains($html,'/js/service-centre.js')&&!str_contains($html,'/js/feedback.js'),'Maintenance must not load protected workspace notification code that can redirect back to itself.');

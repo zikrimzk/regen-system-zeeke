@@ -8,7 +8,7 @@ window.ReGenCampaigns = (() => {
   function reward(campaign) {
     if(!campaign.rewardEnabled)return '';
     if(campaign.active&&campaign.claimsReceived>0&&campaign.claimsRemaining===0)return '<span class="campaign-state">Reward received · '+campaign.claimsReceived+' '+(campaign.claimsReceived===1?'claim':'claims')+'</span>'; 
-    return `<p class="campaign-reward">${campaign.rewardAmount} bonus tokens per claim · ${campaign.claimsRemaining} ${campaign.claimsRemaining===1?'claim':'claims'} available to you${campaign.endsAt?' · Ends '+safe(date(campaign.endsAt)):''}</p>${campaign.canClaim?'<button class="btn btn-primary" type="button" data-campaign-claim>Claim '+campaign.rewardAmount+' tokens</button>':'<span class="campaign-state">'+(campaign.active?(campaign.claimsReceived>0&&campaign.claimsRemaining===0?'Your available rewards have been claimed.':'No reward is currently available for this account.'):'This reward is no longer available.')+'</span>'}`;
+    return `<p class="campaign-reward">${campaign.rewardAmount} bonus Coin per claim · ${campaign.claimsRemaining} ${campaign.claimsRemaining===1?'claim':'claims'} available to you${campaign.endsAt?' · Ends '+safe(date(campaign.endsAt)):''}</p>${campaign.canClaim?'<button class="btn btn-primary" type="button" data-campaign-claim>Claim '+campaign.rewardAmount+' Coin</button>':'<span class="campaign-state">'+(campaign.active?(campaign.claimsReceived>0&&campaign.claimsRemaining===0?'Your available rewards have been claimed.':'No reward is currently available for this account.'):'This reward is no longer available.')+'</span>'}`;
   }
   function bindClaim(container,campaign,updated) {
     container.querySelector('[data-campaign-claim]')?.addEventListener('click',async event=>{
@@ -18,7 +18,7 @@ window.ReGenCampaigns = (() => {
       const status=container.querySelector('[data-campaign-status]');
       if(!result.success){claimsInProgress.delete(campaign.id);status.textContent=result.message;button.disabled=false;button.textContent='Try claim again';return;}
       claimsInProgress.delete(campaign.id);references.delete(campaign.id);signature=null;updated(result.campaign);
-      container.querySelector('[data-campaign-status]').textContent=`${result.rewardGranted} bonus tokens received. Your bonus balance is ${result.bonus.balance}.`;
+      container.querySelector('[data-campaign-status]').textContent=`${result.rewardGranted} bonus Coin received. Your bonus balance is ${result.bonus.balance}.`;
       window.dispatchEvent(new CustomEvent('regen:bonus-updated'));window.ReGenAI?.force?.();
     });
   }
@@ -34,7 +34,7 @@ window.ReGenCampaigns = (() => {
     const result=await request('/api/campaigns/'+id);if(!result.success){window.dispatchEvent(new CustomEvent('regen:campaign-error',{detail:{message:result.message}}));return;}
     dialog?.close();dialog=document.createElement('dialog');dialog.className='campaign-dialog';dialog.setAttribute('aria-label','Announcement details');document.body.append(dialog);
     const render=campaign=>{
-      dialog.innerHTML=`<div class="campaign-detail campaign-${campaign.color}"><header><span class="campaign-kicker">ReGen announcement</span><button class="campaign-dismiss" type="button" aria-label="Close announcement"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><h2>${safe(campaign.title)}</h2><p class="campaign-body">${safe(campaign.body)}</p><div class="campaign-actions">${reward(campaign)}</div><p class="campaign-status" data-campaign-status role="status"></p>${campaign.rewardEnabled?'<p class="campaign-footnote">Bonus tokens remain until used. Each claim is recorded in your account history.</p>':''}</div>`;
+      dialog.innerHTML=`<div class="campaign-detail campaign-${campaign.color}"><header><span class="campaign-kicker">ReGen announcement</span><button class="campaign-dismiss" type="button" aria-label="Close announcement"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><h2>${safe(campaign.title)}</h2><p class="campaign-body">${safe(campaign.body)}</p><div class="campaign-actions">${reward(campaign)}</div><p class="campaign-status" data-campaign-status role="status"></p>${campaign.rewardEnabled?'<p class="campaign-footnote">Bonus Coin remain until used. Each claim is recorded in your account history.</p>':''}</div>`;
       dialog.querySelector('.campaign-dismiss').onclick=()=>dialog.close();bindClaim(dialog,campaign,render);
     };render(result.campaign);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
   }

@@ -6,15 +6,19 @@ $path=(string)parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if (preg_match('#^/(?:css|js|img|fonts|lib|samples)/#',$path) && is_file($root . '/public' . $path)) return false;
 if (in_array($path,['/favicon.svg','/favicon.ico','/manifest.webmanifest','/sw.js'],true)) return false;
 require $root . '/vendor/autoload.php';
-ReGen\Config::load($root);
+ReGen\Config::load(getenv('REGEN_HTTP_FIXTURE_CONFIG') ?: $root);
 $property=new ReflectionProperty(ReGen\Config::class,'values');
+$mail = isset($mailSinkPort) && is_int($mailSinkPort) && $mailSinkPort > 1024 && $mailSinkPort <= 65535 ? [
+    'mail.transport'=>'smtp','mail.smtp_host'=>'127.0.0.1','mail.smtp_port'=>$mailSinkPort,'mail.smtp_encryption'=>'none',
+    'mail.smtp_username'=>'fixture','mail.smtp_password'=>'local-test-only','mail.from_email'=>'mail@qa.regen.local','mail.reply_to'=>'',
+] : ['mail.transport'=>'disabled','mail.smtp_host'=>''];
 $property->setValue(null,array_replace($property->getValue(),[
     'db.name'=>$fixtureDatabase,'app.env'=>'testing','app.url'=>$base,'session.name'=>'regen_store_http','session.driver'=>'database',
-    'mail.transport'=>'disabled','mail.smtp_host'=>'','openai.api_key'=>'','google.client_id'=>'',
+    'openai.api_key'=>'','google.client_id'=>'',
     'recaptcha.site_key'=>'','recaptcha.secret_key'=>'','realtime.transport'=>'poll',
     'hitpay.mode'=>'disabled','hitpay.api_key'=>'','hitpay.sandbox_salt'=>$hitpayWebhookSalt??'','hitpay.live_salt'=>'',
     'mochi.enabled'=>$mockMochi ?? false,
-]));
+],$mail));
 set_exception_handler(static function(Throwable $error):void {ReGen\Http::json(['success'=>false,'message'=>$error->getMessage()],500);});
 ReGen\Http::applySecurityHeaders();
 ReGen\PublicSite::dispatch($root);
@@ -29,7 +33,12 @@ if ($mockMochi ?? false) {
         if (($payload['model'] ?? '') !== 'gpt-6-luna' || ($payload['store'] ?? null) !== false) {
             return ['status'=>400];
         }
-        if (isset($input['current_message'])) {
+        if (($input['conversation_mode'] ?? false) === true) {
+            if (($input['workspace_page'] ?? '') !== 'cover-letters'
+                || isset($input['shared_writing']) || isset($input['saved_professional_details'])) return ['status'=>422];
+            $reply = ['reply'=>'Practise one example aloud — then take a break.', 'mood'=>'bright','scope'=>'play','kind'=>'advice',
+                'suggestion'=>'','paragraphs'=>[],'evidence'=>[]];
+        } elseif (isset($input['current_message'])) {
             if ($input['current_message'] === 'Polish my resume: check rate limit') return ['status'=>429];
             if (str_contains($input['current_message'],'Use my saved resume.')
                 && (!isset($input['saved_professional_details']) || str_contains(json_encode($input['saved_professional_details']),'@qa.regen.local'))) return ['status'=>422];

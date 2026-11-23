@@ -20,17 +20,11 @@ for (const {id} of templates) {
       .toFile(path.join(destination,`${id}-${width}.webp`));
   }
 }
-// Lossless encoding preserves the supplied transparent wordmark exactly.
-await sharp(path.join(root,'public/img/brand-wordmark.png')).webp({lossless:true,effort:6})
-  .toFile(path.join(root,'public/img/brand-wordmark.webp'));
+// Lossless encoding preserves transparency in the responsive wordmarks.
 for (const width of [116,232,348]) {
   await sharp(path.join(root,'public/img/brand-wordmark.png')).resize(width)
     .webp({lossless:true,effort:6}).toFile(path.join(root,`public/img/brand-wordmark-${width}.webp`));
 }
-for (const width of [32,96]) {
-  await sharp(path.join(root,'public/img/app-icon-192.png')).resize(width,width)
-    .webp({lossless:true,effort:6}).toFile(path.join(root,`public/img/app-mark-${width}.webp`));
-}
 const before = (await stat(path.join(root,'public/img/brand-wordmark.png'))).size;
-const after = (await stat(path.join(root,'public/img/brand-wordmark.webp'))).size;
-console.log(`Wordmark: ${before} → ${after} bytes. Generated ${templates.length*3} responsive template previews and two display-size app marks.`);
+const after = (await stat(path.join(root,'public/img/brand-wordmark-348.webp'))).size;
+console.log(`Wordmark source and largest responsive variant: ${before} → ${after} bytes. Generated ${templates.length*3} responsive template previews.`);

@@ -1,9 +1,10 @@
-const CACHE_VERSION = 'regen-public-20261115-kerjaya';
+const CACHE_VERSION = 'regen-public-20261123-k-store';
 const POLICY_CACHE = 'regen-storage-policy-v1';
 const POLICY_KEY = '/__regen_storage_policy__';
-const SHELL = ['/offline', '/css/site.css', '/css/mochi.css', '/js/theme.js', '/js/interface.js', '/js/privacy.js', '/js/document-preview.js', '/js/landing.js', '/js/commerce-ui.js', '/js/landing-pricing.js', '/js/pwa.js', '/fonts/Inter-Latin.woff2', '/fonts/Inter-Regular.woff2', '/fonts/Inter-SemiBold.woff2', '/demo/templates/modern', '/img/brand-wordmark-116.webp', '/img/app-mark-32.webp', '/img/app-mark-96.webp', '/manifest.webmanifest'];
-const publicAsset = path => /^(?:\/css\/[a-z0-9-]+\.css|\/js\/[a-z0-9-]+\.js|\/fonts\/[a-z0-9-]+\.(?:ttf|woff2)|\/img\/(?:brand-wordmark(?:-(?:116|232|348))?|app-mark-(?:32|96)|app-icon-192|app-icon-512|app-icon-maskable|apple-touch-icon|social-preview|app-preview-wide|app-preview-narrow)\.(?:png|jpg|webp)|\/img\/templates\/(?:classic|executive|modern|minimal|editorial|precision|heritage|horizon|signature|essential|graduate|atlas|meridian|keystone|counsel|impact)-(?:320|640|1280)\.webp|\/samples\/(?:classic|executive|modern|minimal|editorial|precision|heritage|horizon|signature|essential|graduate|atlas|meridian|keystone|counsel|impact)\.pdf|\/manifest\.webmanifest)$/i.test(path);
+const SHELL = ['/offline', '/css/site.css', '/js/theme.js', '/js/interface.js', '/js/privacy.js', '/js/public-product.js', '/js/commerce-ui.js', '/js/landing-pricing.js', '/js/pwa.js', '/fonts/Inter-Latin.woff2', '/img/mochi-coach.webp', '/manifest.webmanifest'];
+const publicAsset = path => /^(?:\/css\/[a-z0-9-]+\.css|\/js\/[a-z0-9-]+\.js|\/fonts\/[a-z0-9-]+\.(?:ttf|woff2)|\/img\/(?:brand-wordmark(?:-(?:116|232|348))?|app-icon-192|app-icon-512|app-icon-maskable|apple-touch-icon|social-preview|app-preview-wide|app-preview-narrow)\.(?:png|jpg|webp)|\/img\/templates\/(?:classic|executive|modern|minimal|editorial|precision|heritage|horizon|signature|essential|graduate|atlas|meridian|keystone|counsel|impact)-(?:320|640|1280)\.webp|\/samples\/(?:classic|executive|modern|minimal|editorial|precision|heritage|horizon|signature|essential|graduate|atlas|meridian|keystone|counsel|impact)\.pdf|\/manifest\.webmanifest)$/i.test(path);
 const publicDemo = path => path === '/site/templates.json' || /^\/demo\/(?:templates|letters)\/(?:classic|executive|modern|minimal|editorial|precision|heritage|horizon|signature|essential|graduate|atlas|meridian|keystone|counsel|impact)$/.test(path);
+const marketingAsset = path => /^\/img\/marketing\/studios\/(?:workspace|resume-(?:desktop|mobile(?:-2x)?)|letter-(?:desktop|mobile(?:-2x)?))-(?:en|ms)\.webp$/.test(path);
 let policy;
 let policyExpires = 0;
 let policyRevision = 0;
@@ -50,17 +51,23 @@ async function warmAssets() {
   }
   const landing = await warmPath('/').catch(() => null);
   const versioned = new Map();
-  let heroSample;
+  const heroImages = new Set();
   if (landing?.ok) {
     const html = await landing.text();
     const assetReferences = /\b(?:href|src)="(\/(?:css|js)\/[a-z0-9-]+\.(?:css|js))\?v=([a-f0-9]{12})"/gi;
     for (const [, path, version] of html.matchAll(assetReferences)) versioned.set(path, `${path}?v=${version}`);
     const image = html.match(/<img id="hero-document-image" src="(\/img\/templates\/[a-z]+-320\.webp)"/i)?.[1];
-    if (image && publicAsset(image)) heroSample = image;
+    if (image && publicAsset(image)) heroImages.add(image);
+    for (const [, source] of html.matchAll(/<img src="(\/img\/marketing\/studios\/[^"]+)"[^>]*>/gi)) {
+      if (marketingAsset(new URL(source,self.location.origin).pathname) && /\/(workspace|letter-mobile)-/.test(source)) heroImages.add(source);
+    }
+    for (const [, source] of html.matchAll(/(\/img\/marketing\/studios\/letter-mobile-2x-(?:en|ms)\.webp(?:\?v=[a-f0-9]{12})?) 780w/g)) {
+      heroImages.add(source);
+    }
   }
   if (policy && revision === policyRevision) {
     const paths = SHELL.map(path => versioned.get(path) || path);
-    if (heroSample) paths.push(heroSample);
+    paths.push(...heroImages);
     await Promise.allSettled(paths.map(warmPath));
   }
 }
@@ -103,7 +110,8 @@ self.addEventListener('fetch',event => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (request.mode === 'navigate' && !publicDemo(url.pathname) && !publicAsset(url.pathname)) {
+  const isPublicAsset = publicAsset(url.pathname) || marketingAsset(url.pathname) || url.pathname === '/img/mochi-coach.webp';
+  if (request.mode === 'navigate' && !publicDemo(url.pathname) && !isPublicAsset) {
     if (url.pathname === '/' || url.pathname === '/offline') {
       event.respondWith((async () => {
         const enabled = await allowed();
@@ -124,7 +132,7 @@ self.addEventListener('fetch',event => {
     }
     return;
   }
-  if (!publicAsset(url.pathname) && !publicDemo(url.pathname)) return;
+  if (!isPublicAsset && !publicDemo(url.pathname)) return;
   event.respondWith((async () => {
     if (!await allowed()) {
       try {return await fetch(request);} catch {return request.mode === 'navigate' ? offlinePage() : Response.error();}
@@ -136,6 +144,10 @@ self.addEventListener('fetch',event => {
       const response = await fetch(request);
       await remember(request,response);
       return response;
-    } catch {return (!url.search && await cache.match(url.pathname)) || Response.error();}
+    } catch {
+      const exact = !url.search && await cache.match(url.pathname);
+      if (exact) return exact;
+      return Response.error();
+    }
   })());
 });

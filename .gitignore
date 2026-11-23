@@ -16,3 +16,11 @@ tmp/
 output/
 release/
 storage/
+
+# Generated browser captures and traces beside historical reviews.
+/docs/kerjayaku/phase-*/screenshots/
+/docs/kerjayaku/phase-*/verification/
+/docs/kerjayaku/phase-*/evidence/
+/docs/kerjaya/phase-02d/screenshots/
+/prototypes/kerjaya/phase-02d/screenshots/
+/prototypes/kerjaya/phase-02d/capture-results.json

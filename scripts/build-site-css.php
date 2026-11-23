@@ -3,15 +3,8 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $root = dirname(__DIR__);
 $parts = [];
-foreach (['tokens','main','landing','token-store','site-controls','privacy','public-interface'] as $name) {
-    $part=file_get_contents($root . '/public/css/' . $name . '.css');
-    // The public catalogue shares package cards, but never needs private spending dialogs.
-    if ($name==='token-store') {
-        $part=preg_replace('~\.token-store-main\{.*?(?=\.token-package-grid\{)~s','',$part,1);
-        $part=preg_replace('~\.token-owned-grid\{.*?(?=@media\(prefers-reduced-motion)~s','',$part,1);
-        $part=preg_replace('~\.feature-access-page\{.*?(?=@media\(min-width:380px\))~s','',$part,1);
-    }
-    $parts[]=$part;
+foreach (['tokens','main','landing','site-controls','privacy','public-interface','commercial','commercial-pricing','public-footer'] as $name) {
+    $parts[]=file_get_contents($root . '/public/css/' . $name . '.css');
 }
 // Whitespace is compacted only outside strings; calc() operator spacing is preserved.
 $css = implode("\n", $parts);

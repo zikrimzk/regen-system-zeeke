@@ -30,7 +30,7 @@ try {
     $db->exec("UPDATE feature_prices SET mode='free',token_cost=0 WHERE feature_key='templates'");
     (new ResumeRepository($db))->getOrCreatePrimary($other, (new UserRepository($db))->findById($other), 'Second synthetic resume');
 
-    $call = static function (string $role, string $path, string $method = 'GET', ?array $payload = null, string $csrf = '') use ($fixture): array {
+    $call = static function (string $role, string $path, string $method = 'GET', ?array $payload = null, string $csrf = '', array $extraHeaders = []) use ($fixture): array {
         $handle = curl_init($fixture->base . $path);
         $jar = $fixture->directory . '/' . $role . '.cookies';
         $headers = ['Accept: application/json'];
@@ -38,7 +38,7 @@ try {
         if ($csrf !== '') $headers[] = 'X-CSRF-Token: ' . $csrf;
         curl_setopt_array($handle, [
             CURLOPT_RETURNTRANSFER=>true, CURLOPT_HEADER=>true, CURLOPT_TIMEOUT=>15, CURLOPT_CUSTOMREQUEST=>$method,
-            CURLOPT_COOKIEFILE=>$jar, CURLOPT_COOKIEJAR=>$jar, CURLOPT_HTTPHEADER=>$headers,
+            CURLOPT_COOKIEFILE=>$jar, CURLOPT_COOKIEJAR=>$jar, CURLOPT_HTTPHEADER=>[...$headers, ...$extraHeaders],
         ]);
         if ($payload !== null) curl_setopt($handle, CURLOPT_POSTFIELDS, json_encode($payload, JSON_THROW_ON_ERROR));
         $response = curl_exec($handle);
@@ -57,12 +57,36 @@ try {
     $signedIn = $call('candidate', '/api/auth/login', 'POST', ['email'=>'amina@qa.regen.local','password'=>'New-Password-567890']);
     $check($signedIn['status'] === 200 && $signedIn['data']['redirect'] === $target, 'Sign-in did not restore the intended editor.');
     $candidateCsrf = $signedIn['data']['csrfToken'];
+    foreach ($db->query('SELECT sid, session_data FROM app_sessions')->fetchAll() as $row) {
+        $envelope = json_decode($row['session_data'], true);
+        $payload = base64_decode($envelope['payload'], true);
+        if ($payload === false || !str_contains($payload, 'userId|i:' . $user . ';')) continue;
+        $oldActivity = time() - 8 * 60;
+        $envelope['payload'] = base64_encode(preg_replace('/lastActivityAt\|i:\d+;/', 'lastActivityAt|i:' . $oldActivity . ';', $payload));
+        $db->prepare('UPDATE app_sessions SET session_data=? WHERE sid=?')->execute([json_encode($envelope), $row['sid']]);
+    }
+    $check($call('candidate', '/api/auth/me')['status'] === 200, 'A regular candidate session survives more than five idle minutes.');
     $check($call('candidate', $target)['status'] === 200, 'Owned editor shell did not load.');
     $otherLogin = $call('other', '/api/auth/login', 'POST', ['email'=>'other@qa.regen.local','password'=>'Qa-Other-567890']);
     $check($otherLogin['status'] === 200 && $call('other', "/api/resume/$resume")['status'] === 404, 'Second candidate must not read the private resume.');
     $check($call('other', "/api/pdf/$resume/document")['status'] === 404, 'Second candidate must not render the private resume.');
     $letter = $call('candidate', '/api/cover-letters', 'POST',
         ['company'=>'Fictional Company','role'=>'Tester','body'=>'This is a synthetic cover letter.'], $candidateCsrf);
+    $draft = ['letter'=>['company'=>'Draft Company','role'=>'Draft Role','body'=>'This is an unsaved synthetic paragraph.'],
+        'appearance'=>['headerAlign'=>'center','color'=>'navy','letterSignoff'=>'regards']];
+    $before = (int) $db->query("SELECT COUNT(*) FROM cover_letters WHERE user_id=$user")->fetchColumn();
+    $proof = $call('candidate', '/api/cover-letters/document', 'POST', $draft, $candidateCsrf, ['X-ReGen-Preview: automatic']);
+    $check($proof['status'] === 200 && str_starts_with($proof['body'], '%PDF-') && str_contains($proof['headers'], 'Cache-Control: private, no-store'), 'The private draft endpoint returns an actual PDF.');
+    $check((int) $db->query("SELECT COUNT(*) FROM cover_letters WHERE user_id=$user")->fetchColumn() === $before, 'Previewing a draft never creates a cover letter.');
+    $check($call('anonymous', '/api/cover-letters/document', 'POST', $draft)['status'] === 401, 'Draft letter previews require authentication.');
+    $check($call('candidate', '/api/cover-letters/document', 'POST', ['letter'=>['letter_date'=>'bad date']], $candidateCsrf)['status'] === 422, 'Draft preview validates dates.');
+    $db->exec("UPDATE feature_prices SET mode='package_only' WHERE feature_key IN ('document_preview','resume_rename')");
+    $check($call('candidate', '/api/cover-letters/document', 'POST', $draft, $candidateCsrf, ['X-ReGen-Preview: automatic'])['status'] === 403, 'Automatic preview respects package entitlement.');
+    $rename = "/api/dashboard/$resume/title";
+    $check($call('candidate', $rename, 'PATCH', ['title'=>'New title'], $candidateCsrf)['status'] === 403, 'Resume titles require rename access.');
+    $db->exec("UPDATE feature_prices SET mode='free' WHERE feature_key IN ('document_preview','resume_rename')");
+    $check($call('candidate', $rename, 'PATCH', ['title'=>' New title '], $candidateCsrf)['data']['title'] === 'New title', 'Rename returns the normalized title.');
+    $check($call('other', $rename, 'PATCH', ['title'=>'Wrong owner'], $otherLogin['data']['csrfToken'])['status'] === 404, 'A different account cannot rename the resume.');
     $check($letter['status'] === 201, 'Synthetic cover letter was not saved.');
     $letterId = $letter['data']['data']['id'];
     $check($call('other', "/api/cover-letters/$letterId")['status'] === 404, 'Second candidate must not read the private cover letter.');
@@ -108,7 +132,12 @@ try {
         if (!in_array($group, ['candidate','auth'], true)) continue;
         $blocked = $call('candidate', $path);
         $check($blocked['status'] === 503 && str_contains($blocked['headers'], 'Cache-Control: no-store'), 'Maintenance must block ' . $path);
-        $check($call('candidate', $path . '.html')['status'] === 503, 'Maintenance must block legacy ' . $path);
+        $legacy = match ($path) {
+            '/store/activity' => '/token-activity.html',
+            '/store/payments' => '/payments.html',
+            default => $path . '.html',
+        };
+        $check($call('candidate', $legacy)['status'] === 503, 'Maintenance must block legacy ' . $path);
     }
     $blocked = $call('candidate', '/payments/result.html?order=RG-0123456789abcdef0123456789abcdef');
     $check(str_contains($blocked['body'], 'data-return-to="/payments/result?order=RG-0123456789abcdef0123456789abcdef"'), 'Maintenance must preserve the payment return reference.');

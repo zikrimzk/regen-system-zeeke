@@ -148,7 +148,7 @@ const ExperienceSection = (() => {
     if (checkbox.checked) endInput.value = '';
   }
 
-  function getData() {
+  function getData(validate = true) {
     let isValid = true;
     const data = [];
 
@@ -165,16 +165,17 @@ const ExperienceSection = (() => {
       const isCurr  = card.querySelector('.exp-current').checked;
 
       [title, company, start].forEach(el => {
+        if (!validate) return;
         if (!el.value.trim()) { el.classList.add('is-error'); isValid = false; }
         else el.classList.remove('is-error');
       });
 
-      if (!isCurr && !end.value.trim()) { end.classList.add('is-error'); isValid = false; }
-      else end.classList.remove('is-error');
+      if (validate && !isCurr && !end.value.trim()) { end.classList.add('is-error'); isValid = false; }
+      else if (validate) end.classList.remove('is-error');
 
       const bullets = ReGenPoints.lines(card.querySelector('.exp-bullet-input').value);
 
-      if (isValid) {
+      if (isValid || !validate) {
         data.push({
           jobTitle:  window.ZeekeSafe.value(title),
           company:   window.ZeekeSafe.value(company),
@@ -191,8 +192,8 @@ const ExperienceSection = (() => {
       }
     });
 
-    return { isValid, data: isValid ? data : null };
+    return { isValid, data: isValid || !validate ? data : null };
   }
 
-  return { render, attachEvents, getData, removeEntry, toggleCurrent };
+  return { render, attachEvents, getData, getWorkingData: () => getData(false).data, removeEntry, toggleCurrent };
 })();

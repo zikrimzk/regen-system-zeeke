@@ -73,34 +73,47 @@
   <meta name="regen-preview-version" content="{{PREVIEW_VERSION}}">
 <link rel="stylesheet" href="/css/studio.css">
 </head>
-<body class="user-workspace builder-page">
+<body class="user-workspace builder-page studio-workbench">
   <a class="skip-link" href="#step-content">{{i18n.common.skip}}</a>
   <div id="toast-container"></div>
   <div id="page-loader" role="status" aria-hidden="true"><div class="spinner" aria-hidden="true"></div><p>Saving...</p></div>
 
   {{WORKSPACE_HEADER}}
 
-  <header class="studio-command-bar" aria-label="{{i18n.studio.title}}">
-    <div class="studio-identity"><a href="/resumes">{{i18n.nav.resumes}}</a><h1 id="studio-document-title">{{i18n.studio.title}}</h1></div>
-    <div class="studio-commands">
-      <button type="button" id="change-resume-template" class="btn btn-secondary">{{i18n.demo.design}}</button>
-      <button type="button" id="resume-layout-settings" class="btn btn-secondary">{{i18n.studio.pageSettings}}</button>
-      <button type="button" id="preview-open-top" class="btn btn-secondary">{{i18n.common.preview}}</button>
-      <button type="button" id="studio-review" class="btn btn-primary">{{i18n.studio.reviewExport}}</button>
-    </div>
-    <div class="studio-mobile-modes">
-      <button type="button" class="editor-sections-open" id="studio-sections-open" aria-haspopup="dialog">{{i18n.studio.sectionsShort}}</button>
-      <div class="studio-mode-switch" role="group" aria-label="{{i18n.studio.viewMode}}">
-        <button type="button" id="studio-write-mode" aria-controls="step-content" aria-pressed="true">{{i18n.studio.write}}</button>
-        <button type="button" id="studio-preview-mode" aria-controls="preview-modal" aria-pressed="false" data-price-feature="document_preview" data-price-base="{{i18n.common.preview}}">{{i18n.common.preview}}</button>
+  <header class="studio-command-bar workbench-header" aria-label="{{i18n.studio.title}}">
+    <div class="workbench-identity">{{STUDIO_BACK}}<div class="studio-identity"><span>{{i18n.studio.title}}</span><div class="studio-name-line"><h1 id="studio-document-title">{{i18n.dashboard.untitled}}</h1>
+      <button type="button" id="resume-rename" class="studio-icon" aria-haspopup="dialog" title="{{i18n.studio.rename}}">{{icon.edit}}<span class="sr-only">{{i18n.studio.rename}}</span></button></div></div></div>
+    <div class="workbench-tools">
+      <div class="studio-mobile-modes">
+        <button type="button" id="studio-sections-open" class="studio-icon " title="{{i18n.studio.structure}}" aria-haspopup="dialog" aria-controls="editor-sections">{{icon.sections}}<span class="sr-only">{{i18n.studio.structure}}</span></button>
+        <div class="studio-mode-switch" role="group" aria-label="{{i18n.studio.viewMode}}">
+          <button type="button" id="studio-write-mode" class="studio-icon " title="{{i18n.studio.write}}" aria-controls="step-content" aria-pressed="true">{{icon.edit}}<span class="sr-only">{{i18n.studio.write}}</span></button>
+          <button type="button" id="studio-preview-mode" class="studio-icon " title="{{i18n.common.preview}}" aria-controls="preview-modal" aria-pressed="false" data-price-feature="document_preview" data-price-base="{{i18n.common.preview}}">{{icon.eye}}<span class="sr-only">{{i18n.common.preview}}</span></button>
+        </div>
+      </div>
+      <div class="studio-commands">
+        <button type="button" id="change-resume-template" class="studio-icon " title="{{i18n.demo.design}}">{{icon.templates}}<span class="sr-only">{{i18n.demo.design}}</span></button>
+        <button type="button" id="resume-layout-settings" class="studio-icon " title="{{i18n.studio.pageSettings}}">{{icon.settings}}<span class="sr-only">{{i18n.studio.pageSettings}}</span></button>
+        <button type="button" id="preview-open-top" class="studio-icon " title="{{i18n.common.preview}}">{{icon.eye}}<span class="sr-only">{{i18n.common.preview}}</span></button>
+        <button type="button" id="studio-review" class="studio-icon studio-primary" title="{{i18n.studio.reviewExport}}">{{icon.check}}<span class="tool-label">{{i18n.studio.reviewExport}}</span></button>
       </div>
     </div>
   </header>
+  <section class="studio-start" id="studio-start" hidden aria-labelledby="studio-start-title">
+    <h1 id="studio-start-title">{{i18n.studio.title}}</h1>
+    <p id="studio-start-message">{{i18n.dashboard.emptyText}}</p>
+    <a class="btn btn-primary" href="/templates">{{i18n.dashboard.choose}}</a>
+    <a class="btn btn-secondary" href="/builder" id="studio-recover" hidden>{{i18n.common.retry}}</a>
+  </section>
   <div class="builder-layout">
     <div class="builder-left">
       <div id="stepper-wrap">
         <div class="stepper-sidebar-head">
           <h2>{{i18n.studio.structure}}</h2>
+          <button class="btn btn-ghost structure-toggle" id="studio-structure-toggle" type="button"
+            title="{{i18n.studio.structureToggle}}" aria-label="{{i18n.studio.structureToggle}}" aria-controls="stepper-track" aria-expanded="true">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m7-11-3 3 3 3"/></svg>
+          </button>
         </div>
         <div class="stepper-meta">
           <div class="stepper-step-label" id="progress-label">01 / 11 · Personal</div>
@@ -119,41 +132,44 @@
       <main tabindex="-1" id="step-content" role="main"></main>
 
       <div class="nav-bar">
-        <button type="button" class="btn btn-secondary" id="btn-back" aria-label="Previous section">
-          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
-          <span class="back-label">{{i18n.studio.back}}</span>
-        </button>
-        <button type="button" class="editor-sections-open" id="editor-sections-open" aria-haspopup="dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg>{{i18n.studio.structure}}</button>
+        <button type="button" id="btn-back" class="studio-icon " title="{{i18n.studio.previousSection}}">{{icon.back}}<span class="sr-only">{{i18n.studio.previousSection}}</span></button>
         <div class="builder-nav-center">
-          <button type="button" class="btn btn-ghost" id="studio-save" disabled>{{i18n.studio.save}}</button>
+          <div class="workbench-section-position" aria-live="polite"><strong id="mobile-section-title">{{i18n.nav.personal}}</strong><span id="mobile-section-count"></span></div>
+          <button type="button" id="studio-save" class="studio-icon " title="{{i18n.studio.save}}" disabled>{{icon.save}}<span class="sr-only">{{i18n.studio.save}}</span></button>
           <div id="save-indicator" class="save-indicator is-saved" role="status" aria-live="polite">
-            <span class="save-dot"></span>
-            <span class="save-label">{{i18n.studio.saved}}</span>
-          </div><button type="button" class="save-retry" id="save-retry" hidden>{{i18n.studio.retrySave}}</button>
+            <span class="save-dot"></span><span class="save-label">{{i18n.studio.saved}}</span>
+          </div>
+          <button type="button" id="save-retry" class="studio-icon save-retry" title="{{i18n.studio.retrySave}}" hidden>{{icon.retry}}<span class="sr-only">{{i18n.studio.retrySave}}</span></button>
         </div>
-        <button type="button" class="btn btn-primary" id="btn-next">
-          {{i18n.studio.next}}
-          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
-        </button>
+        <button type="button" id="btn-next" class="studio-icon studio-primary" title="{{i18n.studio.next}}">{{icon.next}}<span class="sr-only">{{i18n.studio.next}}</span></button>
       </div>
     </div>
     <aside class="studio-preview" id="studio-preview" aria-labelledby="studio-preview-title">
       <header class="studio-preview-header">
-        <h2 id="studio-preview-title">{{i18n.studio.savedPreview}}</h2>
-        <button type="button" id="studio-preview-refresh" class="btn btn-secondary" data-price-feature="document_preview" data-price-base="{{i18n.studio.refreshPreview}}">{{i18n.studio.refreshPreview}}</button>
+        <h2 id="studio-preview-title">{{i18n.studio.pdfCanvas}}</h2>
+        <button type="button" id="studio-preview-refresh" class="studio-icon " title="{{i18n.studio.checkPdf}}" data-price-feature="document_preview" data-price-base="{{i18n.studio.checkPdf}}">{{icon.expand}}<span class="sr-only">{{i18n.studio.checkPdf}}</span></button>
       </header>
       <p id="studio-preview-status" class="studio-preview-status" role="status">{{i18n.studio.previewHelp}}</p>
       <div class="studio-preview-scroll">
         <figure id="studio-preview-sample" class="studio-preview-sample"><img width="320" height="453" alt="" hidden><figcaption>{{i18n.dashboard.designExample}}</figcaption></figure>
-        <div id="studio-pdf-pages" class="pdf-pages" hidden></div>
+        <div id="studio-pdf-pages" class="live-proof"></div>
       </div>
     </aside>
   </div>
 
+  <dialog id="resume-rename-dialog" class="studio-rename-dialog" aria-labelledby="resume-rename-title">
+    <header><h2 id="resume-rename-title">{{i18n.studio.rename}}</h2><button type="button" class="studio-icon" data-close title="{{i18n.common.close}}">{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button></header>
+    <form><p class="studio-rename-intro">{{i18n.studio.renameDescription}}</p><label for="resume-title-input">{{i18n.studio.resumeTitle}}</label>
+      <input id="resume-title-input" name="title" maxlength="200" required>
+      <p role="alert"></p>
+      <p class="studio-rename-allowance" aria-live="polite" hidden></p>
+      <button class="btn btn-primary" type="submit">{{icon.check}}{{i18n.studio.saveTitle}}</button>
+    </form>
+  </dialog>
   <dialog id="editor-sections" class="editor-sections-dialog" aria-labelledby="editor-sections-title">
-    <div class="editor-sheet-head"><h2 id="editor-sections-title">{{i18n.studio.structure}}</h2><button class="btn btn-secondary" type="button" id="editor-sections-close" aria-label="Close sections">&#215;</button></div>
-    <p class="editor-sheet-help">Work in any order. Your details stay with you.</p>
-    <nav class="mobile-section-list" id="mobile-section-list" aria-label="Resume sections"></nav>
+    <div class="editor-sheet-head"><h2 id="editor-sections-title">{{i18n.studio.structure}}</h2><button type="button" id="editor-sections-close" class="studio-icon " title="{{i18n.common.close}}">{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button></div>
+    <p class="editor-sheet-help">{{i18n.studio.sectionsHelp}}</p>
+    <nav class="mobile-section-list" id="mobile-section-list" aria-label="{{i18n.studio.structure}}"></nav>
     <div class="sheet-settings"><button type="button" class="btn btn-secondary" data-editor-action="change-resume-template">{{i18n.demo.design}}</button><button type="button" class="btn btn-secondary" data-editor-action="resume-layout-settings">{{i18n.studio.pageSettings}}</button></div>
   </dialog>
   <div id="preview-modal" class="hidden" role="dialog" aria-modal="true" aria-label="{{i18n.dashboard.preview}}">
@@ -179,7 +195,7 @@
       </div>
       <div class="preview-stage">
         <div class="preview-page-shell" id="preview-page-shell">
-          <div id="preview-pdf-pages" class="pdf-pages"></div>
+          <div id="preview-pdf-pages" class="live-proof"></div>
         </div>
       </div>
     </div>
@@ -190,6 +206,7 @@
   <script src="/js/points.js?v=20261105r15"></script>
   <script src="/js/document-settings.js?v=20261105r15"></script>
   <script src="/js/pdf-pages.js?v=20261105r15"></script>
+  <script src="/js/live-document-preview.js"></script>
   <script src="/js/ai-enhance.js?v=20261105r15"></script>
   <script src="/js/assist-me.js?v=20261105r15"></script>
   <script src="/js/lookups.js?v=20261105r15"></script>

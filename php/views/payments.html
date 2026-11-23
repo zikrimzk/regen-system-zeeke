@@ -16,12 +16,12 @@
 <body class="user-workspace store-page">
   <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
   {{WORKSPACE_HEADER}}
-  <main class="token-store-main payments-main" id="main-content" tabindex="-1">
+  <main class="token-store-main payments-main k-store-main k-store-history" id="main-content" tabindex="-1">
     <header class="payment-page-header" id="payment-history-heading" hidden>
-      <div><a href="/store" class="text-link">← {{i18n.nav.billing}}</a><h1>{{i18n.nav.payments}}</h1>
-      <p>Review your purchases, payment status and refunds.</p></div>
+      <div><h1>{{i18n.nav.payments}}</h1><p>{{i18n.store.paymentsHelp}}</p></div>
       <button type="button" class="btn btn-secondary" id="refresh-payments">Refresh</button>
     </header>
+    {{STORE_NAVIGATION}}
     <section id="payment-return" aria-live="polite" hidden></section>
     <p id="payment-status" role="status">Loading payments…</p>
     <section id="payment-history-view" aria-label="Your payments" hidden>

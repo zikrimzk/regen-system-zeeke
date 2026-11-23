@@ -24,12 +24,12 @@ final class Session
             if ($target !== null) return $target;
         }
         if (($payment['until']??0)>time() && PaymentOrders::validReference($payment['reference']??null)) {
-            return (!empty($payment['result'])?'/payments/result':'/payments').'?order='.$payment['reference'];
+            return (!empty($payment['result'])?'/payments/result':'/store/payments').'?order='.$payment['reference'];
         }
         return $store?'/store':'/dashboard';
     }
     public const USER_TTL = 2592000;
-    public const USER_IDLE_TTL = 300;
+    public const USER_IDLE_TTL = 7200;
     private const DEFAULT_ABSOLUTE_TTL = 86400;
     private const GOOGLE_LINK_TTL = 600;
     private const ROTATE_INTERVAL = 900;
@@ -269,7 +269,7 @@ final class Session
         $remember = $userSession && ($_SESSION['rememberMe'] ?? false) === true;
         $absoluteTtl = $remember ? self::USER_TTL
             : min(self::DEFAULT_ABSOLUTE_TTL, (int) Config::get('session.ttl', self::DEFAULT_ABSOLUTE_TTL));
-        $idleTtl = $userSession ? ($remember ? $absoluteTtl : self::USER_IDLE_TTL)
+        $idleTtl = $userSession ? ($remember ? $absoluteTtl : min($absoluteTtl, (int) Config::get('session.candidate_idle_ttl', self::USER_IDLE_TTL)))
             : min($absoluteTtl, (int) Config::get('session.idle_ttl', 7200));
         $loginAt = (int) ($_SESSION['loginAt'] ?? 0);
         $lastActivityAt = (int) ($_SESSION['lastActivityAt'] ?? $now);

@@ -341,6 +341,8 @@ document.addEventListener('DOMContentLoaded', () => {
     button.title = label;
   }
 
+  const authCopy = (key, fallback) => window.ReGenText?.get('commercial.' + key, fallback) ?? fallback;
+
   // ── PASSWORD TOGGLES ──────────────────────────────────────────
   document.querySelectorAll('.auth-password-toggle').forEach(btn => {
     setPasswordToggle(btn, false);
@@ -418,14 +420,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (val.match(/[^A-Za-z0-9]/)) score++;
 
       let color = 'var(--danger)';
-      let text = 'Weak';
+      let text = authCopy('authWeak', 'Weak');
       let pct = '25%';
 
       if (val.length === 0) { pct = '0%'; text = 'Use at least 10 characters'; color = 'var(--border)'; }
       else if (val.length < 10) { pct = '18%'; text = 'Too short'; color = 'var(--danger)'; }
-      else if (score <= 2) { pct = '45%'; text = 'Fair'; color = 'var(--warn)'; }
-      else if (score <= 4) { pct = '75%'; text = 'Good'; color = 'var(--accent)'; }
-      else { pct = '100%'; text = 'Strong'; color = 'var(--success)'; }
+      else if (score <= 2) { pct = '45%'; text = authCopy('authFair', 'Fair'); color = 'var(--warn)'; }
+      else if (score <= 4) { pct = '75%'; text = authCopy('authGood', 'Good'); color = 'var(--accent)'; }
+      else { pct = '100%'; text = authCopy('authStrong', 'Strong'); color = 'var(--success)'; }
 
       if (fill) { fill.style.width = pct; fill.style.backgroundColor = color; }
       if (label) { label.textContent = text; label.style.color = val.length ? color : 'var(--text-3)'; }
@@ -466,30 +468,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const googleError = googleErrors[authParams.get('google_error')];
     if (authParams.get('email_verified') === '1') {
-      loginNotice.textContent = 'Email verified. You can now sign in.';
+      loginNotice.textContent = authCopy('authVerified', 'Email verified. You can now sign in.');
       loginNotice.classList.add('visible', 'notice');
       const rememberedEmail = recalledVerificationEmail();
       if (rememberedEmail) loginEmail.value = rememberedEmail;
     } else if (authParams.get('verification_error') === 'invalid') {
       loginNotice.replaceChildren(
-        document.createTextNode('This verification link is invalid or has expired. '),
+        document.createTextNode(authCopy('authVerifyInvalid', 'This verification link is invalid or has expired.') + ' '),
         Object.assign(document.createElement('a'), {
           href: '/verify-email?state=invalid',
-          textContent: 'Request a new link',
+          textContent: authCopy('authNewLink', 'Request a new link'),
         })
       );
       loginNotice.classList.add('visible');
     } else if (authParams.get('google_link') === '1') {
-      loginNotice.textContent = 'This email already has a ReGen account. Log in once with your password to connect Google securely.';
+      loginNotice.textContent = authCopy('authGoogleLink', 'Sign in once with your account password to connect Google securely.');
       loginNotice.classList.add('visible', 'notice');
     } else if (authParams.get('expired') === '1') {
-      loginNotice.textContent = 'Your secure session expired. Log in again to continue.';
+      loginNotice.textContent = authCopy('authExpired', 'Your session expired. Sign in again to continue.');
       loginNotice.classList.add('visible', 'notice');
     } else if (googleError) {
-      loginNotice.textContent = googleError;
+      loginNotice.textContent = authCopy('authGoogle', googleError);
       loginNotice.classList.add('visible');
     } else if (authParams.get('registered') === '1') {
-      loginNotice.textContent = 'Account created. Verify your email before signing in.';
+      loginNotice.textContent = authCopy('authVerify', 'Check your email to verify your account.');
       loginNotice.classList.add('visible', 'notice');
     }
 
@@ -500,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const btn = document.getElementById('login-btn');
       btn.disabled = true;
-      btn.textContent = 'Logging in...';
+      btn.textContent = authCopy('authLoading', 'Signing you in…');
 
       const data = {
         email:    window.ZeekeSafe.cleanText(loginEmail.value),
@@ -512,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.assign(data, await getRecaptcha('login'));
         const res = await Api.login(data);
         if (res.success) {
+          loginForm.dispatchEvent(new Event('regen:auth-success'));
           clearRememberedVerificationEmail();
           const destination = typeof res.redirect === 'string' ? res.redirect : '';
           window.location.assign(/^\/(?![\/\\])/.test(destination) && !/[\u0000-\u0020\\]/.test(destination)
@@ -523,18 +526,25 @@ document.addEventListener('DOMContentLoaded', () => {
           rememberVerificationEmail(res.email || data.email);
           window.location.assign('/verify-email?state=pending');
         } else {
-          errBox.textContent = res.message || 'Login failed.';
+          if (res.status === undefined) {
+            errBox.textContent = authCopy('authNetwork', "Connection interrupted. Try again when you're back online.");
+          } else if (res.status === 429) {
+            errBox.textContent = authCopy('authRate', 'Too many attempts. Please wait before trying again.');
+          } else {
+            errBox.textContent = authCopy('authInvalid', "We couldn't sign you in. Check your details and try again.");
+          }
           errBox.classList.add('visible');
+          if (res.status === 401) loginForm.dispatchEvent(new Event('regen:auth-denied'));
           btn.disabled = false;
-          btn.textContent = 'Sign in';
+          btn.textContent = window.ReGenText?.get('common.signIn', 'Sign in') ?? 'Sign in';
         }
       } catch (err) {
         errBox.textContent = err?.code === 'RECAPTCHA_UNAVAILABLE'
-          ? 'Security verification could not be completed. Refresh the page and try again.'
-          : 'Network error. Please try again.';
+          ? authCopy('authCaptcha', "Security verification couldn't be completed. Refresh and try again.")
+          : authCopy('authNetwork', "Connection interrupted. Try again when you're back online.");
         errBox.classList.add('visible');
         btn.disabled = false;
-        btn.textContent = 'Sign in';
+        btn.textContent = window.ReGenText?.get('common.signIn', 'Sign in') ?? 'Sign in';
       }
     });
   }
@@ -551,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const googleError = googleErrors[authParams.get('google_error')];
     if (googleError) {
-      registerNotice.textContent = googleError;
+      registerNotice.textContent = authCopy('authGoogle', googleError);
       registerNotice.classList.add('visible');
     }
 
@@ -566,23 +576,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const cpwd = document.getElementById('confirmPassword').value;
 
       if (pwd.length < 10 || pwd.length > 128) {
-        errBox.textContent = 'Use a password between 10 and 128 characters.';
+        errBox.textContent = authCopy('authLength', 'Use a password between 10 and 128 characters.');
         errBox.classList.add('visible');
         return;
       }
       if (pwd !== cpwd) {
-        errBox.textContent = 'Passwords do not match.';
+        errBox.textContent = window.ReGenText?.get('auth.passwordMismatch', 'Passwords do not match.') ?? 'Passwords do not match.';
         errBox.classList.add('visible');
         return;
       }
       if (!validateRegistrationPostcode()) {
-        errBox.textContent = 'Check the state and postcode.';
+        errBox.textContent = authCopy('authCheckLocation', 'Check the state and postcode.');
         errBox.classList.add('visible');
         return;
       }
 
       btn.disabled = true;
-      btn.textContent = 'Creating Account...';
+      btn.textContent = authCopy('authCreating', 'Creating your account…');
 
       const data = {
         firstName:       window.ZeekeSafe.cleanText(document.getElementById('firstName').value),
@@ -603,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.assign(data, await getRecaptcha('register'));
         const res = await Api.register(data);
         if (res.success) {
+          registerForm.dispatchEvent(new Event('regen:auth-success'));
           if (res.verificationRequired === true || res.authenticated === false) {
             rememberVerificationEmail(res.email || data.email);
             navigating = true;
@@ -615,7 +626,11 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        if (res.errors && res.errors.length) {
+        if (res.status === undefined) {
+          errBox.textContent = authCopy('authNetwork', "Connection interrupted. Try again when you're back online.");
+        } else if (res.status === 429) {
+          errBox.textContent = authCopy('authRate', 'Too many attempts. Please wait before trying again.');
+        } else if (res.errors?.length && document.documentElement.lang !== 'ms') {
           errBox.replaceChildren(...res.errors.flatMap((message, index) => {
             const nodes = [];
             if (index > 0) nodes.push(document.createElement('br'));
@@ -623,18 +638,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return nodes;
           }));
         } else {
-          errBox.textContent = res.message || 'Registration failed.';
+          errBox.textContent = authCopy('authRegisterFail', 'Your account could not be created. Check your details and try again.');
         }
         errBox.classList.add('visible');
       } catch (err) {
         errBox.textContent = err?.code === 'RECAPTCHA_UNAVAILABLE'
-          ? 'Security verification could not be completed. Refresh the page and try again.'
-          : 'Registration could not be completed. Please try again.';
+          ? authCopy('authCaptcha', "Security verification couldn't be completed. Refresh and try again.")
+          : authCopy('authNetwork', "Connection interrupted. Try again when you're back online.");
         errBox.classList.add('visible');
       } finally {
         if (!navigating) {
           btn.disabled = false;
-          btn.textContent = 'Create account';
+          btn.textContent = authCopy('authSignUp', 'Create account');
         }
       }
     });
@@ -643,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // EMAIL VERIFICATION IS DELIBERATELY USER-CONFIRMED. LINK SCANNERS CAN OPEN
   // THE PAGE SAFELY, BUT THE ONE-TIME TOKEN IS ONLY SUBMITTED AFTER A CLICK.
   if (verificationPage) {
+    const verificationCopy = (key, fallback) => window.ReGenText?.get('auth.' + key, fallback) ?? fallback;
     const params = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     let verificationToken = String(hashParams.get('token') || params.get('token') || '').trim();
@@ -690,13 +706,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showPending() {
       eyebrow.textContent = 'Verification email sent';
-      title.textContent = 'Check your email';
-      description.textContent = 'Open the verification link in your inbox to finish creating your account.';
+      title.textContent = authCopy('authVerify', 'Check your email to verify your account.');
+      description.textContent = verificationCopy('verifyCopy', 'Open the verification link in your inbox to finish creating your account.');
       mark.textContent = '@';
       mark.className = 'auth-status-mark';
       confirmPanel.hidden = true;
       resendForm.hidden = false;
-      loginLink.textContent = 'Back to sign in';
+      loginLink.textContent = verificationCopy('backSignIn', 'Back to sign in');
       loginLink.href = '/login';
       showEmailHint(recalledEmail);
       focusTitle();
@@ -704,8 +720,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showConfirmation() {
       eyebrow.textContent = 'Confirm verification';
-      title.textContent = 'Verify your email';
-      description.textContent = 'Confirm this request to activate your ReGen account.';
+      title.textContent = verificationCopy('verifyButton', 'Verify email');
+      description.textContent = verificationCopy('confirmLink', 'Confirm below to verify your email address.');
       mark.textContent = '@';
       mark.className = 'auth-status-mark';
       confirmPanel.hidden = false;
@@ -737,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mark.className = 'auth-status-mark is-error';
       confirmPanel.hidden = true;
       resendForm.hidden = false;
-      loginLink.textContent = 'Back to sign in';
+      loginLink.textContent = verificationCopy('backSignIn', 'Back to sign in');
       loginLink.href = '/login';
       showEmailHint('');
       focusTitle();
@@ -768,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.status === 429) {
         showStatus('Please wait before trying this verification link again.', 'error');
         verifyButton.disabled = false;
-        verifyButton.textContent = 'Verify email';
+        verifyButton.textContent = verificationCopy('verifyButton', 'Verify email');
         return;
       }
 
@@ -781,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       showStatus(result.message || 'Verification could not be completed. Please try again.', 'error');
       verifyButton.disabled = false;
-      verifyButton.textContent = 'Verify email';
+      verifyButton.textContent = verificationCopy('verifyButton', 'Verify email');
     });
 
     resendForm?.addEventListener('submit', async (event) => {
@@ -806,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus(result.message || 'A new link could not be sent. Please try again.', 'error');
           }
           resendButton.disabled = false;
-          resendButton.textContent = 'Resend verification email';
+          resendButton.textContent = verificationCopy('resend', 'Resend verification email');
           return;
         }
 
@@ -815,14 +831,14 @@ document.addEventListener('DOMContentLoaded', () => {
         resendButton.textContent = 'Verification email sent';
         window.setTimeout(() => {
           resendButton.disabled = false;
-          resendButton.textContent = 'Resend verification email';
+          resendButton.textContent = verificationCopy('resend', 'Resend verification email');
         }, 30000);
       } catch (error) {
         showStatus(error?.code === 'RECAPTCHA_UNAVAILABLE'
           ? 'Security verification could not be completed. Refresh the page and try again.'
           : 'A new link could not be sent. Please try again.', 'error');
         resendButton.disabled = false;
-        resendButton.textContent = 'Resend verification email';
+        resendButton.textContent = verificationCopy('resend', 'Resend verification email');
       }
     });
   }

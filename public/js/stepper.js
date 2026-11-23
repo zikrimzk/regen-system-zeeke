@@ -19,6 +19,7 @@ const Stepper = (() => {
   let data = {};
   let dirty = false;
   let timer;
+  let previewFrame;
   let pending = Promise.resolve();
   let navigating = false;
   let revision = 0;
@@ -35,7 +36,15 @@ const Stepper = (() => {
     const requested = steps.findIndex(step => step.id === new URLSearchParams(location.search).get('section'));
     if (requested >= 0) current = requested;
     FormCards.observe(content());
-    DocumentSettings.init(data);
+    DocumentSettings.init({
+      button: document.getElementById('resume-layout-settings'),
+      read: getDraftResume,
+      apply: settings => {
+        setPreferences(settings);
+        document.dispatchEvent(new CustomEvent('regen:writing-settings-changed', {detail:settings.writing}));
+        App.showToast('Document settings saved.', 'success');
+      },
+    });
     content().addEventListener('input', changed);
     content().addEventListener('change', changed);
     content().addEventListener('click', event => {
@@ -50,7 +59,6 @@ const Stepper = (() => {
       }
       if (event.target.closest('.entry-delete-btn')) changed();
     });
-    document.getElementById('editor-sections-open')?.addEventListener('click', () => sheet().showModal());
     document.getElementById('studio-sections-open')?.addEventListener('click', () => { Preview.close(false); sheet().showModal(); });
     document.getElementById('editor-sections-close')?.addEventListener('click', () => sheet().close());
     document.querySelectorAll('[data-editor-action]').forEach(button => button.addEventListener('click', () => {
@@ -84,10 +92,11 @@ const Stepper = (() => {
     document.getElementById('progress-fill').style.width = `${(current + 1) / steps.length * 100}%`;
     document.getElementById('progress-label').textContent = `${String(current + 1).padStart(2,'0')} / ${steps.length} · ${sectionLabel(steps[current])}`;
     document.getElementById('mobile-section-title').textContent = sectionLabel(steps[current]);
-    document.getElementById('mobile-section-count').textContent = `${current + 1} of ${steps.length}`;
+    document.getElementById('mobile-section-count').textContent = `${current + 1} / ${steps.length}`;
   }
 
   function showSaveIndicator(state, failure = {}) {
+    const previous = saveState;
     saveState = state;
     const element = document.getElementById('save-indicator');
     if (!element) return;
@@ -108,9 +117,10 @@ const Stepper = (() => {
       }
     }
     element.className = `save-indicator is-${state}`;
-    element.querySelector('.save-label').textContent = label;
+    const labelElement = element.querySelector('.save-label');
+    if (labelElement.textContent !== label) labelElement.textContent = label;
     document.getElementById('save-retry').hidden = state !== 'error' || recovered;
-    document.dispatchEvent(new CustomEvent('regen:studio-save-state', {detail:{state}}));
+    if (previous !== state) document.dispatchEvent(new CustomEvent('regen:studio-save-state', {detail:{state}}));
   }
 
   function readDraft() {
@@ -126,15 +136,23 @@ const Stepper = (() => {
 
   function updateDraftPreview() {
     if (!content() || document.querySelector('.builder-left.is-final')) return;
-    data[steps[current].id] = readDraft();
-    Preview.renderDraft({...data});
+    const step = steps[current];
+    if (Preview.isOpen()) Preview.renderDraft({...data, [step.id]:readDraft()});
+    const working = typeof step.module.getWorkingData === 'function'
+      ? step.module.getWorkingData() : readDraft();
+    document.dispatchEvent(new CustomEvent('regen:studio-draft', {detail:{...data,[step.id]:working}}));
   }
 
   function changed(event) {
     if (event?.target?.closest('.candidate-guidance,.contribution-builder')) return;
+    if (event?.type === 'change' && !dirty && saved.get(steps[current].id) === serialise(readDraft())) return;
     dirty = true;
     revision++;
     showSaveIndicator(navigator.onLine ? 'pending' : 'error');
+    if (!previewFrame) previewFrame = requestAnimationFrame(() => {
+      previewFrame = null;
+      updateDraftPreview();
+    });
     clearTimeout(timer);
     // VALIDATION AND PREVIEW COLLECTION RUN AFTER TYPING, NOT ON EVERY KEYSTROKE.
     timer = setTimeout(liveSave, 900);
@@ -190,7 +208,6 @@ const Stepper = (() => {
   async function liveSave() {
     clearTimeout(timer);
     if (!dirty || navigating || !navigator.onLine) return;
-    updateDraftPreview();
     const step = steps[current];
     if (typeof step.module.getPreviewData !== 'function' && window.ZeekeForm && !ZeekeForm.validateScope(content(),{silent:true,focus:false})) return;
     const beforeSave = revision;
@@ -247,6 +264,7 @@ const Stepper = (() => {
     const skip = content().querySelector('.skip-btn');
     skip?.addEventListener('click', () => navigate(current + 1,false));
     document.dispatchEvent(new CustomEvent('regen:section-ready',{detail:{section:step.id}}));
+    updateDraftPreview();
     window.ZeekeForm?.bind(content());
     window.ZeekeSafe?.refreshTextareas(content());
     window.ReGenAI?.bind(content(),step.id);
@@ -254,11 +272,18 @@ const Stepper = (() => {
     if (focus && heading) { heading.tabIndex = -1; heading.focus({preventScroll:true}); }
     document.getElementById('btn-back').hidden = current === 0;
     document.querySelector('.nav-bar').classList.toggle('is-first-step',current === 0);
-    document.getElementById('btn-next').innerHTML = `${current === steps.length - 1 ? t('reviewExport','Review & export') : t('next','Next')} ${ReGenIcons.icon(current === steps.length - 1 ? 'check' : 'arrowRight')}`;
+    const next = document.getElementById('btn-next');
+    const isLast = current === steps.length - 1;
+    next.title = t(isLast ? 'reviewExport' : 'next');
+    next.innerHTML = ReGenIcons.icon(isLast ? 'check' : 'arrowRight');
+    next.setAttribute('aria-label', next.title);
     const url = new URL(location.href);url.searchParams.set('section',step.id);url.searchParams.delete('review');history.replaceState(null,'',url);
   }
 
-  function getDraftResume() {updateDraftPreview();return {...data};}
+  function getDraftResume() {
+    if (!document.querySelector('.builder-left.is-final')) data[steps[current].id] = readDraft();
+    return {...data};
+  }
   function review() { return navigate(steps.length); }
   function setTemplate(id) {data.templateId = id;document.dispatchEvent(new CustomEvent('regen:template-changed',{detail:{id}}));Preview.refreshNow();}
   function setPreferences(values) {Object.assign(data,values);Preview.refreshNow();}

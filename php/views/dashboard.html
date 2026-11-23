@@ -70,7 +70,7 @@
   <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
   <meta name="regen-preview-version" content="{{PREVIEW_VERSION}}">
 </head>
-<body class="user-workspace dashboard-page" data-workspace-view="{{WORKSPACE_VIEW}}">
+<body class="user-workspace dashboard-page" data-workspace-view="overview">
   <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
   <div id="toast-container"></div>
   <div id="page-loader"><div class="spinner"></div><p></p></div>
@@ -79,26 +79,31 @@
 
   <main id="main-content" tabindex="-1" class="dashboard-content">
     <header class="dash-page-header">
-      <div><h1 class="dash-page-title">{{WORKSPACE_H1}}</h1><p><strong id="workspace-candidate" hidden></strong>{{WORKSPACE_INTRO}}</p></div>
+      <div><h1 class="dash-page-title">{{i18n.nav.overview}}</h1></div>
     </header>
     <section class="campaign-feed" data-campaign-feed aria-label="{{i18n.nav.notifications}}"></section>
-    <div class="overview-layout">
-      <div id="resume-home" aria-live="polite" aria-busy="true"></div>
-      <aside class="overview-secondary">
-        <section id="dashboard-next-task" class="overview-next-task" hidden></section>
-      </aside>
+    <div class="overview-summary">
+      <section id="dashboard-metrics" class="overview-metrics" aria-label="{{i18n.overview.summary}}" aria-busy="true"></section>
+      <section class="overview-shortcuts" aria-labelledby="overview-shortcuts-title">
+        <h2 id="overview-shortcuts-title">{{i18n.overview.quickActions}}</h2>
+        <div>
+          <a id="dashboard-open-resume" href="/builder">{{icon.edit}}<span>{{i18n.studio.title}}</span>{{icon.next}}</a>
+          <a href="/cover-letters">{{icon.letters}}<span>{{i18n.studio.lettersTitle}}</span>{{icon.next}}</a>
+          <a id="dashboard-design-link" href="/templates">{{icon.templates}}<span>{{i18n.nav.templates}}</span>{{icon.next}}</a>
+          <a href="/mochi" data-mochi-room-link>{{icon.mochi}}<span>{{i18n.nav.mochi}}</span>{{icon.next}}</a>
+        </div>
+      </section>
     </div>
-    <section class="dashboard-documents" id="dashboard-documents" hidden aria-labelledby="dashboard-documents-title">
-      <nav class="overview-quick" aria-labelledby="dashboard-documents-title">
-        <h2 id="dashboard-documents-title">{{i18n.dashboard.documents}}</h2>
-        <a id="dashboard-resume-link" href="/resumes" hidden></a>
-        <a href="/cover-letters" data-price-feature="cover_letters" data-price-base="{{i18n.nav.letters}}"><span>{{i18n.nav.letters}}</span><span id="cover-letter-count"></span></a>
-        <p id="dashboard-letter-note"></p>
-        <a id="dashboard-design-link" href="/templates">{{i18n.nav.templates}}</a>
-      </nav>
-    </section>
-    <div id="dashboard-ai-token-card" aria-live="polite">
-      <p class="dashboard-loading-inline">{{i18n.dashboard.aiLoading}}</p>
+    <div class="overview-board">
+      <section id="resume-home" aria-live="polite" aria-busy="true"></section>
+      <aside class="overview-account" aria-label="{{i18n.nav.account}}">
+        <div id="dashboard-k-store" class="overview-k-store">
+          <div class="overview-store-coin" aria-hidden="true">{{icon.coin}}</div>
+          <div><h2>{{i18n.nav.billing}}</h2><p>{{i18n.overview.storeHelp}}</p>
+          <a href="/store" class="overview-store-link">{{i18n.overview.exploreStore}}{{icon.next}}</a></div>
+        </div>
+        <section id="dashboard-ai-token-card" hidden></section>
+      </aside>
     </div>
   </main>
 

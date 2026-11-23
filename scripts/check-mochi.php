@@ -89,6 +89,24 @@ $chatReply = $coach(static function(array $payload) use($check,$fixture): array 
 $check($chatReply['mood']==='sad' && str_contains($chatReply['reply'],'Ari'), 'Return an empathetic model reply and an expression.');
 $check(MochiCoach::chatInput(['message'=>str_repeat('a',2401)])===null,'Bound chat inputs.');
 $check(MochiCoach::chatInput(['message'=>'Help me','screen'=>'profile','sharedField'=>$draft])['shared']===null,'Workspace pages outside the editors cannot attach a writing excerpt.');
+$conversation=MochiCoach::chatInput([
+    'intent'=>'conversation','screen'=>'cover-letters','message'=>'How can I relax before an interview?',
+    'history'=>[['role'=>'assistant','text'=>'Big interview tomorrow?']],
+    'sharedField'=>['field'=>'letter','text'=>'Private cover letter text.'],'useSavedResume'=>true,
+]);
+$check(MochiCoach::conversationRequest($conversation) && !$conversation['useSavedResume']
+    && !isset($conversation['shared'])
+    && !MochiCoach::conversationRequest(MochiCoach::chatInput(['intent'=>'conversation','message'=>'Write a Python script for me.'])),
+    'Allow general coaching and enforce the programming boundary without sharing document content.');
+$conversationReply=$coach(static function (array $payload) use ($fixture,$check): array {
+    $context=json_decode($payload['input'],true,16,JSON_THROW_ON_ERROR);
+    $check($context['workspace_page']==='cover-letters' && count($context['recent_conversation'])===1
+        && !isset($context['shared_writing']) && !isset($context['writing_standard']) && !isset($context['coaching_preferences']['goal']),
+        'Casual coaching gets only page, conversation and language/tone context.');
+    return $fixture(['reply'=>'Try a short practice answer — then take a break.','scope'=>'play','mood'=>'bright']);
+})->chat($conversation,$profile);
+$check($conversationReply['reply']==='Try a short practice answer, then take a break.'
+    && !isset($conversationReply['suggestion']), 'Casual replies contain no em dashes or draft controls.');
 $check(!MochiCoach::writingRequest($chat) && !MochiCoach::writingRequest(MochiCoach::chatInput(['message'=>'Write code for my resume.']))
     && MochiCoach::writingRequest(MochiCoach::chatInput(['message'=>'Tolong kemaskan ringkasan resume saya.'])),
     'Spend AI calls only on eligible writing requests, including BM rojak.');

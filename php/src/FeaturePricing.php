@@ -116,7 +116,7 @@ final class FeaturePricing
             $price = $q->fetch();
             if (!$price || $price['mode'] === 'free' || (int) $price['version'] !== $version) throw new ConcurrentUpdate('The price changed. Review the current price before continuing.');
             if($price['mode']==='package_only')throw new \DomainException('This feature requires an eligible package.');
-            if (str_starts_with($key,'ai_') && $price['mode'] === 'per_use') throw new \DomainException('Use the AI action directly. Its token cost is charged only when it succeeds.');
+            if (str_starts_with($key,'ai_') && $price['mode'] === 'per_use') throw new \DomainException('Use the AI action directly. Its Coin cost is charged only when it succeeds.');
             $available = (new FeaturePolicy($this->db))->all()[$key === 'cover_letter_create'?'cover_letters': $key] ?? null;
             if ($available && !$available['available']) throw new \DomainException('This feature is temporarily unavailable. No tokens were spent.');
             if (str_starts_with($key, 'ai_') && !trim((string)Config::get('openai.api_key', ''))) throw new \DomainException('AI assistance is currently unavailable. No tokens were spent.');
@@ -140,7 +140,7 @@ final class FeaturePricing
         }
     }
 
-    public function reserve(int $userId, array $keys): array
+    public function reserve(int $userId, array $keys, bool $unmetered = false): array
     {
         if (!$keys) return ['allowed'=>true,'reservations'=>[]];
         $this->db->beginTransaction();
@@ -151,6 +151,11 @@ final class FeaturePricing
             foreach (array_unique($keys) as $key) {
                 if(!isset($prices[$key]))throw new \DomainException('Unknown commercial feature.');
                 $price=$prices[$key];
+                if ($unmetered) {
+                    if ($price['mode'] === 'free' || $price['unlocked'] || $price['packageUnlocked']) continue;
+                    $this->db->rollBack();
+                    return ['allowed'=>false,'price'=>$price];
+                }
                 // AI reserves and settles its benefit with the provider result, never at navigation time.
                 if(str_starts_with($key,'ai_')&&$price['accessAllowed'])continue;
                 $package = (new PackageAccess($this->db))->reserve($userId,$key);
@@ -231,7 +236,7 @@ final class FeaturePricing
                 $this->db->commit();
                 return;
             }
-            if ($credit['state'] !== 'available' && !($credit['state'] === 'held' && strtotime($credit['reserved_until'] . ' UTC') < time())) throw new \DomainException('Only unused credits can be returned to your token balance.');
+            if ($credit['state'] !== 'available' && !($credit['state'] === 'held' && strtotime($credit['reserved_until'] . ' UTC') < time())) throw new \DomainException('Only unused credits can be returned to your Coin balance.');
             $wallet->adjust($userId, (int) $credit['paid_tokens'], 'Unused feature credit returned', 'feature_refund', 'feature-refund:' . $id);
             $this->db->prepare("UPDATE feature_use_credits SET state='refunded',reservation_key=NULL,reserved_until=NULL WHERE id=?")->execute([$id]);
             (new AuditLogger($this->db))->log('store.feature_credit_refunded', 'credit', $id, ['amount' => (int) $credit['paid_tokens']], 'user', $userId);

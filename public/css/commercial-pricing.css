@@ -1,0 +1,75 @@
+/* The public catalogue uses the commercial surface and the existing Store destination. */
+:is(.pricing-page,.pricing-preview) .standalone-pricing {padding-block:clamp(28px,5vw,64px)}
+.pricing-intro {max-width:680px;margin-bottom:clamp(22px,3.4vw,42px)}
+.pricing-intro h1 {margin:0 0 8px;color:var(--c-ink);font-size:clamp(2rem,4.7vw,3.4rem);letter-spacing:-.055em;line-height:1.08;text-wrap:balance}
+.pricing-intro p,.plan-terms,.plan-configuration {margin:0;color:var(--c-muted);font-size:1rem;line-height:1.55}
+:is(.pricing-page,.pricing-preview) .landing-pricing {margin-top:0}
+.plan-configuration {padding-block:0 14px}
+.plan-configuration strong {color:var(--c-ink)}
+:is(.pricing-page,.pricing-preview) .landing-package-rail,.public-offer-grid {
+  display:grid;grid-template-columns:repeat(var(--plan-columns,3),minmax(0,1fr));gap:12px;align-items:stretch
+}
+:is(.pricing-page,.pricing-preview) .commercial-plan {
+  display:grid;grid-template-rows:auto auto auto 1fr auto;
+  min-width:0;gap:12px;margin:0;padding:clamp(13px,2.1vw,27px);border-radius:14px;border:1px solid var(--c-line);
+  background:var(--c-paper);color:var(--c-ink);
+}
+:is(.pricing-page,.pricing-preview) .commercial-plan.is-highlighted {background:var(--c-demo);box-shadow:var(--c-shadow)}
+.commercial-plan h3 {margin:0;font-size:clamp(1.25rem,2vw,1.6rem);line-height:1.15;overflow-wrap:anywhere;letter-spacing:-.035em}
+.commercial-plan p {margin:0;color:var(--c-muted);font-size:.9375rem;line-height:1.47}
+.commercial-plan .plan-identity {min-height:1.5em}
+.commercial-plan .plan-value {display:grid;align-content:end;gap:3px}
+.commercial-plan .plan-amount {display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.commercial-plan .plan-amount strong {color:var(--c-ink);font-size:clamp(1.95rem,3vw,2.8rem);letter-spacing:-.055em;line-height:1.1}
+.commercial-plan s {color:var(--c-muted);font-size:1rem}
+.plan-value .plan-period {font-size:.875rem}
+.plan-promo {justify-self:start;padding:3px 7px;border-radius:5px;background:var(--c-gold);color:var(--c-ink);font-size:.8125rem;font-weight:640}
+.commercial-plan ul {border-top:1px solid var(--c-line);padding:11px 0 0;margin:0;list-style:none;display:grid;align-content:start;gap:7px}
+.commercial-plan li {display:flex;gap:7px;font-size:.9375rem;line-height:1.35}
+.commercial-plan li>span {color:var(--c-accent);font-weight:700}
+.commercial-plan .plan-conditions {display:grid;gap:4px;align-content:end}
+.plan-conditions p {font-size:.875rem}
+.commercial-plan .product-button {width:100%;white-space:normal;text-align:center}
+.plan-action-disabled {display:grid;place-items:center;min-height:44px;background:var(--c-soft);color:var(--c-muted);border-radius:8px;text-align:center;padding:5px;font-size:.875rem}
+.plan-terms {margin-top:14px}
+:is(.pricing-page,.pricing-preview) .landing-quick-offers {margin-top:30px}
+.landing-quick-offers h2 {font-size:1.5rem;margin-bottom:12px}
+.plan-comparison {margin-top:clamp(22px,4vw,44px);border-block:1px solid var(--c-line)}
+.plan-comparison summary {min-height:52px;align-content:center;font-size:1.06rem;font-weight:650;cursor:pointer}
+.plan-table-wrap {overflow:auto;padding:2px 0 12px}
+.plan-comparison table {width:100%;min-width:490px;border-collapse:collapse;text-align:left;font-size:.875rem}
+.plan-comparison th,.plan-comparison td {padding:8px 10px;border-bottom:1px solid var(--c-line);text-align:start}
+.plan-comparison thead th {background:var(--c-paper);color:var(--c-ink)}
+.plan-comparison [scope=rowgroup] {background:var(--c-soft)}
+.plan-comparison td {color:var(--c-muted)}
+:is(.pricing-page,.pricing-preview) .pricing-carousel-controls {display:none}
+@media (min-width:761px) {
+  @supports (grid-template-rows:subgrid) {
+    :is(.pricing-page,.pricing-preview) :is(.landing-package-rail,.public-offer-grid)>.commercial-plan {
+      grid-template-rows:subgrid;grid-row:span 5;
+    }
+  }
+}
+@media (max-width:760px) {
+  :is(.pricing-page,.pricing-preview) .landing-package-rail {
+    grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:89%;overflow-x:auto;
+    scroll-snap-type:x mandatory;scroll-padding-inline:2px;gap:9px;padding:3px 2px 9px;
+    overscroll-behavior-inline:contain;align-items:start;touch-action:pan-x pan-y pinch-zoom;
+  }
+  :is(.pricing-page,.pricing-preview) .landing-package-rail[data-plan-count="1"] {grid-auto-columns:100%}
+  :is(.pricing-page,.pricing-preview) .commercial-plan {scroll-snap-align:start;scroll-snap-stop:always;grid-template-rows:auto auto auto auto auto}
+  .public-offer-grid {grid-template-columns:minmax(0,1fr)}
+  :is(.pricing-page,.pricing-preview) .pricing-carousel-controls {display:flex;justify-content:space-between;gap:5px}
+  :is(.pricing-page,.pricing-preview) .pricing-carousel-dots {flex-wrap:wrap;justify-content:center}
+  :is(.pricing-page,.pricing-preview) .pricing-carousel-controls button[aria-current=true] {background:var(--c-action);color:#fff;border-color:var(--c-action)}
+  :is(.pricing-page,.pricing-preview) .pricing-carousel-controls button {flex:0 0 44px;min-width:44px;border-color:var(--c-line)}
+}
+
+.pricing-preview {padding-block:var(--c-section);background:var(--c-soft)}
+.pricing-preview .preview-intro {margin-bottom:14px}
+.pricing-preview .preview-intro p {margin:6px 0 0;max-width:49ch}
+.pricing-status {margin:10px 0;color:var(--c-muted)}
+.preview-all {margin-top:9px}
+.pricing-preview .plan-terms {font-size:.875rem}
+
+.pricing-carousel-controls button[aria-disabled=true] {opacity:.5;cursor:default}

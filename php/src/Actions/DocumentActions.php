@@ -20,6 +20,9 @@ trait DocumentActions
         $this->requireAuth();
         $resume = $this->resumes->getPrimaryByUser(Session::userId());
         if ($resume === null) Http::json(['success'=>false, 'message'=>'Create your resume before creating a cover letter.'], 409);
+        if ($path === '/api/cover-letters/document' && $method === 'POST') {
+            $this->previewLetterDraft($resume['resume_data']);
+        }
         $repo = new CoverLetterRepository($this->db);
         preg_match('#^/api/cover-letters/(\d+)(?:/(ai-suggest|preview|pdf|document))?$#', $path, $matches);
         $id = isset($matches[1]) ? (int) $matches[1] : null;
@@ -83,6 +86,33 @@ trait DocumentActions
             Http::json(['success'=>true, 'suggestion'=>$suggestion, 'quota'=>$this->aiQuota->status(Session::userId())]);
         }
         Http::json(['success'=>false, 'message'=>'Method not allowed.'], 405);
+    }
+
+    private function previewLetterDraft(array $resume): never
+    {
+        RateLimiter::enforce('letter-draft-preview', (string) Session::userId(), 40, 60);
+        $input = Http::jsonBody();
+        if (!is_array($input['letter'] ?? null)) {
+            Http::json(['success'=>false,'message'=>'Invalid letter draft.'], 400);
+        }
+        try {
+            $letter = CoverLetterRepository::clean($input['letter']);
+        } catch (\DomainException $error) {
+            Http::json(['success'=>false,'message'=>$error->getMessage()], 422);
+        }
+        if (is_array($input['appearance'] ?? null)) {
+            $resume['appearance'] = Sanitizer::appearance($input['appearance']);
+        }
+        $watermark = $this->previewNeedsWatermark();
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+        $output = $this->pdf->generateHtml(CoverLetterTemplate::buildHtml($resume, $letter), $watermark);
+        Http::completeSuccess();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="Cover-letter.pdf"');
+        header('Cache-Control: private, no-store');
+        header('Content-Length: ' . strlen($output));
+        echo $output;
+        exit;
     }
 
     private function requireDocumentContacts(array $resume): void

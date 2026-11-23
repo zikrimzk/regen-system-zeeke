@@ -1,23 +1,25 @@
 :root {
-  --color-canvas: #f5f7f4;
-  --color-editorial: #ecf1ed;
-  --color-panel: #fff;
-  --color-subtle: #ecf1ed;
-  --color-raised: #e1e8e1;
-  --color-ink: #172b25;
-  --color-muted: #466057;
-  --color-line: #d3ded9;
-  --color-control-line: #87998e;
-  --color-action: #175543;
-  --color-action-hover: #104d38;
-  --color-selected: #e2eee7;
-  --color-on-action: #fff;
-  --color-focus: #176952;
-  --color-admin-rail: #152c23;
-  --color-admin-ink: #eef5f0;
-  --color-admin-muted: #aec1b6;
-  --color-admin-active: #2c4839;
-  --color-scrim: #13291eb3;
+  --color-canvas: #ffffff;
+  --color-editorial: #f7f7f8;
+  --color-panel: #ffffff;
+  --color-subtle: #f7f7f8;
+  --color-raised: #efeff1;
+  --color-ink: #202124;
+  --color-muted: #5f6368;
+  --color-line: #e4e5e7;
+  --color-control-line: #b7bbc3;
+  --color-action: #b42332;
+  --color-action-hover: #931b28;
+  --color-selected: #fdf2f3;
+  --color-on-action: #ffffff;
+  --color-focus: #b42332;
+  --color-brand-red: #b42332;
+  --color-brand-yellow: #f2bf4a;
+  --color-admin-rail: #1d1f24;
+  --color-admin-ink: #f5f5f5;
+  --color-admin-muted: #b7bbc3;
+  --color-admin-active: #2e2820;
+  --color-scrim: rgba(20, 21, 25, 0.65);
   --type-meta: 0.8125rem;
   --type-small: 0.875rem;
   --type-body: 1rem;
@@ -42,7 +44,7 @@
   --radius-control: 8px;
   --radius-panel: 12px;
   --radius-dialog: 18px;
-  --elevation-overlay: 0 12px 40px #12291b24;
+  --elevation-overlay: 0 12px 40px rgba(20, 21, 25, 0.16);
   --duration-quick: 140ms;
   --duration-standard: 200ms;
   --layer-rail: 90;
@@ -56,25 +58,32 @@
   --mobile-nav-height: 62px;
 }
 
-.product-wordmark{display:inline-flex;align-items:center;min-height:var(--target);color:inherit;font:780 clamp(1.55rem,2.5vw,2rem)/1 Inter,system-ui,sans-serif;letter-spacing:-.075em;white-space:nowrap}
-.product-wordmark span{color:var(--color-action)}
+.product-wordmark{display:inline-flex;align-items:center;min-height:var(--target);color:var(--color-ink,#202124);font:780 clamp(1.55rem,2.5vw,2rem)/1 Inter,system-ui,sans-serif;letter-spacing:-.075em;white-space:nowrap;text-decoration:none}
+.product-wordmark span{color:var(--color-brand-red,#b42332)}
+
+:root[data-theme="dark"] .product-wordmark,
+:root[data-appearance="dark"] .product-wordmark{color:var(--color-ink,#f5f5f5)}
+:root[data-theme="dark"] .product-wordmark span,
+:root[data-appearance="dark"] .product-wordmark span{color:var(--color-brand-red,#d93848)}
 
 :root[data-theme="dark"], :root[data-appearance="dark"] {
-  --color-canvas: #111b16;
-  --color-editorial: #18251d;
-  --color-panel: #1a2720;
-  --color-subtle: #23332a;
-  --color-raised: #2c4035;
-  --color-ink: #eaf2ec;
-  --color-muted: #b4c8bb;
-  --color-line: #394e42;
-  --color-control-line: #839b8b;
-  --color-action: #8fd1ae;
-  --color-action-hover: #a9e1c1;
-  --color-selected: #263f32;
-  --color-on-action: #10271d;
-  --color-focus: #a3dfbb;
-  --elevation-overlay: 0 12px 40px #060e0aad;
+  --color-canvas: #141519;
+  --color-editorial: #1d1f24;
+  --color-panel: #1d1f24;
+  --color-subtle: #23252b;
+  --color-raised: #282a30;
+  --color-ink: #f5f5f5;
+  --color-muted: #b7bbc3;
+  --color-line: #393b42;
+  --color-control-line: #5a5d66;
+  --color-action: #d93848;
+  --color-action-hover: #ea4b5b;
+  --color-selected: #2a1f22;
+  --color-on-action: #ffffff;
+  --color-focus: #f5c860;
+  --color-brand-red: #d93848;
+  --color-brand-yellow: #f5c860;
+  --elevation-overlay: 0 12px 40px rgba(0, 0, 0, 0.7);
 }
 
 /* CSS media queries live beside each layout rule. See the design system for screen cutoffs. */

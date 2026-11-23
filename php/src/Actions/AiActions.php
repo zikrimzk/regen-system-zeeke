@@ -54,7 +54,7 @@ trait AiActions
             $this->finalizeAiRequest($reservation);
         } catch (\Throwable $error) {
             $this->refundAiRequest($reservation);
-            Http::json(['success' => false, 'message' => $error instanceof OpenAIServiceException ? $error->getMessage() : 'ReGen AI could not complete your draft. No tokens were charged. Please try again.', 'quota' => $this->aiQuota->status(Session::userId())], $error instanceof OpenAIServiceException ? $error->httpStatus() : 503);
+            Http::json(['success' => false, 'message' => $error instanceof OpenAIServiceException ? $error->getMessage() : 'ReGen AI could not complete your draft. No Coin was charged. Please try again.', 'quota' => $this->aiQuota->status(Session::userId())], $error instanceof OpenAIServiceException ? $error->httpStatus() : 503);
         }
         Http::json(['success' => true, 'draft' => $draft, 'quota' => $this->aiQuota->status(Session::userId())]);
     }
@@ -65,11 +65,11 @@ trait AiActions
         if(!empty($reservation['accessDenied']))$this->packageAccessError($reservation['price']);
         if (is_int($expectedCost) && isset($reservation['cost']) && $expectedCost !== $reservation['cost']) {
             $this->refundAiRequest($reservation);
-            Http::json(['success' => false, 'message' => 'The token cost changed. Review the updated price and try again.', 'quota' => $this->aiQuota->status(Session::userId())], 409);
+            Http::json(['success' => false, 'message' => 'The Coin cost changed. Review the updated price and try again.', 'quota' => $this->aiQuota->status(Session::userId())], 409);
         }
         if (!$reservation['allowed']) {
             $disabled = ($reservation['enabled'] ?? true) === false;
-            Http::json(['success' => false, 'message' => $disabled ? 'ReGen AI is currently paused.' : 'This action needs ' . ($reservation['cost'] ?? 1) . ' tokens. Check your balance in ReGen Store.', 'quota' => $this->publicAiQuota($reservation)], $disabled ? 503 : 429);
+            Http::json(['success' => false, 'message' => $disabled ? 'ReGen AI is currently paused.' : 'This action needs ' . ($reservation['cost'] ?? 1) . ' Coin. Check your balance in K-Store.', 'quota' => $this->publicAiQuota($reservation)], $disabled ? 503 : 429);
         }
         return $reservation;
     }
@@ -394,7 +394,7 @@ trait AiActions
             'enabled' => $this->openai->enabled() && (($quota['enabled'] ?? true) === true),
             'provider' => 'OpenAI',
             'privacy' => 'Contact details, locations, photos, and references are excluded. Professional resume content is sent to OpenAI only after an explicit AI request.',
-            'requestUnit' => 'Package uses first, then base tokens, then bonus tokens. Failed AI actions are not charged.',
+            'requestUnit' => 'Package uses first, then base Coin, then bonus Coin. Failed AI actions are not charged.',
             'costs' => $this->aiQuota->costs(),
             'assistance' => ResumeAssistance::catalogue(),
             'quota' => $this->aiQuota->status(Session::userId()),
@@ -404,7 +404,7 @@ trait AiActions
     /** @param array<string, mixed> $quota */
     private function aiQuotaMessage(array $quota): string
     {
-        return 'Not enough tokens for this action. Check your base and saved balances in ReGen Store.';
+        return 'Insufficient Coin for this action. Check your base and saved balances in K-Store.';
     }
 
     /** @param array<string, mixed> $quota */
@@ -443,7 +443,7 @@ trait AiActions
         } catch (\Throwable $error) {
             error_log('[AI Quota] Request finalization failed: ' . $error::class);
             $this->refundAiRequest($reservation);
-            throw new OpenAIServiceException('The request could not be completed. No tokens were charged. Please try again.', 503);
+            throw new OpenAIServiceException('The request could not be completed. No Coin was charged. Please try again.', 503);
         }
     }
 

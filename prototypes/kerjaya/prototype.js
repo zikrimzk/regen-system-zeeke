@@ -3,6 +3,7 @@
   const {concept, screen} = document.body.dataset;
   const city = concept === 'city';
   const art = '../../../public/img/';
+  const skyline = '../assets/';
   const store = 'kerjaya.prototype.' + concept;
   const initial = {
     name: 'Aina Rahman',
@@ -87,7 +88,7 @@
   }
 
   function cityScene() {
-    return '<figure class="city-scene"><img class="skyline" src="' + art + 'kl-skyline-1120.webp" srcset="' + art + 'kl-skyline-640.webp 640w, ' + art
+    return '<figure class="city-scene"><img class="skyline" src="' + skyline + 'kl-skyline-1120.webp" srcset="' + skyline + 'kl-skyline-640.webp 640w, ' + skyline
       + 'kl-skyline-1120.webp 1120w" sizes="(max-width: 760px) 92vw, 51vw" width="1120" height="747" alt="">'
       + '<img class="hero-resume" src="' + resumeArt('modern') + '" width="640" height="905" alt="Fictional resume using ReGen’s Modern template">'
       + '<figcaption>Kuala Lumpur, Malaysia</figcaption></figure>';

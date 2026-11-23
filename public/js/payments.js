@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('payment-history-heading').hidden = resultPage;
   document.getElementById('payment-history-view').hidden = resultPage;
-  document.title = (resultPage ? 'Payment result' : 'Payment history') + ' | ReGen';
+  document.title = (resultPage ? 'Payment result' : ReGenText.get('nav.payments')) + ' | K-Store';
   for (const [value,label] of Object.entries(paymentStatuses)) form.elements.status.add(new Option(label,value));
   for (const key of ['q','status','days']) form.elements[key].value = params.get(key) || '';
   let filters = Object.fromEntries(new FormData(form));
@@ -23,28 +23,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const pending = item => ['creating','pending'].includes(item?.status);
   const shortReference = value => value.slice(0,12)+'…'+value.slice(-6);
   const resume = item => item.checkoutUrl
-    ? `<a class="btn btn-secondary" href="${safe(item.checkoutUrl)}" rel="noreferrer">Continue to HitPay</a>` : '';
+    ? `<a class="btn btn-secondary" href="${safe(item.checkoutUrl)}" rel="noreferrer">${safe(ReGenText.get('store.checkout'))}</a>` : '';
 
   function renderResult(item) {
     result.hidden = !(resultPage || reference);
     if (result.hidden) return;
     if (!item) {
-      result.innerHTML = '<article class="payment-result"><h1>Payment not found</h1><p>Check the reference or sign in to the account used to pay.</p><a class="btn btn-secondary" href="/payments">Payment history</a></article>';
+      result.innerHTML = '<article class="payment-result"><h1>Payment not found</h1><p>Check the reference or sign in to the account used to pay.</p><a class="btn btn-secondary" href="/store/payments">Payment history</a></article>';
       return;
     }
     const success = item.status === 'paid' && item.delivered;
     const title = success ? 'Payment successful' : item.status === 'paid' ? 'Payment received' : paymentStatuses[item.status];
     const descriptions = {
       creating:'We’re preparing your checkout.',
-      pending:'We’re waiting for HitPay to confirm your payment.',
+      pending:'We’re waiting for your payment to be confirmed.',
       paid:success ? 'Your package benefits are ready to use.' : 'Contact support with your order reference for help accessing your package.',
-      failed:'HitPay could not complete the payment.',
+      failed:'Your payment could not be completed.',
       unavailable:'Return to the store to start a new checkout.',
       link_expired:'Return to the store to start a new checkout.',
     };
     const tag = resultPage ? 'h1' : 'h2';
     const action = success ? '<a class="btn btn-primary" href="/store#your-packages">View your packages</a>'
-      : resume(item) || '<a class="btn btn-secondary" href="/store">Back to ReGen Store</a>';
+      : resume(item) || '<a class="btn btn-secondary" href="/store">Back to K-Store</a>';
     result.innerHTML = `<article class="payment-result${success?' is-success':''}">
       <span class="payment-result-icon">${success ? icon('<path d="m5 12 4 4L19 6"/>') : receiptIcon}</span>
       <${tag}>${safe(title)}</${tag}>
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </dl>
       <div class="payment-result-actions">${action}
         ${pending(item) ? '<button class="btn btn-secondary" type="button" data-refresh-result>Check status</button>' : ''}
-        <a class="text-link" href="/payments">Payment history</a>
+        <a class="text-link" href="/store/payments">Payment history</a>
       </div></article>`;
     if (success && lastStatus !== 'paid') window.dispatchEvent(new CustomEvent('regen:wallet-changed'));
     lastStatus = item.status;
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
       notice.textContent = error.message;
       if (resultPage && result.hidden) {
         result.hidden = false;
-        result.innerHTML = '<article class="payment-result"><h1>Unable to check your payment</h1><div class="payment-result-actions"><button class="btn btn-secondary" type="button" data-refresh-result>Try again</button><a class="text-link" href="/payments">Payment history</a></div></article>';
+        result.innerHTML = '<article class="payment-result"><h1>Unable to check your payment</h1><div class="payment-result-actions"><button class="btn btn-secondary" type="button" data-refresh-result>Try again</button><a class="text-link" href="/store/payments">Payment history</a></div></article>';
       }
     } finally {
       if (request === generation) list.removeAttribute('aria-busy');

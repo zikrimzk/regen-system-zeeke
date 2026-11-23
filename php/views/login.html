@@ -1,25 +1,27 @@
 <!DOCTYPE html>
-<html lang="{{LANGUAGE}}">
+<html lang="{{LANGUAGE}}" data-commercial-appearance>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="{{i18n.common.signIn}} to the ReGen resume management system.">
+  <meta name="description" content="{{i18n.common.signIn}} | Kerjayaku. — {{i18n.commercial.meta}}">
   <title>{{i18n.common.signIn}} | {{BRAND_NAME}}</title>
   <link rel="icon" href="/img/app-icon-192.png" type="image/png">
   <script src="/js/theme.js?v=20261105r15"></script>
+  <link rel="stylesheet" href="/css/tokens.css?v=20261105r15">
   <link rel="stylesheet" href="/css/main.css?v=20261105r15">
   <link rel="stylesheet" href="/css/auth.css?v=20261105r15">
   <link rel="stylesheet" href="/css/workspace.css?v=20261105r15">
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/css/product.css?v=20261105r15">
-  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ReGen"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Kerjayaku"><meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
   <meta name="regen-preview-version" content="{{PREVIEW_VERSION}}">
   <link rel="stylesheet" href="/css/appearance.css?v=20261105r15">
   <link rel="stylesheet" href="/css/privacy.css?v=20261105r15">
   <script src="/js/privacy.js?v=20261105r15" defer></script>
+  <script src="/js/mochi-auth.js" defer></script>
   <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-portrait-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
   <link rel="apple-touch-startup-image" href="/img/launch/launch-375-667-2-landscape-light.png" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: light)">
   <link rel="apple-touch-startup-image" href="/img/launch/launch-375-812-3-portrait-light.png" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
@@ -68,9 +70,10 @@
   <link rel="apple-touch-startup-image" href="/img/launch/launch-768-1024-2-landscape.png" media="screen and (device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
   <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-portrait.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
   <link rel="apple-touch-startup-image" href="/img/launch/launch-820-1180-2-landscape.png" media="screen and (device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape) and (prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="/css/commercial.css">
   <link rel="stylesheet" href="/css/auth-journey.css">
 </head>
-<body class="auth-journey-page user-workspace auth-page auth-login-page">
+<body class="commercial-ui auth-journey-page user-workspace auth-page auth-login-page">
   <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
   <div id="toast-container"></div>
   <div id="page-loader"><div class="spinner"></div><p></p></div>
@@ -81,19 +84,11 @@
   </header>
 
   <main id="main-content" tabindex="-1" class="auth-body">
-    <section class="auth-story" aria-labelledby="auth-story-title">
-      <div class="auth-story-copy">
-        <h2 id="auth-story-title">{{i18n.auth.exampleHeading}}</h2>
-        <p>{{i18n.auth.exampleCopy}}</p>
-      </div>
-      <a class="auth-example" href="/samples/modern.pdf" aria-label="{{i18n.public.examplePdf}}">
-        <img src="/img/templates/modern-640.webp" alt="{{i18n.public.example}}" width="640" height="905" loading="lazy">
-      </a>
-    </section>
+
 
     <div class="auth-card">
-      <h1 class="auth-card-title">{{i18n.common.signIn}}</h1>
-      <p class="auth-card-subtitle">{{i18n.auth.loginHelp}}</p>
+      <h1 class="auth-card-title">{{i18n.commercial.loginTitle}}</h1>
+      <p class="auth-card-subtitle">{{i18n.commercial.loginDesc}}</p>
 
       <div class="google-auth-block" id="google-auth" data-page="login" hidden>
         <div class="google-button-shell" id="google-button-shell" aria-live="polite"></div>
@@ -101,11 +96,11 @@
       </div>
 
       <form method="post" id="login-form" class="auth-form" novalidate>
-        <div id="login-error" class="auth-error-box"></div>
+        <div id="login-error" class="auth-error-box" role="alert"></div>
 
         <div class="auth-form-group">
-          <label class="auth-label" for="email">{{i18n.auth.email}}</label>
-          <input type="email" id="email" class="auth-input" placeholder="you@example.com" maxlength="200" autocomplete="email" required autofocus>
+          <label class="auth-label" for="email">{{i18n.commercial.authEmail}}</label>
+          <input type="email" id="email" class="auth-input" placeholder="nama@example.com" maxlength="200" autocomplete="email" required autofocus>
         </div>
 
         <div class="auth-form-group">
@@ -116,16 +111,33 @@
           </div>
         </div>
 
-        <label class="auth-remember"><input type="checkbox" id="remember-me"> {{i18n.auth.remember}}</label>
+        <div class="auth-login-options">
+          <label class="auth-remember"><input type="checkbox" id="remember-me"> {{i18n.auth.remember}}</label>
+          <details class="auth-reset-help">
+            <summary>{{i18n.commercial.authHelp}}</summary>
+            <p>{{i18n.commercial.authResetHint}} {{COMMERCIAL_SUPPORT}}</p>
+          </details>
+        </div>
         <button type="submit" class="auth-submit-btn" id="login-btn">{{i18n.common.signIn}}</button>
 
         <p class="auth-recaptcha-note" id="login-recaptcha-status" role="status" aria-live="polite" hidden><span>{{i18n.auth.captcha}}</span></p>
 
         <div class="auth-link-row">
-          {{i18n.auth.noAccount}} <a href="/register">{{i18n.common.register}}</a>
+          {{i18n.commercial.authNew}} <a href="/register">{{i18n.commercial.authCreate}}</a>
         </div>
       </form>
     </div>
+    <aside class="auth-mochi-guide" id="auth-mochi-guide" data-auth-mood="welcome">
+      <div class="auth-guide-copy">
+        <h2>{{i18n.commercial.authMochiTitle}}</h2>
+        <p>{{i18n.commercial.authMochiCopy}}</p>
+      </div>
+      <div class="auth-mochi-stage">
+        <figure class="product-frame"><figcaption>Resume Studio</figcaption>{{MARKETING_AUTH}}</figure>
+        <img src="/img/mochi-coach.webp" width="96" height="96" alt="" id="auth-mochi-avatar">
+      </div>
+      <p id="auth-mochi-speech-text">{{i18n.auth.mochiWelcome}}</p>
+    </aside>
   </main>
 
   <script src="/js/api.js?v=20261105r15"></script>
@@ -133,5 +145,6 @@
   <script src="/js/ui.js?v=20261105r15" defer></script>
   <script src="/js/mobile-viewport.js?v=20261105r15" defer></script>
   <script src="/js/pwa.js?v=20261105r15" defer></script>
+  {{PUBLIC_FOOTER}}
 </body>
 </html>

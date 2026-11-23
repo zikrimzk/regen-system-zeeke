@@ -8,7 +8,7 @@ final class Navigation
 {
     public const WORKSPACE = [
         'overview' => ['/dashboard', 'nav.overview', 'home'],
-        'resumes' => ['/resumes', 'nav.resumes', 'resume'],
+        'studio' => ['/builder', 'studio.title', 'resume'],
         'letters' => ['/cover-letters', 'nav.letters', 'letters'],
         'tailor' => ['/tailor', 'nav.tailor', 'target'],
         'jobs' => ['/jobs/saved', 'nav.jobs', 'bookmark'],
@@ -16,17 +16,16 @@ final class Navigation
         'interview' => ['/interview', 'nav.interview', 'conversation'],
         'profile' => ['/profile', 'nav.profile', 'account'],
         'billing' => ['/store', 'nav.billing', 'store'],
-        'settings' => ['/settings', 'nav.settings', 'settings'],
         'templates' => ['/templates', 'nav.templates', 'resume'],
-        'payments' => ['/payments', 'nav.payments', 'payments'],
-        'tokens' => ['/token-activity', 'nav.tokens', 'store'],
+        'payments' => ['/store/payments', 'nav.payments', 'payments'],
+        'tokens' => ['/store/activity', 'nav.tokens', 'coin'],
         'support' => ['/support', 'nav.support', 'support'],
         'mochi' => ['/mochi', 'nav.mochi', 'mochi'],
     ];
 
     public const WORKSPACE_GROUPS = [
-        'nav.workspace' => ['overview', 'resumes', 'letters'],
-        'nav.account' => ['profile', 'billing', 'settings', 'support', 'mochi'],
+        'nav.workspace' => ['overview', 'studio', 'letters', 'mochi'],
+        'nav.account' => ['billing', 'profile', 'support'],
     ];
 
     public const UPCOMING = ['tailor', 'jobs', 'applications', 'interview'];
@@ -62,13 +61,13 @@ final class Navigation
     public static function workspaceActive(string $view): string
     {
         $path = Http::path();
-        if (in_array($path, ['/builder', '/templates'], true)) return 'resumes';
+        if (in_array($path, ['/builder', '/templates'], true)) return 'studio';
         if ($path === '/payments/result') return 'payments';
         foreach (self::WORKSPACE as $key => [$url]) {
             if ($path === $url) return $key;
         }
         $path = '/' . basename($view, '.html');
-        if (in_array($path, ['/builder', '/templates'], true)) return 'resumes';
+        if (in_array($path, ['/builder', '/templates'], true)) return 'studio';
         foreach (self::WORKSPACE as $key => [$url]) {
             if ($path === $url) return $key;
         }

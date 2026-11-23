@@ -13,9 +13,11 @@ for($index=0;$index<$zip->numFiles;$index++){
 }
 if($samples!==16||$images!==48)throw new RuntimeException('Incomplete released template assets.');
 foreach(['js/assist-me.js','_app/src/ResumeAssistance.php','_app/database/migrations/011_assistance_and_admin_access.sql','_app/ASSIST_ME_UPDATE.md','_app/src/DocumentFonts.php','_app/TEMPLATE_DESIGN_STANDARD.md','fonts/lato-OFL.txt','fonts/sourcesans3-OFL.txt','fonts/ebgaramond-OFL.txt','fonts/librebaskerville-OFL.txt','_app/src/DocumentStyle.php','_app/src/ResumeWriting.php','_app/src/ResumePrompts.php','_app/src/ResumeReview.php','_app/RESUME_ENGINE_UPDATE.md','_app/WRITING_STANDARDS.md','_app/AI_WRITING_PROMPTS.md','_app/LANDING_MOBILE_UPDATE.md','js/mobile-viewport.js','js/sections/additional.js','fonts/Inter-Latin.woff2','fonts/Inter-OFL.txt','samples/catalog.json'] as $file)if($zip->locateName($file)===false)throw new RuntimeException('Missing released file: '.$file);
-foreach(['assist-me.js','ai-enhance.js','admin.js','api.js','cover-letters.js','landing.js','mobile-viewport.js','ui.js','form-assist.js','stepper.js','app.js','templates.js','pdf-pages.js','document-settings.js','sections/personal.js'] as $script)if(hash('sha256',$zip->getFromName('js/'.$script))!==hash_file('sha256',$root.'/public/js/'.$script))throw new RuntimeException('Released script is stale: '.$script);
+foreach(['assist-me.js','ai-enhance.js','admin.js','api.js','cover-letters.js','public-product.js','dashboard.js','store.js','mobile-viewport.js','ui.js','form-assist.js','stepper.js','app.js','templates.js','pdf-pages.js','document-settings.js','sections/personal.js'] as $script)if(hash('sha256',$zip->getFromName('js/'.$script))!==hash_file('sha256',$root.'/public/js/'.$script))throw new RuntimeException('Released script is stale: '.$script);
 $destination=$root.'/tmp/release-template-check-'.bin2hex(random_bytes(4));
 if(!mkdir($destination,0700,true)||!$zip->extractTo($destination))throw new RuntimeException('Unable to extract a local test release.');
+@mkdir($destination . '/storage', 0777, true);
+@mkdir($destination . '/_app/storage', 0777, true);
 $zip->close();
 foreach(['css/auth-journey.css','css/cover-letters.css','css/site.css','css/main.css','css/appearance.css','_app/src/MailDeliveryRejected.php','_app/src/MailRetryPolicy.php','_app/src/SmtpMailer.php','_app/src/NotificationService.php','_app/src/AdminAlertService.php','_app/src/CampaignService.php'] as $file){
     $source=str_starts_with($file,'_app/')?$root.'/php/'.substr($file,5):$root.'/public/'.$file;
@@ -32,7 +34,7 @@ foreach(['_app/src/ManagedRealtime.php','_app/src/RealtimeEndpoint.php','_app/sr
     if(!is_file($destination.'/'.$file)||hash_file('sha256',$destination.'/'.$file)!==hash_file('sha256',$source))throw new RuntimeException('Managed update release file is stale: '.$file);
 }
 if(!is_file($destination.'/_app/MANAGED_REALTIME_DIRECTADMIN.md'))throw new RuntimeException('Missing managed delivery setup guide.');
-foreach(['_app/src/TokenStore.php','_app/src/FeaturePricing.php','_app/src/SupportAttachments.php','_app/src/Actions/CommerceActions.php','_app/database/migrations/019_support_and_token_store.sql','js/store.js','js/feature-access.js','js/support-attachments.js','js/live-notifications.js','js/admin-store.js','css/token-store.css','css/support-attachments.css','css/admin-commerce.css','img/regen-token.svg'] as $file){
+foreach(['_app/src/TokenStore.php','_app/src/FeaturePricing.php','_app/src/SupportAttachments.php','_app/src/Actions/CommerceActions.php','_app/database/migrations/019_support_and_token_store.sql','js/store.js','js/feature-access.js','js/support-attachments.js','js/live-notifications.js','js/admin-store.js','css/token-store.css','css/support-attachments.css','css/admin-commerce.css','css/k-store.css','css/workspace-overview.css','css/editor-workbench.css','css/workspace-material.css','js/live-document-preview.js'] as $file){
     $source=str_starts_with($file,'_app/database/')?$root.'/database/'.substr($file,14):(str_starts_with($file,'_app/')?$root.'/php/'.substr($file,5):$root.'/public/'.$file);
     if(!is_file($destination.'/'.$file)||hash_file('sha256',$destination.'/'.$file)!==hash_file('sha256',$source))throw new RuntimeException('Store and support release file is stale: '.$file);
 }

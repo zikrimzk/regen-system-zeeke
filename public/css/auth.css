@@ -45,7 +45,7 @@
   width: 8px;
   height: 8px;
   border-top-right-radius: 7px;
-  background: #5eb2aa;
+  background: var(--brand-yellow, #f2bf4a);
   clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 .auth-header-title { display: flex; flex-direction: column; line-height: 1.05; }

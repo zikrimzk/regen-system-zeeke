@@ -106,6 +106,11 @@ check(fetches === beforeThumbnail + 1,'Responsive public previews can be reused 
 await get('/img/templates/modern-1280.webp');
 check(publicKeys().some(url => url.includes('/img/templates/modern-1280.webp')),'High-resolution public previews must be available offline.');
 check(await get('/img/templates/private-320.webp') === null,'Unrecognised images do not enter the public cache.');
+await get('/img/marketing/studios/resume-mobile-en.webp');
+check(publicKeys().some(url => url.endsWith('/img/marketing/studios/resume-mobile-en.webp')),'Published synthetic Studio assets are eligible after consent.');
+check(await get('/img/marketing/studios/user-archive-en.webp') === null,'Unpublished marketing paths remain outside the public cache.');
+check(await get('/img/worlds/hero-960.webp') === null,'Retired landmark art is outside the public cache.');
+
 await get('/samples/modern.pdf');
 online = false;
 check((await (await get('/samples/modern.pdf','navigate')).text()).startsWith('PUBLIC'),'A viewed public sample PDF can also open offline through navigation.');

@@ -90,7 +90,7 @@ window.ReGenAI = (() => {
   }
 
   function formatReset(resetAt) {
-    if (!resetAt) return 'The token limit window starts with your first use';
+    if (!resetAt) return 'The Coin allowance window starts with your first use';
     const date = new Date(resetAt);
     if (Number.isNaN(date.getTime())) return 'Reset time unavailable';
     return `Resets ${date.toLocaleString(undefined, {
@@ -106,15 +106,15 @@ window.ReGenAI = (() => {
   function requestLabel(quota) {
     if (!quota) return 'ReGen AI usage details unavailable';
     const remaining = Math.max(0, Math.floor(Number(quota.remaining) || 0));
-    return `${remaining} tokens`;
+    return `${remaining} Coin`;
   }
 
   function exhaustedMessage(quota) {
-    if(quota?.renewable===false)return 'This action needs more tokens than your allowance contains. Your AI allowance does not renew automatically. Saved tokens are used after base tokens.';
+    if(quota?.renewable===false)return 'This action needs more Coin than your allowance contains. Your AI allowance does not renew automatically. Saved Coin are used after base Coin.';
     const reset = quota?.resetAt
       ? formatReset(quota.resetAt).replace(/^Resets /, '')
-      : 'when the next token window begins';
-    return `This action needs more tokens than are available. Your AI allowance renews ${reset}. Saved tokens are used after base tokens.`;
+      : 'when the next allowance window begins';
+    return `This action needs more Coin than are available. Your AI allowance renews ${reset}. Saved Coin are used after base Coin.`;
   }
 
   async function loadStatus({ force = false } = {}) {
@@ -204,7 +204,7 @@ window.ReGenAI = (() => {
           ? 'ReGen AI assistance is temporarily unavailable'
           : exhausted
             ? exhaustedMessage(availability.quota)
-            : `Uses ${cost} Token${cost === 1 ? '' : 's'} on success. Errors cost nothing.`;
+            : `Uses ${cost} Coin on success. Errors cost nothing.`;
       if (button.dataset.loading !== 'true') window.ReGenTokens?.bind(button,'ai_refine','Refine');
     }
   }

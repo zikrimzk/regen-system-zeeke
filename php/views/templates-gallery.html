@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{LANGUAGE}}" data-default-appearance="light">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{i18n.public.templatesTitle}} | {{BRAND_NAME}}</title>
+  <link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/css/site.css">
+  <script src="/js/theme.js"></script><script src="/js/privacy.js" defer></script>
+  <script src="/js/templates-gallery.js" defer></script>
+</head>
+<body class="landing-page public-catalogue-page">
+  <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
+  <header class="site-header journey-header"><a href="/" class="site-brand">{{PRODUCT_WORDMARK}}</a>{{LANGUAGE_LINK}}
+    <nav class="site-account-links" aria-label="{{i18n.public.navigation}}"><a href="/login">{{i18n.common.signIn}}</a><a class="btn btn-primary" href="/register">{{i18n.public.startShort}}</a></nav></header>
+  <main id="main-content" class="site-container public-catalogue" tabindex="-1">
+    <a class="text-link" href="/#resume-designs">{{i18n.public.backToJourney}}</a>
+    <h1>{{i18n.public.templatesTitle}}</h1><p>{{i18n.public.templatesIntro}}</p>
+    <div class="public-template-filters" role="group" aria-label="{{i18n.demo.filters}}"{{PUBLIC_TEMPLATE_FILTER_STATE}}>
+      <button type="button" data-template-filter="all" aria-pressed="true">{{i18n.public.filterAll}}</button>
+      <button type="button" data-template-filter="basic" aria-pressed="false">{{i18n.public.designBasic}}</button>
+      <button type="button" data-template-filter="premium" aria-pressed="false">{{i18n.public.designPremium}}</button>
+    </div>
+    <div class="public-template-grid">{{PUBLIC_TEMPLATE_CARDS}}</div>
+  </main>
+  {{PUBLIC_FOOTER}}
+</body>
+</html>

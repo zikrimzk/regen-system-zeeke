@@ -3,7 +3,7 @@ declare(strict_types=1);
 if(PHP_SAPI!=='cli')exit;
 require dirname(__DIR__).'/vendor/autoload.php';
 use ReGen\{AdminAccess,AdminRepository,BonusCreditService,ConcurrentUpdate,Config,FeaturePricing,SupportAttachments,SupportConfiguration,TokenStore,UserRepository};
-Config::load(dirname(__DIR__));
+Config::load(getenv('REGEN_HTTP_FIXTURE_CONFIG') ?: dirname(__DIR__));
 if(!in_array(Config::get('app.env'),['development','test','testing'],true)||!in_array(Config::get('db.host'),['localhost','127.0.0.1','::1'],true))throw new RuntimeException('Use an isolated local development database.');
 $connect=static fn(?string $name=null):PDO=>new PDO('mysql:host='.Config::get('db.host').';port='.Config::get('db.port').($name?';dbname='.$name:'').';charset=utf8mb4',Config::get('db.user'),Config::get('db.password'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false,PDO::MYSQL_ATTR_INIT_COMMAND=>"SET time_zone='+00:00'"]);
 if(($argv[1]??'')==='--buyer'){

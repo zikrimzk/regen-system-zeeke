@@ -423,7 +423,4 @@ body:has(#dashboard-preview-modal[open]) { overflow: hidden; }
   .letter-layout .letter-form-footer { position: static; }
 }
 
-.dashboard-page [data-mochi-float],
-.cover-letter-page [data-mochi-float],
-.template-page [data-mochi-float] { display: none; }
 .admin-page .admin-main .admin-subnav button { font-size: var(--type-small); }

@@ -2,8 +2,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date=value=>{const parsed=new Date(/^\d{4}-\d{2}-\d{2} /.test(value)?value.replace(' ','T')+'Z':value);return Number.isNaN(parsed.getTime())?'Unknown date':parsed.toLocaleString('en-MY',{dateStyle:'medium',timeStyle:'short'});};
   const page=document.body.dataset.servicePage;
+  const t=key=>ReGenText.get('notifications.'+key);
   const feedback=document.getElementById('service-feedback');
   const content=document.getElementById('service-content');
+  const readAll=document.getElementById('read-all-notifications');
+  const clearAll=document.getElementById('clear-all-notifications');
+  let inboxUpdating=false;
   let csrf='';let requestNumber=0;let currentPage=1;
   const message=(text,error=false)=>{if(feedback){feedback.className='service-message'+(error?' is-error':'');feedback.textContent=text;feedback.scrollIntoView({block:'nearest',behavior:'smooth'});}else{const toast=document.createElement('div');toast.className='service-feature-message';toast.setAttribute('role','status');toast.textContent=text;document.body.append(toast);setTimeout(()=>toast.remove(),6000);}};
   let openTicketId=null,openTicketPage=1;const replyDrafts=new Map(),replyFiles=new Map();
@@ -14,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const response=await fetch(url,{method,credentials:'same-origin',signal:controller.signal,headers:{...(body&&!(body instanceof FormData)?{'Content-Type':'application/json'}:{}),...(method!=='GET'?{'X-CSRF-Token':csrf}:{})},...(body?{body:body instanceof FormData?body:JSON.stringify(body)}:{})});
       const data=await response.json();if(data.code==='MAINTENANCE_MODE'&&document.body.classList.contains('user-workspace'))location.replace('/maintenance?returnTo='+encodeURIComponent(location.pathname+location.search));if(data.csrfToken)csrf=data.csrfToken;
-      if(response.status===401 && page && page!=='reset')location.replace('/login');
+      if (response.status === 401 && page && page !== 'reset') window.dispatchEvent(new Event('regen:session-expired'));
       return {...data,httpStatus:response.status,success:response.ok && data.success!==false};
     }catch{return {success:false,message:'We could not reach the server. Please try again.'};}finally{clearTimeout(timer);}
   }
@@ -22,9 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     registration:'a[href="/register"],#register-form [type="submit"]',google_login:'#google-auth',
     cover_letters:'a[href="/cover-letters"]',templates:'a[href="/templates"],#change-resume-template',
     ai_assist:'.assist-launcher,.assist-open',ai_refine:'.ai-refine-row,.ai-regenerate',ai_review:'.ats-review-request',
-    ai_cover_letter:'#generate-letter,.letter-ai',pdf_download:'#download-letter,#btn-download-pdf,#download-resume',document_preview:'#preview-letter,#preview-open-top,#open-resume-preview',
+    ai_cover_letter:'#generate-letter',pdf_download:'#download-letter,#btn-download-pdf,#download-resume',document_preview:'#preview-letter,#preview-open-top,#open-resume-preview,#studio-preview-refresh,#studio-preview-mode',
     photo_upload:'#photo-choose-btn,#photo-upload',support:'a[href="/support"]',profile_edit:'#profile-save',profile_email:'.email-change',self_delete:'#danger',
-    profile_password:'.password-details',session_controls:'.session-revoke,#clear-session-history',document_settings:'#resume-layout-settings',
+    profile_password:'.password-details',session_controls:'.session-revoke,#clear-session-history',document_settings:'#resume-layout-settings,#letter-design-settings',resume_rename:'#resume-rename',
     feedback:'.feedback-launcher',
   };
   let features={};let featureSyncQueued=false;
@@ -44,7 +48,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const element=event.target.closest('[data-service-unavailable]');if(!element)return;
     event.preventDefault();event.stopImmediatePropagation();const f=features[element.dataset.serviceUnavailable];message(f?.message||f?.name+' is temporarily unavailable.');
   },true);
-  const refreshFeatures=async()=>{const response=await request('/api/capabilities');if(response.success){features=response.features;syncFeatures();}};
+  const refreshFeatures=async()=>{
+    const response=await request('/api/capabilities');
+    if (!response.success) return;
+    const previousPreview=features.document_preview?.available;
+    features=response.features;
+    syncFeatures();
+    if (previousPreview!==features.document_preview?.available) {
+      window.dispatchEvent(new CustomEvent('regen:preview-availability',{detail:{available:features.document_preview?.available===true}}));
+    }
+  };
   const workspacePage=!!page||(document.body.classList.contains('user-workspace')&&!document.body.classList.contains('auth-page'));
   const accountRequest=page!=='reset'&&workspacePage?Api.getMe():null;
   await refreshFeatures();
@@ -195,6 +208,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function notifications() {
     const serial=++requestNumber;const response=await request('/api/notifications?page='+currentPage);if(serial!==requestNumber)return;
     if(!response.success){errorPanel(response.message,notifications);return;}updateNotificationBell(response);
+    readAll.disabled=inboxUpdating||!Number(response.counts.unread);
+    clearAll.disabled=inboxUpdating||!Number(response.counts.total);
     if(currentPage>1&&!response.items.length){
       currentPage=Math.max(1,Math.ceil(Number(response.counts.total)/25));
       return notifications();
@@ -212,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <button class="notification-read notification-remove" data-remove="${item.id}" type="button" aria-label="Remove ${safe(item.title)}" title="Remove notification">${ReGenIcons.icon('trash')}</button>
         </div>
       </article>`);
-    content.innerHTML=`<div class="service-list">${items.join('')||empty('You’re up to date','New notifications will appear here.')}</div>`;
+    content.innerHTML=`<div class="service-list">${items.join('')||empty(t('emptyTitle'),t('empty'))}</div>`;
     const read=async id=>{const result=await request('/api/notifications/read','POST',{id});if(!result.success){message(result.message,true);return;}notificationChanged();notifications();};
     content.querySelectorAll('[data-read]').forEach(button=>button.onclick=()=>read(Number(button.dataset.read)));
     content.querySelectorAll('[data-notification-open]').forEach(link=>link.onclick=()=>{request('/api/notifications/read','POST',{id:Number(link.dataset.notificationOpen)}).then(result=>{if(result.success)notificationChanged();});});
@@ -240,7 +255,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (params.get('new')==='1') newTicket(params.get('topic'));
     else tickets();
   }
-  if(page==='notifications'){document.getElementById('read-all-notifications').onclick=async event=>{const button=event.currentTarget;button.disabled=true;const result=await request('/api/notifications/read','POST',{});button.disabled=false;if(!result.success){message(result.message,true);return;}notificationChanged();notifications();};notifications();}
+  if(page==='notifications'){
+    async function updateInbox(url, method, body) {
+      inboxUpdating=true;
+      readAll.disabled=clearAll.disabled=true;
+      const result=await request(url,method,body);
+      inboxUpdating=false;
+      if(result.success){
+        if(method==='DELETE'){
+          currentPage=1;
+          message(t('cleared'));
+        }
+        notificationChanged();
+      } else {
+        message(result.message||t('clearFailed'),true);
+      }
+      await notifications();
+      if(result.success && method==='DELETE' && clearAll.disabled) {
+        document.getElementById('main-content').focus({preventScroll:true});
+      }
+    }
+    readAll.onclick=()=>updateInbox('/api/notifications/read','POST',{});
+    clearAll.onclick=async()=>{
+      if(!await ReGenDialog.confirm({title:t('clearTitle'),message:t('clearDescription'),confirmLabel:t('clear'),danger:true}))return;
+      if(!inboxUpdating) await updateInbox('/api/notifications','DELETE');
+    };
+    notifications();
+  }
 
 
 });

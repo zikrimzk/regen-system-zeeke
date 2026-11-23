@@ -14,7 +14,13 @@ final class Storage
         if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
             throw new \RuntimeException('Application storage is not writable.');
         }
-        if (!is_writable($directory)) throw new \RuntimeException('Application storage is not writable.');
+        if (!is_writable($directory)) {
+            $probe = $directory . '/.probe_' . bin2hex(random_bytes(4));
+            if (@file_put_contents($probe, '') === false) {
+                throw new \RuntimeException('Application storage is not writable.');
+            }
+            @unlink($probe);
+        }
         return $directory;
     }
 }

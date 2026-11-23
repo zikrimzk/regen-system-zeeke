@@ -20,7 +20,7 @@ const pages = [
   ['studio','studio.html'],
 ];
 const widths = [360,390,430,768,1024,1440];
-const permitted = /^\/(?:prototypes\/kerjaya\/(?:prototype\.(?:css|js)|(?:city|workspace)\/(?:index|dashboard|studio)\.html)|public\/(?:fonts\/(?:Inter-Latin|EBGaramond-Regular)\.woff2|img\/(?:kl-skyline-(?:640|1120)\.webp|templates\/(?:classic|modern)-640\.webp)|samples\/(?:classic|modern)\.pdf))$/;
+const permitted = /^\/(?:prototypes\/kerjaya\/(?:prototype\.(?:css|js)|assets\/kl-skyline-(?:640|1120)\.webp|(?:city|workspace)\/(?:index|dashboard|studio)\.html)|public\/(?:fonts\/(?:Inter-Latin|EBGaramond-Regular)\.woff2|img\/templates\/(?:classic|modern)-640\.webp|samples\/(?:classic|modern)\.pdf))$/;
 const service = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://127.0.0.1');

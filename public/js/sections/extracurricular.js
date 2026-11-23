@@ -85,7 +85,7 @@ const ExtracurricularSection = (() => {
     });
   }
 
-  function getData() {
+  function getData(validate = true) {
     let isValid = true;
     const data = [];
 
@@ -96,12 +96,12 @@ const ExtracurricularSection = (() => {
       if (!card) return;
 
       const org = card.querySelector('.extra-org');
-      if (!org.value.trim()) { org.classList.add('is-error'); isValid = false; }
-      else org.classList.remove('is-error');
+      if (validate && !org.value.trim()) { org.classList.add('is-error'); isValid = false; }
+      else if (validate) org.classList.remove('is-error');
 
       const bullets = ReGenPoints.lines(card.querySelector('.extra-bullet-input').value);
 
-      if (isValid) {
+      if (isValid || !validate) {
         data.push({
           organization: window.ZeekeSafe.value(org),
           role:         window.ZeekeSafe.value(card.querySelector('.extra-role')),
@@ -110,8 +110,8 @@ const ExtracurricularSection = (() => {
       }
     });
 
-    return { isValid, data: isValid ? data : null };
+    return { isValid, data: isValid || !validate ? data : null };
   }
 
-  return { render, attachEvents, getData, removeEntry };
+  return { render, attachEvents, getData, getWorkingData: () => getData(false).data, removeEntry };
 })();

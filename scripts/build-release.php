@@ -49,11 +49,11 @@ foreach ($map as $directory => $prefix) {
         $name = $prefix . $relative;
         if ($directory === 'php' && str_starts_with($relative, 'views/') && $file->getExtension() === 'html') {
             $html = preg_replace_callback(
-                '~((?:src|href)=")(/(?:css|js|img)/[^"?]+)(?:\?v=[^"]*)?(")~',
+                '~((?:src|href)=")(/(?:css|js|img)/[^"?#]+)(?:\?v=[^"#]*)?(#[^"]*)?(")~',
                 static function (array $match) use ($root): string {
                     $asset = $root . '/public' . $match[2];
                     $version = is_file($asset) ? substr(hash_file('sha256', $asset), 0, 12) : 'missing';
-                    return $match[1] . $match[2] . '?v=' . $version . $match[3];
+                    return $match[1] . $match[2] . '?v=' . $version . $match[3] . $match[4];
                 },
                 (string) file_get_contents($file->getPathname())
             );
@@ -128,7 +128,7 @@ $zip->addFromString('release.json', json_encode([
 foreach (['_app/database/migrations/017_realtime_and_maintenance.sql','_app/src/RealtimeEvents.php','_app/src/RealtimeConnection.php','_app/src/MaintenanceService.php','_app/src/Actions/LiveActions.php','_app/views/maintenance.html','js/realtime.js','js/maintenance.js','js/admin-maintenance.js','css/maintenance.css','css/pdf-pages.css','index.php', '.htaccess', '_app/.htaccess', '_app/bootstrap.php', '_app/views/admin.html', '_app/views/support.html', '_app/vendor/autoload.php', '_app/database/schema.sql', '_app/database/migrations/015_feedback_limits_and_support_context.sql', '_app/jobs/process-notifications.php', 'css/workspace-shell.css', '_app/src/WorkspaceShell.php', 'js/admin-templates.js', 'img/brand-wordmark-232.webp', '_app/src/CampaignService.php', '_app/src/Actions/AdminWorkspaceActions.php', '_app/database/migrations/016_campaigns_and_uat_controls.sql', 'js/admin-campaigns.js', 'js/admin-charts.js', 'js/campaigns.js', 'css/campaigns.css', 'js/admin-insights.js', 'js/feedback.js', 'css/feedback.css', '_app/views/feedback.html', 'js/admin-control-centre.js', 'css/admin-control-centre.css', 'js/service-centre.js', 'js/ui.js'] as $required) {
     if (!in_array($required, $names, true)) throw new RuntimeException('Release is incomplete: ' . $required);
 }
-foreach (['_app/database/migrations/019_support_and_token_store.sql','_app/src/TokenStore.php','_app/src/FeaturePricing.php','_app/src/SupportAttachments.php','_app/src/Actions/CommerceActions.php','_app/views/store.html','_app/views/feature-access.html','js/store.js','js/feature-access.js','js/support-attachments.js','js/live-notifications.js','js/admin-store.js','css/token-store.css','css/support-attachments.css','css/admin-commerce.css','img/regen-token.svg'] as $required) {
+foreach (['_app/database/migrations/019_support_and_token_store.sql','_app/src/TokenStore.php','_app/src/FeaturePricing.php','_app/src/SupportAttachments.php','_app/src/Actions/CommerceActions.php','_app/views/store.html','_app/views/feature-access.html','js/store.js','js/feature-access.js','js/support-attachments.js','js/live-notifications.js','js/admin-store.js','css/token-store.css','css/support-attachments.css','css/admin-commerce.css','css/k-store.css','css/workspace-overview.css','css/editor-workbench.css','css/workspace-material.css','js/live-document-preview.js'] as $required) {
     if (!in_array($required, $names, true)) throw new RuntimeException('Store and support release is incomplete: ' . $required);
 }
 foreach (['_app/database/migrations/026_hitpay_orders.sql', '_app/src/HitPay.php', '_app/src/HitPayCheckoutException.php', '_app/src/PaymentOrders.php',

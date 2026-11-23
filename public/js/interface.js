@@ -13,10 +13,5 @@
     }
 
     if (event.target.closest('[data-showcase-open]')) document.getElementById('showcase-dialog').showModal();
-    const opener = event.target.closest('[data-workspace-more]');
-    const more = document.getElementById('workspace-more');
-    if (!more) return;
-    if (opener) more.showModal();
-    if (event.target === more || event.target.closest('[data-workspace-more-close]')) more.close();
   });
 })();

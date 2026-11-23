@@ -91,7 +91,7 @@ const ProjectsSection = (() => {
     });
   }
 
-  function getData() {
+  function getData(validate = true) {
     let isValid = true;
     const data = [];
 
@@ -102,12 +102,12 @@ const ProjectsSection = (() => {
       if (!card) return;
 
       const title = card.querySelector('.proj-title');
-      if (!title.value.trim()) { title.classList.add('is-error'); isValid = false; }
-      else title.classList.remove('is-error');
+      if (validate && !title.value.trim()) { title.classList.add('is-error'); isValid = false; }
+      else if (validate) title.classList.remove('is-error');
 
       const bullets = ReGenPoints.lines(card.querySelector('.proj-bullet-input').value);
 
-      if (isValid) {
+      if (isValid || !validate) {
         data.push({
           title:       window.ZeekeSafe.value(title),
           type:        window.ZeekeSafe.value(card.querySelector('.proj-type')),
@@ -116,8 +116,8 @@ const ProjectsSection = (() => {
       }
     });
 
-    return { isValid, data: isValid ? data : null };
+    return { isValid, data: isValid || !validate ? data : null };
   }
 
-  return { render, attachEvents, getData, removeEntry };
+  return { render, attachEvents, getData, getWorkingData: () => getData(false).data, removeEntry };
 })();

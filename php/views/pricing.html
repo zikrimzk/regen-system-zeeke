@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="{{LANGUAGE}}" data-default-appearance="light">
+<html lang="{{LANGUAGE}}" data-default-appearance="light" data-commercial-appearance>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="{{ROBOTS}}">
   {{CANONICAL}}
   <title>{{i18n.public.packages}} | {{BRAND_NAME}}</title>
@@ -11,23 +11,27 @@
   <link rel="stylesheet" href="/css/site.css">
   <script src="/js/commerce-ui.js" defer></script>
   <script src="/js/landing-pricing.js" defer></script>
+  <script src="/js/privacy.js" defer></script>
 </head>
-<body class="landing-page pricing-page">
+<body class="landing-page commercial-ui pricing-page">
   <a class="skip-link" href="#main-content">{{i18n.common.skip}}</a>
-  <header class="site-header">
-    <a class="site-brand" href="/" aria-label="{{i18n.common.home}}">{{PUBLIC_BRAND}}</a>
-    <nav class="pricing-nav" aria-label="{{i18n.public.navigation}}"><a href="/login">{{i18n.common.signIn}}</a><a class="btn btn-primary" href="/register">{{i18n.common.register}}</a></nav>
-    {{LANGUAGE_LINK}}
+  <header class="site-header product-header">
+    <a class="site-brand" href="/" aria-label="{{i18n.common.home}}">{{PRODUCT_WORDMARK}}</a>{{LANGUAGE_LINK}}
+    <nav aria-label="{{i18n.public.navigation}}"><a class="product-sign-in" href="/login">{{i18n.common.signIn}}</a><a class="product-button" href="/register">{{i18n.commercial.shortStart}}</a></nav>
   </header>
   <main id="main-content" class="site-container standalone-pricing" tabindex="-1">
-    <h1>{{i18n.public.pricingTitle}}</h1>
-    <p>{{i18n.public.pricingCopy}}</p>
+    <div class="pricing-intro">
+      <h1>{{i18n.commercial.planTitle}}</h1>
+      <p>{{i18n.commercial.planIntro}}</p>
+    </div>
     <section class="landing-pricing" id="pricing" data-pricing-page aria-label="{{i18n.public.packages}}">
       <p id="pricing-state" role="status">{{i18n.common.loading}}</p>
+      <button class="product-link" type="button" data-pricing-retry hidden>{{i18n.commercial.planRetry}}</button>
       <div id="landing-pricing"></div>
     </section>
     <noscript><p><a href="/store">{{i18n.public.store}}</a></p></noscript>
   </main>
   <script id="pricing-catalogue" type="application/json">{{PRICING_CATALOGUE}}</script>
+  {{PUBLIC_FOOTER}}
 </body>
 </html>

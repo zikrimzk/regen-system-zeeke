@@ -18,6 +18,14 @@
     if (banner) banner.hidden = true;
     window.dispatchEvent(new CustomEvent('regen:privacy',{detail:current()}));
   }
+  function localize(container, labels) {
+    for (const [selector, key, attribute] of labels) {
+      const element = container.querySelector(selector);
+      const text = window.ReGenText?.get('commercial.' + key);
+      if (text && attribute) element.setAttribute(attribute, text);
+      else if (text) element.textContent = text;
+    }
+  }
   function close() {dialog?.close();}
   function open(event) {
     trigger = event?.currentTarget || document.activeElement;
@@ -26,6 +34,14 @@
       dialog.className = 'privacy-dialog';
       dialog.setAttribute('aria-labelledby','privacy-title');
       dialog.innerHTML = '<div class="privacy-heading"><h2 id="privacy-title">Your privacy choices.</h2><button type="button" class="privacy-close" aria-label="Close privacy choices">×</button></div><p>Choose what ReGen remembers on this device.</p><div class="privacy-setting"><div><h3>Essential</h3><p>Sign-in, abuse prevention and your privacy choices.</p></div><span class="privacy-essential">Always on</span></div><label class="privacy-setting"><span><strong>Preferences</strong><span>Remember your light or dark appearance.</span></span><input type="checkbox" name="preferences" role="switch"></label><label class="privacy-setting"><span><strong>Offline public pages</strong><span>Keep public pages and design samples for faster visits. Private documents stay online.</span></span><input type="checkbox" name="offline" role="switch"></label><p class="privacy-no-tracking">ReGen does not use advertising or analytics trackers.</p><div class="privacy-actions"><button type="button" class="btn btn-primary" data-save-privacy>Save choices</button><button type="button" class="btn btn-secondary" data-reject-privacy>Reject optional</button></div>';
+      localize(dialog, [
+        ['#privacy-title','privacyTitle'], ['.privacy-close','privacyClose','aria-label'],
+        [':scope > p:first-of-type','privacyRemember'], ['h3','privacyEssential'], ['h3 + p','privacyEssentialCopy'],
+        ['.privacy-essential','privacyAlways'], ['label:nth-of-type(1) strong','privacyPreferences'],
+        ['label:nth-of-type(1) span span','privacyPreferencesCopy'], ['label:nth-of-type(2) strong','privacyOffline'],
+        ['label:nth-of-type(2) span span','privacyOfflineCopy'], ['.privacy-no-tracking','privacyPrivacyCopy'],
+        ['[data-save-privacy]','privacySave'], ['[data-reject-privacy]','privacyReject'],
+      ]);
       dialog.querySelector('.privacy-close').addEventListener('click',close);
       dialog.querySelector('[data-save-privacy]').addEventListener('click',() => {
         save(dialog.querySelector('[name=preferences]').checked,dialog.querySelector('[name=offline]').checked); close();
@@ -51,6 +67,10 @@
       banner.className = 'privacy-banner'; banner.hidden = !!choice;
       banner.setAttribute('aria-labelledby','privacy-banner-title');
       banner.innerHTML = '<div><h2 id="privacy-banner-title">Your privacy choices.</h2><p>Essential cookies keep sign-in secure. You choose whether to remember your appearance and save public pages for offline visits.</p></div><div class="privacy-actions"><button type="button" class="btn btn-primary" data-accept-privacy>Accept all</button><button type="button" class="btn btn-secondary" data-reject-privacy>Reject optional</button><button type="button" class="btn btn-secondary" data-choose-privacy>Choose cookies</button></div>';
+      localize(banner, [
+        ['#privacy-banner-title','privacyTitle'], ['p','privacyBanner'], ['[data-accept-privacy]','privacyAccept'],
+        ['[data-reject-privacy]','privacyReject'], ['[data-choose-privacy]','privacyChoose'],
+      ]);
       banner.querySelector('[data-accept-privacy]').addEventListener('click',() => save(true,true));
       banner.querySelector('[data-reject-privacy]').addEventListener('click',() => save(false,false));
       banner.querySelector('[data-choose-privacy]').addEventListener('click',open);

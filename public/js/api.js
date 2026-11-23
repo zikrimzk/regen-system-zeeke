@@ -172,11 +172,27 @@ const Api = (() => {
 
   // ── URLS ──────────────────────────────────────────────────────
   const documentUrl = () => `/api/pdf/${_resumeId}/document`;
-  async function documentDraft(resumeData, {signal} = {}) {
-    const response = await (window.ReGenTokens?.fetch||fetch)(documentUrl(), {method:'POST', credentials:'same-origin', cache:'no-store', signal, headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken}, body:JSON.stringify({resumeData})});
-    if (!response.ok || !response.headers.get('content-type')?.includes('application/pdf')) throw new Error('Unable to create the PDF preview. Please try again.');
+  async function requestDraftPdf(url, payload, {signal, interactive = false} = {}) {
+    const send = interactive ? (window.ReGenTokens?.fetch || fetch) : fetch;
+    const response = await send(url, {
+      method: 'POST', credentials: 'same-origin', cache: 'no-store', signal,
+      headers: {'Content-Type':'application/json', 'X-CSRF-Token':csrfToken,
+        ...(!interactive ? {'X-ReGen-Preview':'automatic'} : {})},
+      body: JSON.stringify(payload),
+    });
+    if (response.status === 401) window.dispatchEvent(new Event('regen:session-expired'));
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/pdf')) {
+      const error = new Error('Unable to create the PDF preview.');
+      error.status = response.status;
+      throw error;
+    }
     return new Uint8Array(await response.arrayBuffer());
   }
+  function documentDraft(resumeData, options) {
+    const {photoBase64, photoPath, ...personal} = resumeData.personal || {};
+    return requestDraftPdf(documentUrl(), {resumeData: {...resumeData, personal}}, options);
+  }
+  const letterDraftPdf = (data, options) => requestDraftPdf('/api/cover-letters/document', data, options);
   const previewUrl = () => `/api/pdf/${_resumeId}/preview`;
   const pdfUrl     = () => `/api/pdf/${_resumeId}/generate`;
   const previewDraft = async (resumeData) => {
@@ -266,7 +282,7 @@ const Api = (() => {
     setResumeId, getResumeId,
     getResume, saveSection, uploadPhoto, deletePhoto,
     getAIStatus, assistResumeSection, suggestResumeSection, getAtsReviewState, generateAtsReview,
-    previewUrl, pdfUrl, previewDraft, downloadPdf, documentUrl, documentDraft,
+    previewUrl, pdfUrl, previewDraft, downloadPdf, documentUrl, documentDraft, letterDraftPdf,
   };
 })();
 
@@ -285,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (wait <= 0) { clearTimeout(trailing); report(); }
     else if (!trailing) trailing = setTimeout(report, wait);
   }
-  for (const event of ['pointerdown','keydown','wheel','touchmove']) {
+  for (const event of ['pointerdown','keydown','input','wheel','touchmove']) {
     window.addEventListener(event, interacted, {passive:true});
   }
 });
@@ -341,6 +357,9 @@ window.ReGenIcons = (() => {
     lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>',
     writing: '<path d="M13 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-7M7 9h4M7 14h4m3 0 7-7-3-3-7 7-1 4z"/>',
     eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/>',
+    previewPane: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
+    store: '<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10c0 3 5 3 6 0 1 3 5 3 6 0 1 3 6 3 6 0M10 20v-5h4v5"/>',
+    mochi: '<path d="M4 13V6l5 3a11 11 0 0 1 6 0l5-3v7a8 6 0 0 1-16 0Z"/><path d="M9 13h.01M15 13h.01M11 16l1 1 1-1"/>',
     eyeOff: '<path d="m3 3 18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.2 3.1"/><path d="M6.2 6.2C3.5 8 2 12 2 12s3.5 7 10 7a10.8 10.8 0 0 0 3-.4"/>',
   };
 

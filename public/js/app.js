@@ -200,7 +200,7 @@ const App = (() => {
           hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
         })
       : 'the next reset';
-    return quota?.renewable===false?'This action needs more tokens than are available. Your AI allowance does not renew automatically. Saved tokens are used after base tokens.':`This action needs more tokens than are available. Your AI allowance renews ${reset}. Saved tokens are used after base tokens.`;
+    return quota?.renewable===false?'This action needs more Coin than are available. Your AI allowance does not renew automatically. Saved Coin are used after base Coin.':`This action needs more Coin than are available. Your AI allowance renews ${reset}. Saved Coin are used after base Coin.`;
   }
 
   function renderAtsReview(
@@ -255,7 +255,7 @@ const App = (() => {
     card.querySelector('.ats-score strong').textContent = String(score);
     card.querySelector('.ats-review-title h3').textContent = `${review.label || 'Writing review'}`;
     card.querySelector('.ats-review-mode').textContent = showAiComment
-      ? (cached ? 'Saved ReGen AI review - no new token used' : 'Reviewed with ReGen AI')
+      ? (cached ? 'Saved ReGen AI review - no Coin used' : 'Reviewed with ReGen AI')
       : 'Local checks · No token used';
     card.querySelector('.ats-review-comment').textContent = showAiComment
       ? review.comment
@@ -289,7 +289,7 @@ const App = (() => {
     if (showAiComment) {
       requestTitle.textContent = cached ? 'Saved comment loaded' : 'Comment saved for later';
       requestCopy.textContent = cached
-        ? 'This comment was reused without using another token.'
+        ? 'This comment was reused without using more Coin.'
         : 'Returning to this unchanged resume will not generate the comment again.';
       action.remove();
       return;
@@ -297,14 +297,14 @@ const App = (() => {
 
     if (hasSavedComment) {
       requestTitle.textContent = 'Saved ReGen comment available';
-      requestCopy.textContent = 'View the saved comment without using another token.';
+      requestCopy.textContent = 'View the saved comment without using more Coin.';
       action.id = 'ats-review-view-saved';
       action.textContent = 'View saved comment';
       action.addEventListener('click', () => {
         card.querySelector('.ats-review-comment').textContent = savedComment;
-        card.querySelector('.ats-review-mode').textContent = 'Saved ReGen AI review - no new token used';
+        card.querySelector('.ats-review-mode').textContent = 'Saved ReGen AI review - no Coin used';
         requestTitle.textContent = 'Saved comment loaded';
-        requestCopy.textContent = 'No token was used.';
+        requestCopy.textContent = 'No Coin was used.';
         action.remove();
       }, { once: true });
       return;
@@ -318,8 +318,8 @@ const App = (() => {
     }
 
     if (quota && Number(quota.remaining) < reviewCost) {
-      requestTitle.textContent = 'Not enough tokens';
-      requestCopy.textContent = `This comment uses ${reviewCost} tokens; ${Number(quota.remaining)} remain. ${quota.resetAt ? 'Resets ' + new Date(quota.resetAt).toLocaleString() + '.' : 'Check your allowance with an administrator.'}`;
+      requestTitle.textContent = 'Insufficient Coin';
+      requestCopy.textContent = `This comment uses ${reviewCost} Coin; ${Number(quota.remaining)} remain. ${quota.resetAt ? 'Resets ' + new Date(quota.resetAt).toLocaleString() + '.' : 'Check your allowance with an administrator.'}`;
       action.remove();
       return;
     }
@@ -328,7 +328,7 @@ const App = (() => {
     requestTitle.textContent = reviewNeedsUpdate
       ? 'ReGen comment needs an update'
       : 'Want a concise ReGen comment?';
-    requestCopy.textContent = quota ? `${Number(quota.remaining).toLocaleString()} tokens available` : '';
+    requestCopy.textContent = quota ? `${Number(quota.remaining).toLocaleString()} Coin available` : '';
     action.id = 'ats-review-generate';
     action.innerHTML = `${ReGenIcons.icon('sparkles')} Generate ReGen comment`;
     window.ReGenTokens?.setAiCosts({review:reviewCost});
@@ -340,18 +340,21 @@ const App = (() => {
   async function init() {
     const params = new URLSearchParams(window.location.search);
     let id = params.get('id');
-    
+    function showStart(message, retry = false) {
+      document.body.classList.add('studio-start-page');
+      document.getElementById('studio-start').hidden = false;
+      if (message) document.getElementById('studio-start-message').textContent = message;
+      document.getElementById('studio-recover').hidden = !retry;
+    }
     if (!id) {
       const dashboard = await Api.listResumes();
-      if (!dashboard.success) {
-        App.showToast(dashboard.message || 'Unable to open your workspace.', 'error');
-        window.location.replace('/dashboard');
-        return;
-      }
-      window.location.replace(dashboard.profile
-        ? `/builder?id=${encodeURIComponent(dashboard.profile.id)}`
-        : '/templates');
-      return;
+      if (!dashboard.success) return showStart(dashboard.message, true);
+      if (!dashboard.profile) return showStart();
+      id = String(dashboard.profile.id);
+      const url = new URL(location.href);
+      url.searchParams.set('id', id);
+      if (!url.searchParams.has('section') && dashboard.profile.nextSection) url.searchParams.set('section', dashboard.profile.nextSection);
+      history.replaceState(null, '', url);
     }
 
     Api.setResumeId(id);
@@ -365,9 +368,7 @@ const App = (() => {
     hideLoader();
 
     if (!res.success) {
-      alert('Resume not found or access denied.');
-      window.location.href = '/dashboard';
-      return;
+      return showStart(ReGenText.get('studio.resumeMissing') + ' ' + ReGenText.get('studio.resumeRetry'), true);
     }
 
     const resumeData = res.data || {};
@@ -382,16 +383,13 @@ const App = (() => {
     await Stepper.init(resumeData);
     Studio.init(res.title, resumeData.templateId || 'classic');
     document.addEventListener('regen:writing-settings-changed',()=>{if(document.querySelector('.builder-left.is-final'))showFinalScreen();});
-    const layoutButton = document.getElementById('resume-layout-settings');
-    if (layoutButton) layoutButton.innerHTML = `${ReGenIcons.icon('settings')} ${ReGenText.get('studio.pageSettings')}`;
     const templateButton = document.getElementById('change-resume-template');
     function updateTemplateName(id) {
       ReGenTemplates.catalog().then(templates => {
         const template = templates.find(t => t.id === id) || templates[0];
-        templateButton.innerHTML = `${ReGenIcons.icon('template')} ${ZeekeSafe.attr(template.name)}`;
-        templateButton.title = ReGenText.get('public.sampleSwitch');
-        templateButton.setAttribute('aria-label', `${ReGenText.get('studio.currentDesign')}: ${template.name}`);
-      }).catch(() => { templateButton.textContent = ReGenText.get('demo.design'); });
+        templateButton.title = `${ReGenText.get('studio.currentDesign')}: ${template.name}`;
+        templateButton.setAttribute('aria-label', templateButton.title);
+      }).catch(() => {});
     }
     updateTemplateName(resumeData.templateId || 'classic');
     templateButton?.addEventListener('click', () => {

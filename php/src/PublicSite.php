@@ -14,14 +14,37 @@ final class PublicSite
             && in_array(parse_url($base, PHP_URL_SCHEME), ['http', 'https'], true);
         $base = $validBase ? $base : '';
 
+        if ($path === '/packages') {
+            $language = $_GET['lang'] ?? null;
+            Http::redirect('/pricing' . (in_array($language, ['en', 'ms'], true) ? '?lang=' . $language : ''), 302);
+        }
+        if ($path === '/resume-templates') {
+            try { $templates = (new TemplateManagement(Database::connection()))->catalogue(); }
+            catch (\Throwable) { $templates = []; }
+            $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $cards = '';
+            foreach ($templates as $template) {
+                $id = $escape($template['id']);
+                $name = $escape($template['name']);
+                $premium = $template['tier'] === 'premium';
+                $cards .= '<article class="public-template" data-tier="' . ($premium ? 'premium' : 'basic') . '">'
+                    . '<img src="/img/templates/' . $id . '-320.webp" srcset="/img/templates/' . $id . '-320.webp 320w, /img/templates/' . $id . '-640.webp 640w" sizes="(min-width: 900px) 265px, (min-width: 600px) 42vw, 80vw" width="320" height="453" alt="" loading="lazy">'
+                    . '<div><h2>' . $name . '</h2>' . ($premium ? '<p class="public-premium">' . InterfaceText::html('public.designPremium') . '</p>' : '')
+                    . '<a class="text-link" href="/demo/templates/' . $id . '" aria-label="' . InterfaceText::html('common.preview') . ' ' . $name . '">' . InterfaceText::html('common.preview') . '</a>'
+                    . ' <a class="text-link" href="/samples/' . $id . '.pdf" aria-label="PDF: ' . $name . '">PDF</a></div></article>';
+            }
+            PageRenderer::render($root, 'templates-gallery.html', [
+                '{{PUBLIC_TEMPLATE_CARDS}}' => $cards ?: '<p role="status">' . InterfaceText::html('public.heroUnavailable') . '</p>',
+                '{{PUBLIC_TEMPLATE_FILTER_STATE}}' => $cards === '' ? ' hidden' : '',
+            ]);
+        }
         if ($path === '/' || $path === '/pricing') {
-            $pricing = self::pricing();
-            $publicOffers = $pricing['success'] && ($pricing['policy']['enabled'] ?? false)
-                && ($pricing['policy']['showOnLanding'] ?? false) && $pricing['total'] > 0;
             $encode = static fn(mixed $data): string => json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
             $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            try { $brand = (new AdminRepository(Database::connection()))->settings()['appName'] ?? 'ReGen'; }
-            catch (\Throwable) { $brand = 'ReGen'; }
+            $settings = [];
+            try { $settings = (new AdminRepository(Database::connection()))->settings(); }
+            catch (\Throwable) { /* Keep public information available without database access. */ }
+            $brand = $settings['appName'] ?? 'ReGen';
             $brand = trim((string) $brand);
             if ($brand === '' || $brand === 'ReGen') $brand = Brand::NAME;
             $brandMarkup = $brand === Brand::NAME ? Brand::wordmark() : '<span class="site-brand-name">' . $escape($brand) . '</span>';
@@ -32,41 +55,25 @@ final class PublicSite
                 '{{BRAND_NAME}}' => $escape($brand),
                 '{{PUBLIC_BRAND}}' => $brandMarkup,
                 '{{CANONICAL}}' => $base !== '' ? '<link rel="canonical" href="' . $escape($base . $path) . '">' : '',
-                '{{PRICING_CATALOGUE}}' => $encode($pricing),
-                '{{PRICING_HIDDEN}}' => $publicOffers ? '' : ' hidden',
-                '{{ROBOTS}}' => Config::get('app.env') === 'production' && ($path === '/' || $publicOffers) ? 'index,follow,max-image-preview:large' : 'noindex,nofollow',
+                '{{ROBOTS}}' => Config::get('app.env') === 'production' ? 'index,follow,max-image-preview:large' : 'noindex,nofollow',
             ];
-            if ($path === '/pricing') PageRenderer::render($root, 'pricing.html', $view);
-            try { $templates=(new TemplateManagement(Database::connection()))->catalogue(); }
-            catch (\Throwable) { $templates=[]; }
-            $featuredTemplates = array_slice($templates, 0, 3);
-            $modernIndex = array_search('modern', array_column($templates, 'id'), true);
-            if ($modernIndex !== false) {
-                $modern = $templates[$modernIndex];
-                $featuredTemplates = array_slice([$modern, ...array_values(array_filter($templates, static fn(array $template): bool => $template['id'] !== 'modern'))], 0, 3);
+            if ($path === '/pricing') {
+                $pricing = self::pricing();
+                if (!$pricing['success'] || !($pricing['policy']['showOnLanding'] ?? false) || $pricing['total'] < 1) {
+                    $view['{{ROBOTS}}'] = 'noindex,nofollow';
+                }
+                PageRenderer::render($root, 'pricing.html', $view + ['{{PRICING_CATALOGUE}}' => $encode($pricing)]);
             }
-            $feature = $featuredTemplates[0] ?? null;
-            $sampleImage = $feature === null ? '' : '<img id="hero-document-image" src="/img/templates/' . $escape($feature['id'])
-                . '-320.webp" width="320" height="453" alt="' . InterfaceText::html('public.exampleTitle') . '" fetchpriority="high">';
-            $sampleLinks = '';
-            foreach ($featuredTemplates as $template) {
-                $id = $escape($template['id']);
-                $sampleLinks .= '<a href="/samples/' . $id . '.pdf" data-hero-template="' . $id . '"' . ($template === $feature ? ' aria-current="true"' : '') . '>' . $escape($template['name']) . '</a>';
-            }
-            try { $mochi=self::mochiPreview(); }
-            catch (\Throwable) { $mochi=['available'=>false]; }
+            $publicPackages = [];
+            try {
+                $store = new TokenStore(Database::connection());
+                $policy = $store->policy();
+                if ($policy['enabled'] && $policy['showOnLanding']) $publicPackages = $store->packages(false, 1, true)['items'];
+            } catch (\Throwable) { /* Use the factual evergreen promotion. */ }
             PageRenderer::render($root, 'landing.html', $view + [
-                '{{HERO_SAMPLE}}' => $sampleImage,
-                '{{HERO_OPTIONS}}' => $sampleLinks,
-                '{{HERO_SAMPLE_STATE}}' => $feature === null ? ' hidden' : '',
-                '{{HERO_UNAVAILABLE_STATE}}' => $feature === null ? '' : ' hidden',
-                '{{HERO_SAMPLE_PDF}}' => $feature === null ? '/#designs' : '/samples/' . $escape($feature['id']) . '.pdf',
+                '{{COMMERCIAL_PROMOTION}}' => PublicProduct::promotion($publicPackages),
                 '{{SITE_URL}}' => $escape($base . '/'),
                 '{{SOCIAL_IMAGE}}' => $escape($base . '/img/social-preview.png'),
-                '{{TEMPLATE_COUNT}}' => (string) count($templates),
-                '{{TEMPLATE_CATALOGUE}}' => $encode($templates),
-                '{{MOCHI_HIDDEN}}' => $mochi['available']?'':' hidden',
-                '{{MOCHI_PREVIEW}}' => $encode($mochi),
             ]);
         }
         if ($path === '/design-system' && in_array(Config::get('app.env'), ['development','test','testing'], true)) {

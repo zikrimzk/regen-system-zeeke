@@ -148,7 +148,7 @@ final class OpenAIService
         ];
         if ($userId > 0) $payload['safety_identifier'] = $this->safetyIdentifier($userId);
         $raw = json_decode($this->extractText($this->requestWithRetry($payload, 2)), true);
-        if (!is_array($raw) || !is_array($raw['lines'] ?? null) || count($raw['lines']) < 1 || count($raw['lines']) > 4) throw new OpenAIServiceException('ReGen AI returned an incomplete draft. No tokens were charged.', 502);
+        if (!is_array($raw) || !is_array($raw['lines'] ?? null) || count($raw['lines']) < 1 || count($raw['lines']) > 4) throw new OpenAIServiceException('ReGen AI returned an incomplete draft. No Coin was charged.', 502);
         if (in_array($format, ['paragraph', 'skills'], true) && count($raw['lines']) !== 1) throw new OpenAIServiceException('ReGen AI returned an invalid draft format. Please try again.', 502);
         // Entry drafts cannot borrow numeric facts from other entries or the job advertisement.
         $evidence = self::encodePromptData(['answers' => $answers, 'target' => $target]);
@@ -158,7 +158,7 @@ final class OpenAIService
             $clean = self::cleanCandidate($line, 1200, $evidence);
             $notes = implode(' ', $answers);
             if (preg_match('/\b(?:assisted|supported|helped|membantu|menyokong)\b/iu', $notes) && !preg_match('/\b(?:led|managed|directed|owned|memimpin|mengurus)\b/iu', $notes) && preg_match('/^(?:led|managed|directed|owned|spearheaded)\b/iu', $clean)) $clean = '';
-            if ($clean === '' || preg_match('/[\r\n]/', $line) || preg_match('/^\s*(?:[-*•]|\d+[.)])\s/u', $line)) throw new OpenAIServiceException('The draft contains unsupported details or formatting. Check your notes and try again. No tokens were charged.', 422);
+            if ($clean === '' || preg_match('/[\r\n]/', $line) || preg_match('/^\s*(?:[-*•]|\d+[.)])\s/u', $line)) throw new OpenAIServiceException('The draft contains unsupported details or formatting. Check your notes and try again. No Coin was charged.', 422);
             $lines[] = $clean;
         }
         if (count(array_unique($lines)) !== count($lines)) throw new OpenAIServiceException('ReGen AI returned repeated wording. Please try again.', 502);

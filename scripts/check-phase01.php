@@ -15,7 +15,12 @@ $check = static function (bool $passed, string $message) use (&$assertions): voi
 foreach (Routes::PAGES as $path => [$view, $group]) {
     $candidate = in_array($group, ['candidate', 'auth'], true);
     $check(Routes::maintenanceBlocks($path, 'GET') === $candidate, 'Incorrect maintenance policy at ' . $path);
-    $alias = $path === '/admin/login' ? '/admin-login.html' : $path . '.html';
+    $alias = match ($path) {
+        '/admin/login' => '/admin-login.html',
+        '/store/activity' => '/token-activity.html',
+        '/store/payments' => '/payments.html',
+        default => $path . '.html',
+    };
     $check(Routes::legacyPage($alias, 'GET') === $path, 'Missing legacy route for ' . $path);
     $check(Routes::maintenanceBlocks($alias, 'HEAD') === $candidate, 'Legacy path differs from ' . $path);
     $check(Routes::privateResponse($path), 'Private/auth page needs no-store at ' . $path);

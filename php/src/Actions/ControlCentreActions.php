@@ -48,8 +48,8 @@ trait ControlCentreActions
             if($path==='/api/notifications/read' && $method==='POST') { $id=Http::jsonBody()['id']??null; (new NotificationService($this->db))->read(Session::userId(),$id===null?null:(int)$id); Http::json(['success'=>true]); }
             if($path==='/api/notifications/preferences' && $method==='PUT') { (new NotificationService($this->db))->savePreferences(Session::userId(),Http::jsonBody()); Http::json(['success'=>true]); }
             if($path==='/api/notifications/preferences' && $method==='GET')Http::json(['success'=>true,'preferences'=>(new NotificationService($this->db))->preferences(Session::userId())]);
-            if($method==='DELETE'&&preg_match('#^/api/notifications/(\d+)$#D',$path,$match)){
-                (new NotificationService($this->db))->remove(Session::userId(),(int)$match[1]);
+            if($method==='DELETE'&&preg_match('#^/api/notifications(?:/(\d+))?$#D',$path,$match)){
+                (new NotificationService($this->db))->remove(Session::userId(),isset($match[1])?(int)$match[1]:null);
                 Http::json(['success'=>true]);
             }
             if(in_array($path,['/api/admin/tickets','/api/support/tickets'],true)) {
