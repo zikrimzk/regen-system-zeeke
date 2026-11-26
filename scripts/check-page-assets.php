@@ -34,6 +34,8 @@ try{
 $check(str_contains($html, 'id="regen-admin-navigation"') && str_contains($html, 'data-view="support" hidden'), 'Administrator navigation is initially hidden pending scoped permissions.');
 $overview=$render('dashboard.html',$root,'/dashboard?lang=ms');
 $check(str_contains($overview, '<html lang="ms">') && str_contains($overview, 'data-workspace-view="overview"'), 'Overview uses the selected language.');
+$check(str_contains($overview, '<title>Ringkasan | Kerjayaku.</title>') && !str_contains($overview, '{{WORKSPACE_H1}}'), 'Overview resolves the localized browser title.');
+$check(!str_contains($overview, '/js/mochi-avatar.js') && !str_contains($overview, '/js/support-attachments.js'), 'Overview skips the room renderer and support attachment scripts.');
 $check(ReGen\Routes::returnTarget('/resumes?lang=ms') === '/dashboard?lang=ms', 'Legacy resume library opens Overview with the query intact.');
 $upcoming=$render('upcoming.html',$root,'/jobs/saved?lang=ms');
 $check(str_contains($upcoming, '<h1>Kerja disimpan</h1>') && str_contains($upcoming, 'Akan datang'), 'Future routes show the appropriate localised upcoming state.');
@@ -47,6 +49,7 @@ $check($xpath->query('//a[contains(@class,"workspace-notification-bell")]//span[
 $check(!str_contains($html,'class="mochi-launch"') && !str_contains($html,'data-mochi-den-stage'),'Workspace uses the floating pet without a duplicate header launcher or room stage.');
 $room=$render('mochi.html',$root);
 $check(str_contains($room,'has-mobile-nav')&&str_contains($room,'/css/workspace-shell.css?v=')&&str_contains($room,'class="mobile-product-nav"'),'Room has the shared mobile navigation and matching styles without JavaScript.');
+$check(str_contains($room, '/js/mochi-avatar.js'), 'Mochi’s room keeps its 3D renderer.');
 $studio=$render('builder.html',$root,'/builder?id=5&section=skills&lang=ms');
 $check(substr_count($studio, 'id="preview-open-top"')===1 && str_contains($studio,'id="studio-pdf-pages"'), 'The editor has one draft preview command plus a saved-preview pane.');
 $check(str_contains($studio,'/css/studio.css?v=') && str_contains($studio,'/js/studio.js?v='), 'Resume Studio assets load through the existing versioned renderer.');
@@ -62,6 +65,15 @@ $check(ReGen\Routes::returnTarget('/settings?lang=ms') === '/profile?lang=ms'
 $letter = $render('cover-letters.html', $root, '/cover-letters?lang=ms');
 $check(str_contains($letter,'Pratonton draf') && str_contains($letter,'id="letter-form"'), 'The cover-letter workspace renders the working preview and its form in Malay.');
 $check(!str_contains($letter,'class="workspace-sidebar"') && !str_contains($letter,'class="mobile-product-nav"'), 'Cover Letter Studio renders without workspace navigation.');
+foreach ([$studio, $letter] as $workbench) {
+    $check(substr_count($workbench, 'data-mochi-open') === 2
+        && str_contains($workbench, 'class="studio-icon mochi-header-toggle" data-mochi-visibility')
+        && str_contains($workbench, 'class="studio-icon mochi-header-chat studio-mochi-chat"')
+        && str_contains($workbench, 'class="mochi-float-chat" data-mochi-open')
+        && str_contains($workbench, 'class="mochi-pet"'), 'Studio has distinct header visibility, header chat and companion chat controls.');
+    $check(str_contains($workbench, '/js/studio-focus.js?v=') && str_contains($workbench, 'data-studio-focus'),
+        'Both studios load the shared Focus mode.');
+}
 $html=$render('maintenance.html',$root);
 $check(str_contains($html,'/js/maintenance.js?v=')&&str_contains($html,'/js/realtime.js?v='),'Maintenance must retain live status and automatic restoration scripts.');
 $check(!str_contains($html,'/js/service-centre.js')&&!str_contains($html,'/js/feedback.js'),'Maintenance must not load protected workspace notification code that can redirect back to itself.');

@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace ReGen\Actions;
 
+use ReGen\CoverLetterRepository;
+use ReGen\FeaturePolicy;
+use ReGen\FeaturePricing;
 use ReGen\Http;
 use ReGen\RateLimiter;
 use ReGen\Sanitizer;
@@ -13,13 +16,25 @@ trait ResumeActions
 {
     private function listDashboard(): never
     {
-        $primary = $this->resumes->getPrimaryByUser(Session::userId());
+        $userId = Session::userId();
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+        $primary = $this->resumes->getPrimaryByUser($userId);
+        $letters = new CoverLetterRepository($this->db);
+        $letterCount = $letters->count($userId);
+        $overview = ($_GET['view'] ?? null) === 'overview';
+        $latestLetter = null;
+        if ($overview && $primary !== null && $letterCount > 0 && (new FeaturePolicy($this->db))->all()['cover_letters']['available']) {
+            $price = (new FeaturePricing($this->db))->all($userId)['cover_letters'];
+            if ($price['mode'] === 'free' || $price['unlocked'] || $price['packageUnlocked']) {
+                $latestLetter = $letters->latestForResume($userId, (int) $primary['id']);
+            }
+        }
         Http::json([
             'success' => true,
-            'data' => $this->resumes->getSummariesByUser(Session::userId()),
+            ...($overview ? ['latestLetter' => $latestLetter] : ['data' => $this->resumes->getSummariesByUser($userId)]),
             'profile' => $primary === null ? null : $this->buildProfile($primary),
-            'ai' => $this->aiStatusPayload(),
-            'coverLetterCount' => (new \ReGen\CoverLetterRepository($this->db))->count(Session::userId()),
+            'ai' => $this->aiStatusPayload($overview),
+            'coverLetterCount' => $letterCount,
         ]);
     }
 

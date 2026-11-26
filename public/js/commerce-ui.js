@@ -22,7 +22,7 @@ window.ReGenCommerce=(()=>{
       : text('noRenewal', 'No automatic renewal');
     const heading = text('wallet', 'Coin balance');
     const breakdown = `<dl class="token-balance-parts">
-        <div><dt>${safe(text('base', 'Base Coin'))}<span>${safe(text('aiUse', 'For AI actions'))}</span></dt><dd>${number(value.base)}</dd><p>${safe(renewal)}</p></div>
+        <div><dt>${safe(text('base', 'Base Coin'))}</dt><dd>${number(value.base)}</dd><p>${safe(renewal)}</p></div>
         <div><dt>${safe(text('saved', 'Bonus & saved Coin'))}<span>${safe(text('priced', 'For any priced feature'))}</span></dt><dd>${number(value.bonus)}</dd><p>${safe(text('noExpiry', 'No expiry'))}</p></div>
       </dl>
       ${value.reserved ? `<p class="token-reserved">${safe(text('reserved', '{count} Coin reserved for actions in progress', {count:number(value.reserved)}))}</p>` : ''}`;
@@ -54,7 +54,11 @@ window.ReGenCommerce=(()=>{
       const bonus = text('bonusCount', '{base} Coin + {bonus} bonus', {base:number(item.tokens),bonus:number(item.bonus_tokens)});
       features.unshift(`<li><span aria-hidden="true">✓</span><div><strong>${safe(saved)}</strong>${item.bonus_tokens ? '<small>' + safe(bonus) + '</small>' : ''}</div></li>`);
     }
-    const benefits=`<ul class="token-package-benefits">${features.join('')}</ul>`;
+    const benefitList = items => `<ul class="token-package-benefits">${items.join('')}</ul>`;
+    const compact = options.catalog && item.card_layout !== 'row' && features.length > 3;
+    const benefits = compact ? benefitList(features.slice(0,3)) + `<details class="store-benefits-more">
+      <summary>${safe(storeText('moreBenefits', '{count} more benefits').replace('{count}', number(features.length - 3)))}</summary>
+      ${benefitList(features.slice(3))}</details>` : benefitList(features);
     const states={claimed:'Claimed',upcoming:'Opens '+date(claim.startsAt),ended:'Claim period ended',full:'Fully claimed',unavailable:'Claims paused',disabled:'Claims paused'};
     const detail=options?.detail===true;
     const purchased=!publicView&&item.has_purchase;
@@ -64,7 +68,8 @@ window.ReGenCommerce=(()=>{
     const payAction = options.checkoutAvailable && Number(item.display_price_minor) >= 30
       ? `<button class="btn btn-primary" type="button" data-start-checkout>${safe(storeText('checkout', 'Continue to payment'))}</button>`
       : `<p class="token-checkout-state">${safe(storeText('checkoutUnavailable', 'Checkout is currently unavailable.'))}</p>`;
-    const action=isClaim?(claim.state==='available'?(publicView?'<a class="btn btn-primary" href="/store">Claim free package ↗</a>':`<button class="btn btn-primary" type="button" data-claim-package="${Number(item.id)}" data-package-version="${Number(item.version)}">Claim free package</button>`):`<button class="btn btn-secondary" type="button" disabled>${safe(states[claim.state]||'Unavailable')}</button>`):(publicView?`<a class="btn btn-primary" href="/store">${cta} ↗</a>`:detail?payAction:`<button class="btn btn-secondary" type="button" data-view-package="${Number(item.id)}">${cta}</button>`);
+    const featured = options.catalog && item.highlighted && item.card_layout !== 'row';
+    const action=isClaim?(claim.state==='available'?(publicView?'<a class="btn btn-primary" href="/store">Claim free package ↗</a>':`<button class="btn btn-primary" type="button" data-claim-package="${Number(item.id)}" data-package-version="${Number(item.version)}">Claim free package</button>`):`<button class="btn btn-secondary" type="button" disabled>${safe(states[claim.state]||'Unavailable')}</button>`):(publicView?`<a class="btn btn-primary" href="/store">${cta} ↗</a>`:detail?payAction:`<button class="btn ${featured?'btn-primary':'btn-secondary'}" type="button" data-view-package="${Number(item.id)}">${cta}</button>`);
     const badge=isClaim?'<span class="token-package-badge">Free claim</span>':promotion&&(item.badge||item.discount_percent)?`<span class="token-package-badge">${safe(item.badge||'Save '+item.discount_percent+'%')}</span>`:'';
     const amount=`${!isClaim&&item.discount_percent?`<s>${safe(money(item.compare_price_minor,item.currency))}</s>`:''}<strong>${isClaim?safe(text('free', 'Free')):safe(money(item.display_price_minor,item.currency))}</strong>`;
     const validity = featureCount ? (item.validity_days
@@ -80,6 +85,15 @@ window.ReGenCommerce=(()=>{
     }
     const has=key=>Object.hasOwn(item.features||{},key);
     const headline=item.offer_headline||(has('cover_letters')&&has('resume_editor')?'Build your resume and cover letter':has('cover_letters')?'Prepare your next cover letter':has('pdf_download')?'Get more PDF downloads':has('ai_assist')||has('ai_refine')?'Get help writing your resume':item.name);
+    if (options.catalog) {
+      const featuredLabel = featured ? `<span class="store-featured-label">${safe(storeText('featuredBadge','Featured'))}</span>` : '';
+      return `<article class="token-package package-showcase store-product${featured?' is-highlighted':''}${isClaim?' is-claim':''}">
+        <div class="token-package-top">${coin('medium',item.coin_color)}<div class="token-package-markers">${featuredLabel}${owned}${badge}</div></div>
+        <div class="store-product-title"><h3>${safe(item.name)}</h3>${item.offer_headline && item.offer_headline !== item.name ? '<p>' + safe(item.offer_headline) + '</p>' : ''}</div>
+        <div class="token-package-price">${amount}<span>${safe(isClaim ? text('singleClaim','One claim per account') : text('oneTime','One-time package'))}</span></div>
+        ${item.description ? '<p class="token-package-description">' + safe(item.description) + '</p>' : ''}
+        ${benefits}<p class="token-package-validity">${safe(validity)}</p>${capacity}${end}${action}</article>`;
+    }
     return `<article class="token-package package-showcase${item.highlighted?' is-highlighted':''}${motion}${isClaim?' is-claim':''}"><div class="token-package-top">${coin('medium',item.coin_color)}<div class="token-package-markers">${owned}${badge}</div></div><h3>${safe(headline)}</h3>${headline!==item.name?`<p class="token-offer-name">${safe(item.name)}</p>`:''}${item.description?`<p class="token-package-description">${safe(item.description)}</p>`:''}<div class="token-package-price">${amount}<span>${safe(isClaim ? text('singleClaim', 'One claim per account') : text('oneTime', 'One-time package'))}</span></div>${benefits}<p class="token-package-validity">${safe(validity)}</p>${capacity}${end}${action}</article>`;
   }
   function featureGroups(prices) {

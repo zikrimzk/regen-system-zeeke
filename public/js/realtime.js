@@ -126,8 +126,12 @@ window.ReGenLive = (() => {
     } catch (error) {
       if (!active() || generation !== lifecycle) return;
       if (error.status === 401 && !document.body.classList.contains('maintenance-page')) {
-        const destination = identity.role === 'admin' ? '/admin/login' : '/login';
-        stop(); location.replace(destination); return;
+        const role = identity.role;
+        stop();
+        if (role === 'user' && document.body.classList.contains('studio-workbench')) {
+          dispatch('regen:session-expired', {});
+        } else location.replace(role === 'admin' ? '/admin/login' : '/login');
+        return;
       }
       delay = Math.max(error.retryAfter * 1000, Math.min(60000, 5000 * 2 ** Math.min(4, ++errors)));
       receive({kind:'state', state:navigator.onLine === false ? 'offline' : 'delayed'}, true);
@@ -259,6 +263,7 @@ window.ReGenLive = (() => {
   }
   document.addEventListener('visibilitychange', () => document.hidden ? pause() : resume());
   window.addEventListener('online', resume);
+  window.addEventListener('regen:session-restored', start);
   window.addEventListener('offline', () => { pause(); status('offline'); });
   window.addEventListener('focus', () => { if (active()) queueCheck(0); });
   let lastActivity = 0;

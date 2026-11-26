@@ -19,6 +19,8 @@ trait DocumentActions
     {
         $this->requireAuth();
         $resume = $this->resumes->getPrimaryByUser(Session::userId());
+        $studio = $path === '/api/cover-letters' && $method === 'GET' && ($_GET['view'] ?? null) === 'studio';
+        if ($studio && $resume === null) Http::json(['success'=>true, 'data'=>[], 'studio'=>null]);
         if ($resume === null) Http::json(['success'=>false, 'message'=>'Create your resume before creating a cover letter.'], 409);
         if ($path === '/api/cover-letters/document' && $method === 'POST') {
             $this->previewLetterDraft($resume['resume_data']);
@@ -30,7 +32,22 @@ trait DocumentActions
         $letter = $id === null ? null : $repo->get($id, Session::userId());
         if ($id !== null && ($letter === null || (int) $letter['resume_id'] !== (int) $resume['id'])) Http::json(['success'=>false, 'message'=>'Cover letter not found.'], 404);
         $template = TemplateCatalog::get($resume['resume_data']['templateId'] ?? 'classic');
-        if ($method === 'GET' && $action === '' && $id === null) Http::json(['success'=>true, 'data'=>$repo->list(Session::userId()), 'template'=>$template, 'documentGeneration'=>\ReGen\DocumentWriteGuard::generation($this->db, Session::userId())]);
+        if ($method === 'GET' && $action === '' && $id === null) {
+            $letters = $repo->list(Session::userId());
+            $payload = ['success'=>true, 'data'=>$letters, 'template'=>$template, 'documentGeneration'=>\ReGen\DocumentWriteGuard::generation($this->db, Session::userId())];
+            if ($studio) {
+                $candidate = $_GET['letter'] ?? '';
+                $selected = $candidate !== '' ? $candidate : ($letters[0]['id'] ?? null);
+                $draft = is_scalar($selected) && ctype_digit((string) $selected) ? $repo->get((int) $selected, Session::userId()) : null;
+                $payload['studio'] = [
+                    'accountId' => Session::userId(),
+                    'resumeId' => (int) $resume['id'],
+                    'settings' => array_intersect_key($resume['resume_data'], array_flip(['templateId', 'appearance', 'writing', 'sectionOrder'])),
+                    'letter' => $draft !== null && (int) $draft['resume_id'] === (int) $resume['id'] ? $draft : null,
+                ];
+            }
+            Http::json($payload);
+        }
         if ($method === 'GET' && $action === '' && $id !== null) Http::json(['success'=>true, 'data'=>$letter, 'template'=>$template, 'documentGeneration'=>\ReGen\DocumentWriteGuard::generation($this->db, Session::userId())]);
         if ($method === 'DELETE' && $id !== null && $action === '') {
             $repo->delete($id, Session::userId());
@@ -63,24 +80,27 @@ trait DocumentActions
         }
         if ($method === 'POST' && $action === 'ai-suggest') {
             RateLimiter::enforce('letter-ai', (string) Session::userId(), 4, 60);
-            try{$data = CoverLetterRepository::clean(Http::jsonBody());}catch(\DomainException $error){Http::json(['success'=>false,'message'=>$error->getMessage()],422);}
-            if ($data['company'] === '' || $data['role'] === '') Http::json(['success'=>false, 'message'=>'Enter the company and role before asking ReGen AI.'], 422);
+            $input = Http::jsonBody();
+            $draftStyle = $input['draftStyle'] ?? 'standard';
+            if (!in_array($draftStyle, ['standard', 'concise'], true)) Http::json(['success'=>false, 'message'=>\ReGen\InterfaceText::text('letter.aiInvalidStyle')], 422);
+            try{$data = CoverLetterRepository::clean($input);}catch(\DomainException $error){Http::json(['success'=>false,'message'=>$error->getMessage()],422);}
+            if ($data['company'] === '' || $data['role'] === '') Http::json(['success'=>false, 'message'=>'Enter the company and role before using Kerjayaku AI.'], 422);
             $context = $this->ats->safeAiContext($resume['resume_data']);
             $evidence = json_decode($context, true) ?: [];
             unset($evidence['targetRole'], $evidence['jobTitle'], $evidence['careerFocus'], $evidence['targetJobDescription'], $evidence['writing']);
-            if (!$this->hasMeaningfulAiValue($evidence)) Http::json(['success'=>false, 'message'=>'Add experience, projects or skills to your resume first so ReGen AI has facts to use.'], 422);
+            if (!$this->hasMeaningfulAiValue($evidence)) Http::json(['success'=>false, 'message'=>'Add experience, projects or skills to your resume first so Kerjayaku AI has facts to use.'], 422);
             // ONLY PROFESSIONAL RESUME CONTEXT AND APPLICATION DETAILS REACH THE MODEL.
             unset($data['body'], $data['recipient'], $data['recipient_address'], $data['letter_date']);
             if ($this->containsSensitiveAiText(json_encode($data) ?: '', $resume['resume_data'])) Http::json(['success'=>false, 'message'=>'Remove personal contact details from the company notes or job description before using AI.'], 422);
-            if (!$this->openai->enabled()) Http::json(['success'=>false, 'message'=>'ReGen AI is currently unavailable. You can still write and save your letter.'], 503);
-            $reservation = $this->reserveAiRequest('cover_letter', Http::jsonBody()['expectedCost'] ?? null);
-            if (!$reservation['allowed']) Http::json(['success'=>false, 'message'=>($reservation['enabled'] ?? true) === false ? 'ReGen AI is currently paused.' : $this->aiQuotaMessage($reservation), 'quota'=>$this->publicAiQuota($reservation)], ($reservation['enabled'] ?? true) === false ? 503 : 429);
+            if (!$this->openai->enabled()) Http::json(['success'=>false, 'message'=>'Kerjayaku AI is currently unavailable. You can still write and save your letter.'], 503);
+            $reservation = $this->reserveAiRequest('cover_letter', $input['expectedCost'] ?? null);
+            if (!$reservation['allowed']) Http::json(['success'=>false, 'message'=>($reservation['enabled'] ?? true) === false ? 'Kerjayaku AI is currently paused.' : $this->aiQuotaMessage($reservation), 'quota'=>$this->publicAiQuota($reservation)], ($reservation['enabled'] ?? true) === false ? 503 : 429);
             try {
                 if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
-                $suggestion = $this->openai->suggestCoverLetter($context, $data, Session::userId());
+                $suggestion = $this->openai->suggestCoverLetter($context, $data, Session::userId(), $draftStyle);
             } catch (\Throwable $error) {
                 $this->refundAiRequest($reservation);
-                Http::json(['success'=>false, 'message'=>$error instanceof OpenAIServiceException ? $error->getMessage() : 'ReGen AI is temporarily unavailable. Please try again.', 'quota'=>$this->aiQuota->status(Session::userId())], $error instanceof OpenAIServiceException ? $error->httpStatus() : 503);
+                Http::json(['success'=>false, 'message'=>$error instanceof OpenAIServiceException ? $error->getMessage() : 'Kerjayaku AI is temporarily unavailable. Please try again.', 'quota'=>$this->aiQuota->status(Session::userId())], $error instanceof OpenAIServiceException ? $error->httpStatus() : 503);
             }
             $this->finalizeAiRequest($reservation);
             Http::json(['success'=>true, 'suggestion'=>$suggestion, 'quota'=>$this->aiQuota->status(Session::userId())]);

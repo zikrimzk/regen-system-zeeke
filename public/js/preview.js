@@ -9,7 +9,10 @@ const Preview = (() => {
     previewMode=document.getElementById('studio-preview-mode');
     mobile=matchMedia('(max-width: 760px)');
     document.getElementById('preview-open-top')?.addEventListener('click',()=>open());
-    previewMode?.addEventListener('click',()=>open(true));
+    previewMode?.addEventListener('click',()=>{
+      document.querySelector('[data-studio-focus][aria-pressed="true"]')?.click();
+      open(true);
+    });
     writeMode?.addEventListener('click',()=>close(false));
     document.getElementById('close-preview-modal')?.addEventListener('click',()=>close());
     document.getElementById('preview-zoom-in')?.addEventListener('click',()=>setZoom(zoom+.1));
@@ -27,6 +30,7 @@ const Preview = (() => {
     });
     mobile.addEventListener('change',()=>close(false));
     document.addEventListener('regen:studio-review',()=>close(false));
+    document.addEventListener('regen:studio-focus',event=>{if(event.detail.active&&inline) close(false);});
     window.addEventListener('regen:session-expired',()=>{ close(false); });
     window.addEventListener('regen:preview-availability',event=>{
       if(!event.detail.available){close(false);}

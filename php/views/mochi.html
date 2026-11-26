@@ -16,16 +16,11 @@
   {{WORKSPACE_HEADER}}
   <main id="main-content" class="mochi-room" tabindex="-1">
     <header class="mochi-room-heading">
-      <a href="/dashboard" class="text-link"><span aria-hidden="true">←</span> {{i18n.nav.workspace}}</a>
       <h1>{{i18n.nav.mochi}}</h1>
       <p>{{i18n.mochi.roomIntro}}</p>
     </header>
     <p class="mochi-room-closed" data-mochi-room-closed role="status">{{i18n.mochi.checking}}</p>
-    <section class="mochi-room-scene" data-mochi-den aria-label="Play with Mochi" hidden>
-      <div class="mochi-room-speech">
-        <span class="mochi-den-state" data-mochi-den-state>Ready to play</span>
-        <p class="mochi-den-line" data-mochi-den-line role="status">Hai, tuan rumah dah sampai.</p>
-      </div>
+    <section class="mochi-room-scene" data-mochi-den aria-label="{{i18n.mochi.roomHangout}}" hidden>
       <div class="mochi-den-stage mochi-room-interior" data-mochi-den-stage>
         <div class="mochi-room-decor" aria-hidden="true">
           <span class="mochi-room-window"></span><span class="mochi-room-floor"></span><span class="mochi-room-rug"></span>
@@ -33,18 +28,23 @@
         </div>
       </div>
       <div class="mochi-room-toolbar">
+        <div class="mochi-room-speech">
+          <span class="mochi-den-state" data-mochi-den-state></span>
+          <p class="mochi-den-line" data-mochi-den-line role="status"></p>
+          <small class="mochi-room-play-hint">{{i18n.mochi.roomTap}}</small>
+        </div>
         <div data-mochi-room-play hidden>
-          <label class="sr-only" for="mochi-activity">Choose an activity</label>
+          <label for="mochi-activity">{{i18n.mochi.roomActivity}}</label>
           <select id="mochi-activity" data-mochi-activity></select>
-          <button type="button" class="btn btn-secondary" data-mochi-play-activity>Play</button>
-          <button type="button" class="btn btn-secondary" data-mochi-surprise>Surprise me</button>
-          <button type="button" class="btn btn-secondary" data-mochi-room-sound aria-pressed="false" hidden>Sound off</button>
+          <button type="button" class="btn btn-secondary" data-mochi-play-activity>{{i18n.mochi.roomPlay}}</button>
+          <button type="button" class="btn btn-secondary" data-mochi-surprise>{{i18n.mochi.roomShuffle}}</button>
+          <button type="button" class="btn btn-secondary" data-mochi-room-sound aria-pressed="false" hidden></button>
         </div>
         <div class="mochi-den-actions">
-          <button type="button" class="mochi-den-kenal" data-mochi-den-chat data-mochi-open aria-haspopup="dialog" aria-controls="mochi-panel" aria-expanded="false">Chat with Mochi ↗</button>
-          <button type="button" class="mochi-den-kenal" data-mochi-room-support data-mochi-support hidden>Ask about ReGen ↗</button>
-          <a class="mochi-den-kenal" data-mochi-adopt href="/store?feature=mochi_play" hidden>Adopt Mochi ↗</a>
-          <button type="button" class="mochi-den-kenal" data-mochi-kenal hidden>Let’s kenal</button>
+          <button type="button" class="mochi-den-kenal" data-mochi-den-chat data-mochi-open aria-haspopup="dialog" aria-controls="mochi-panel" aria-expanded="false">{{icon.conversation}} {{i18n.mochi.chat}}</button>
+          <button type="button" class="mochi-den-kenal" data-mochi-room-support data-mochi-support hidden>{{i18n.mochi.productHelp}}</button>
+          <a class="mochi-den-kenal" data-mochi-adopt href="/store?feature=mochi_play" hidden>{{i18n.mochi.roomAdopt}}</a>
+          <button type="button" class="mochi-den-kenal" data-mochi-kenal hidden>{{i18n.mochi.roomMeet}}</button>
         </div>
       </div>
     </section>

@@ -7,7 +7,8 @@
 }
 .k-store-main :is(.store-page-heading,.payment-page-header) { margin: 0 0 16px; }
 .k-store-main :is(.store-page-heading,.payment-page-header) h1 { font-size: var(--type-page); }
-.k-store-main :is(.store-page-heading,.payment-page-header) p { margin-top: 6px; color: var(--text-2); }
+.store-catalog-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; }
+.store-catalog-heading .store-navigation { margin: 0; }
 .store-navigation {
   display: flex;
   flex-wrap: wrap;
@@ -34,22 +35,26 @@
 
 .store-catalog-header {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(240px, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(225px, .43fr);
+  gap: 16px;
   align-items: start;
 }
 .store-catalog-wallet-only { grid-template-columns: minmax(0, 390px); }
 .store-catalog-lead {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
-  min-height: 168px;
+  min-height: 208px;
   flex-direction: column;
   justify-content: space-between;
   align-items: start;
   gap: 16px;
-  padding: clamp(18px, 3vw, 30px);
+  padding: clamp(18px, 3vw, 32px);
+  padding-inline-end: max(28%, 92px);
   border-radius: var(--radius-panel);
-  color: #fff7f7;
-  background: radial-gradient(ellipse at 100% 0%, #873a40, transparent 76%), linear-gradient(142deg, #442329, #271b29);
+  color: #fff8ea;
+  background: radial-gradient(ellipse at 95% 0%, #713d44, transparent 72%), #301f2a;
   box-shadow: inset 0 1px #fff2, var(--workspace-surface-shadow);
 }
 .store-catalog-lead h2 {
@@ -60,18 +65,33 @@
   letter-spacing: -.035em;
   overflow-wrap: anywhere;
 }
-.store-catalog-lead p { margin: 6px 0 0; color: #f4d8dd; font-size: var(--type-small); }
-.store-current-offer p { margin: 0 0 6px; }
+.store-catalog-art {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: max(25%, 90px);
+  color: #fae5ae;
+  pointer-events: none;
+}
+.store-catalog-art .regen-coin {
+  position: absolute;
+  width: clamp(56px, 10.5vw, 144px);
+  height: auto;
+  aspect-ratio: 1;
+  inset: 37% auto auto 2%;
+  transform: perspective(420px) rotateX(16deg) rotateY(-23deg) rotateZ(-19deg);
+}
+.store-catalog-art .regen-coin:first-child { inset: 12% auto auto 32%; opacity: .68; transform: perspective(420px) rotateX(34deg) rotateZ(23deg) scale(.86); }
+.store-catalog-art .regen-coin::after { animation: none; }
 .store-catalog-lead .btn {
   min-height: 44px;
   gap: 8px;
   border-color: transparent;
-  background: #fff5f4;
+  background: #fff1d0;
   color: #49232b;
   white-space: normal;
 }
 .store-catalog-lead .btn:hover { background: #fff; }
-.store-catalog-lead .ui-icon { width: 16px; height: 16px; flex: none; }
 .store-offer-cta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
 .store-offer-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
 .store-offer-price s { color: #f4d8dd; font-size: var(--type-small); }
@@ -119,7 +139,6 @@
 .k-store-main .token-balance-parts dt span { font-weight: 400; }
 .k-store-main .token-balance-parts :is(dt span,p), .k-store-main .token-reserved { color: #d3e7de; font-size: var(--type-meta); }
 .k-store-main .token-wallet-compact {
-  min-height: 168px;
   border: 1px solid var(--workspace-glass-line);
   border-radius: var(--radius-panel);
   background: var(--workspace-material);
@@ -143,20 +162,42 @@
 .store-catalog-item:target :is(.token-package,.token-offer-row) { outline: 2px solid var(--primary); outline-offset: 2px; }
 .k-store-main .token-package {
   gap: 10px;
-  padding: 18px;
+  padding: clamp(16px, 2.2vw, 24px);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
   background: var(--workspace-material);
-  box-shadow: inset 0 1px var(--workspace-edge-light), var(--workspace-surface-shadow);
+  box-shadow: inset 0 1px var(--workspace-edge-light);
   animation: none;
 }
-.k-store-main .token-package:hover { border-color: var(--border-strong); transform: none; }
+.k-store-main .token-package:hover { border-color: var(--border-strong); transform: none; box-shadow: var(--workspace-surface-shadow); }
 .k-store-main .token-package .btn { margin-top: auto; }
 .k-store-main .token-package.is-highlighted {
-  box-shadow: inset 0 3px 0 #b29a59;
-  background: color-mix(in srgb, #b29a59 5%, var(--surface));
+  padding: clamp(16px, 2.2vw, 24px);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 3px 0 #b29a59, var(--workspace-surface-shadow);
+  background: color-mix(in srgb, #b29a59 9%, var(--surface));
 }
 .k-store-main .token-package h3 { font-size: var(--type-dialog); overflow-wrap: anywhere; }
+.store-product-title p { color: var(--text-2); font-size: var(--type-small); margin-block: 4px 0; }
+.store-product .token-package-price { margin-block: 2px; }
+.store-product .token-package-description { margin-block: 0; }
+.store-featured-label {
+  background: #f6e7bf;
+  color: #634415;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: var(--type-meta);
+  font-weight: var(--weight-strong);
+}
+.store-benefits-more summary {
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--primary);
+  font-size: var(--type-small);
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+}
+.k-store-main .store-benefits-more .token-package-benefits { border: 0; padding-top: 0; }
 .k-store-main .token-package-price strong { font-size: var(--type-page); }
 .k-store-main .token-package-benefits { padding-top: 12px; gap: 8px; }
 .k-store-main .token-package-validity { padding-top: 6px; }
@@ -197,11 +238,12 @@
 .k-checkout .payment-message:empty { display: none; }
 @media (max-width: 760px) {
   .store-catalog-header { grid-template-columns: minmax(0, 1fr); }
-  .store-catalog-lead { min-height: 0; }
+  .store-catalog-lead { min-height: 152px; }
   .k-store-main .token-wallet-compact { min-height: 0; padding: 13px 16px 5px; }
   .k-store-main .token-wallet-compact .token-wallet-heading { padding-bottom: 1px; }
 }
 @media (max-width: 620px) {
+  .store-catalog-heading .store-navigation { flex-basis: 100%; }
   .store-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
   .store-navigation a { display: grid; justify-items: center; align-content: center; text-align: center; min-height: 52px; padding-inline: 4px; gap: 3px; }
   .k-store-main .token-balance-parts > div { display: flex; flex-direction: column; gap: 3px; }

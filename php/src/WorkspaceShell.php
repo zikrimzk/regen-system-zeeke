@@ -29,9 +29,11 @@ final class WorkspaceShell
         'trash'=>'<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 4v6m4-6v6"/>',
         'minus'=>'<path d="M5 12h14"/>',
         'expand'=>'<path d="M8 4H4v4m12-4h4v4m0 8v4h-4m-8 0H4v-4"/>',
+        'focus'=>'<path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4M9 9h6m-6 3h6m-6 3h4"/>',
         'templates'=>'<rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="15" width="7" height="5" rx="1"/><rect x="14" y="15" width="7" height="5" rx="1"/>',
         'search'=>'<circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/>',
         'folder'=>'<path d="M3 8V6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Zm0 2h18"/>',
+        'library'=>'<rect x="7" y="3" width="13" height="15" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10m-6-13h7m-7 4h5"/>',
         'sparkles'=>'<path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8L10 3Zm8 10 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z"/>',
         'design'=>'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18m-12 0v11"/>',
         'payments'=>'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6m-6 4h3"/>',
@@ -64,7 +66,7 @@ final class WorkspaceShell
             . '<div class="topbar-spacer"></div>'
             . '<div class="workspace-tools"><a class="workspace-token-balance" href="/store" aria-label="'
             . InterfaceText::html('nav.balance') . '">' . self::icon('coin') . '<span data-token-total>…</span></a>'
-            . $bell . '<div class="topbar-user account-menu"><button type="button" class="account-menu-toggle" id="account-menu-toggle" aria-label="'
+            . $bell . self::mochiHeaderControls(false, $active !== 'mochi') . '<div class="topbar-user account-menu"><button type="button" class="account-menu-toggle" id="account-menu-toggle" aria-label="'
             . InterfaceText::html('nav.account') . '" aria-expanded="false" aria-haspopup="menu"><span class="topbar-avatar" id="topbar-avatar">U</span></button>'
             . '<div class="account-menu-panel hidden" id="account-menu-panel" role="menu"><div class="account-menu-identity" role="presentation"><strong class="topbar-user-name" id="topbar-user-name">'
             . InterfaceText::html('nav.account') . '</strong></div>' . $account . InterfaceText::languageLink('account-menu-item', 'menuitem')
@@ -78,6 +80,22 @@ final class WorkspaceShell
         $label = InterfaceText::html('studio.exit');
         return '<a class="studio-icon studio-exit" href="/dashboard" aria-label="' . $label . '" title="' . $label . '">'
             . self::icon('back') . '</a>';
+    }
+
+    public static function mochiHeaderControls(bool $studio, bool $visibility = true): string
+    {
+        $label = InterfaceText::html('mochi.show');
+        $toggle = $visibility ? '<button type="button" class="' . ($studio ? 'studio-icon ' : '') . 'mochi-header-toggle" data-mochi-visibility hidden aria-controls="mochi-floating-mascot" aria-expanded="false" aria-label="'
+            . $label . '" title="' . $label . '"><img src="/img/mochi-coach.webp" width="28" height="28" alt="" decoding="async"></button>' : '';
+        return $toggle . self::mochiChatButton($studio ? 'studio-icon mochi-header-chat studio-mochi-chat' : 'mochi-header-chat');
+    }
+
+    private static function mochiChatButton(string $class, string $icon = 'conversation'): string
+    {
+        $label = InterfaceText::html('mochi.chat');
+        return '<button type="button" class="' . $class . '" data-mochi-open hidden aria-label="' . $label . '" title="' . $label
+            . '" aria-haspopup="dialog" aria-controls="mochi-panel" aria-expanded="false">'
+            . self::icon($icon) . '</button>';
     }
 
     public static function storeNavigation(): string
@@ -139,26 +157,20 @@ final class WorkspaceShell
 
     public static function mochiPanel(): string
     {
-        return <<<'HTML'
+        $html = <<<'HTML'
 <aside class="mochi-float" data-mochi-float aria-label="Mochi">
   <div class="mochi-bubble" data-mochi-bubble hidden>
     <p data-mochi-bubble-text role="status"></p>
-    <div class="mochi-bubble-actions" data-mochi-invite hidden>
-      <button type="button" data-mochi-kenal>Let’s kenal</button>
-      <button type="button" data-mochi-skip>Not now</button>
-    </div>
     <a href="/store?feature=mochi_play" data-mochi-bubble-adopt hidden>Adopt Mochi ↗</a>
   </div>
-  <div class="mochi-float-stage">
-    <button type="button" class="mochi-pet" data-mochi-pet aria-label="Pet Mochi">
+  <div class="mochi-float-stage" id="mochi-floating-mascot" data-mochi-float-stage hidden>
+    <button type="button" class="mochi-pet" data-mochi-pet aria-label="Pet Mochi" aria-describedby="mochi-move-help">
       <span class="mochi-pet-shadow" aria-hidden="true"></span>
       <canvas aria-hidden="true"></canvas>
       <img src="/img/mochi-coach.webp" width="124" height="124" alt="" decoding="async" aria-hidden="true">
       <span class="mochi-fx" aria-hidden="true" data-mochi-fx></span>
     </button>
-    <button type="button" class="mochi-float-chat" data-mochi-open aria-label="{{i18n.studio.mochi}}" aria-haspopup="dialog" aria-controls="mochi-panel" aria-expanded="false">
-      <img src="/img/mochi-coach.webp" width="42" height="42" alt="">
-    </button>
+    {{FLOATING_MOCHI_CHAT}}
   </div>
 </aside>
 <section id="mochi-panel" class="mochi-panel" role="dialog" aria-modal="false" aria-labelledby="mochi-panel-title" hidden>
@@ -189,12 +201,12 @@ final class WorkspaceShell
   <div class="mochi-empty" data-mochi-play-only hidden>
     <p>Jom main! For resume and cover letter help, pick a package with Mochi chat.</p>
     <a class="btn btn-primary" href="/store?feature=mochi_chat">See Mochi chat packages</a>
-    <button type="button" class="btn btn-secondary" data-mochi-support>Ask about ReGen</button>
+    <button type="button" class="btn btn-secondary" data-mochi-support>{{i18n.mochi.productHelp}}</button>
   </div>
   <div class="mochi-empty" data-mochi-sleep-view hidden>
     <p data-mochi-sleep-copy>Mochi is asleep. He’ll stay quiet until you wake him.</p>
     <button class="btn btn-primary" type="button" data-mochi-wake>Wake Mochi</button>
-    <button type="button" class="btn btn-secondary" data-mochi-support>Ask about ReGen</button>
+    <button type="button" class="btn btn-secondary" data-mochi-support>{{i18n.mochi.productHelp}}</button>
   </div>
   <form class="mochi-intro" data-mochi-intro hidden>
     <div><h3>Can I know you better?</h3><p>Let’s kenal! Share only what you want me to remember.</p></div>
@@ -228,7 +240,7 @@ final class WorkspaceShell
         <button type="button" data-mochi-share hidden>Share this field</button>
         <button type="button" data-mochi-resume aria-pressed="false" title="Include your saved experience, education, projects and skills" hidden>Use saved resume</button>
         <button type="button" data-mochi-retry hidden>Try again</button>
-        <button type="button" data-mochi-support>Ask about ReGen</button>
+        <button type="button" data-mochi-support>{{i18n.mochi.productHelp}}</button>
         <button type="button" data-mochi-back-chat hidden>Back to coaching</button>
       </div>
       <form class="mochi-composer" data-mochi-compose>
@@ -243,7 +255,9 @@ final class WorkspaceShell
   </div>
   <p class="mochi-panel-status" data-mochi-status role="status" hidden></p>
 </section>
+<p class="sr-only" id="mochi-move-help">{{i18n.mochi.move}}</p>
 HTML;
+        return str_replace('{{FLOATING_MOCHI_CHAT}}', self::mochiChatButton('mochi-float-chat', 'more'), $html);
     }
 
     public static function mobileNavigation(string $file): string

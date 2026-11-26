@@ -55,8 +55,8 @@ const Api = (() => {
       } catch (err) {
         data = { success: false, message: res.ok ? 'Invalid server response.' : 'Server request failed.' };
       }
-      if (['/api/auth/me','/api/profile'].includes(url) && data.success) {
-        const id = Number(data.user?.id || data.profile?.id);
+      if ((['/api/auth/me','/api/profile'].includes(url) || url.startsWith('/api/cover-letters?view=studio&letter=')) && data.success) {
+        const id = Number(data.user?.id || data.profile?.id || data.studio?.accountId);
         if (id && accountId && accountId !== id) return {success:false,status:409,message:'Sign in to the same account to continue this draft.'};
         if (id) accountId = id;
         if (Object.hasOwn(data, 'avatarUrl')) window.ZeekeAccountMenu?.setPhoto(data.avatarUrl);
@@ -122,10 +122,12 @@ const Api = (() => {
   const deleteAccount = (data) => _fetch('/api/profile/account', { method: 'DELETE', body: JSON.stringify(data) });
 
   // ── DASHBOARD ─────────────────────────────────────────────────
-  const listResumes  = () => _fetch('/api/dashboard');
+  const listResumes = () => _fetch('/api/dashboard');
+  const getOverview = () => _fetch('/api/dashboard?view=overview');
   const createResume = (title = '', templateId = '') => _fetch('/api/dashboard', { method: 'POST', body: JSON.stringify({ title, templateId }) });
   const getTemplates = () => _fetch('/api/templates');
   const listCoverLetters = () => _fetch('/api/cover-letters');
+  const getLetterStudio = letter => _fetch('/api/cover-letters?view=studio&letter=' + encodeURIComponent(letter));
   const getCoverLetter = (id) => _fetch(`/api/cover-letters/${id}`);
   const saveCoverLetter = (id, data) => _fetch(id ? `/api/cover-letters/${id}` : '/api/cover-letters', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) });
   const deleteCoverLetter = (id) => _fetch(`/api/cover-letters/${id}`, { method: 'DELETE' });
@@ -142,7 +144,7 @@ const Api = (() => {
   const saveSection = (section, data) => _fetch(`/api/resume/${_resumeId}/section`, {
     method: 'POST', body: JSON.stringify({ section, data })
   });
-  const getAIStatus = () => _fetch('/api/ai/status', { timeoutMs: 8000 });
+  const getAIStatus = (summary = false) => _fetch(summary ? '/api/ai/status?view=summary' : '/api/ai/status', { timeoutMs: 8000 });
   const assistResumeSection = data => _fetch(`/api/resume/${_resumeId}/ai-assist`, { method: 'POST', body: JSON.stringify(data), timeoutMs: 34000 });
   const suggestResumeSection = (data) => _fetch(`/api/resume/${_resumeId}/ai-suggest`, {
     method: 'POST',
@@ -277,8 +279,8 @@ const Api = (() => {
     refundFeatureCredit:id=>_fetch(`/api/store/credits/${id}/refund`,{method:'POST',body:'{}'}),
     login, register, getRecaptchaConfig, verifyEmail, resendEmailVerification, logout, getMe,
     getProfile, updateProfile, changePassword, changeEmail, revokeSession, getSessions, clearSessionHistory, deleteAccount, parseDate,
-    listResumes, createResume, renameResume, deleteResume,
-    getTemplates, listCoverLetters, getCoverLetter, saveCoverLetter, deleteCoverLetter, suggestCoverLetter,
+    listResumes, getOverview, createResume, renameResume, deleteResume,
+    getTemplates, listCoverLetters, getLetterStudio, getCoverLetter, saveCoverLetter, deleteCoverLetter, suggestCoverLetter,
     setResumeId, getResumeId,
     getResume, saveSection, uploadPhoto, deletePhoto,
     getAIStatus, assistResumeSection, suggestResumeSection, getAtsReviewState, generateAtsReview,

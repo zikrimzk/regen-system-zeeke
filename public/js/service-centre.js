@@ -62,7 +62,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const accountRequest=page!=='reset'&&workspacePage?Api.getMe():null;
   await refreshFeatures();
   if(!document.body?.isConnected)return;
-  const featureObserver=new MutationObserver(()=>{if(!featureSyncQueued){featureSyncQueued=true;queueMicrotask(syncFeatures);}});
+  const featureTargets=Object.values(featureSelectors).join(',');
+  const featureObserver=new MutationObserver(records=>{
+    if (featureSyncQueued || !records.some(record=>Array.from(record.addedNodes).some(node=>
+      node instanceof Element && (node.matches(featureTargets) || node.querySelector(featureTargets))))) return;
+    featureSyncQueued=true;
+    queueMicrotask(syncFeatures);
+  });
   let featureTimer=null;
   const startFeatureUpdates=()=>{featureObserver.observe(document.body,{childList:true,subtree:true});if(featureTimer===null)featureTimer=window.setInterval(()=>{if(!document.hidden&&!window.ReGenLive?.connected)refreshFeatures();},60000);};
   startFeatureUpdates();

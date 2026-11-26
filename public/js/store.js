@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const host = document.getElementById('token-store-content');
   if (!host) return;
   const status = document.getElementById('store-status');
-  const {safe, number, date, money, balance, card} = ReGenCommerce;
+  const {safe, number, date, money, balance, card, coin} = ReGenCommerce;
   const t = ReGenText.get;
   const copy = (key, fields = {}) => safe(t('store.' + key).replace(/\{([a-z]+)\}/g, (match, field) => fields[field] ?? match));
   const activity = document.body.dataset.tokenView === 'activity';
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `<section class="token-section" id="${layout === 'hero' ? 'token-packages' : 'token-quick-offers'}">
         <div class="token-section-head"><h2>${title}</h2></div>
         <div class="${layout === 'hero' ? 'token-package-grid' : 'token-offer-list'}">${group.items.map(item =>
-          `<div class="store-catalog-item" id="package-offer-${Number(item.id)}">${card(item, response.prices)}</div>`
+          `<div class="store-catalog-item" id="package-offer-${Number(item.id)}">${card(item, response.prices, false, {catalog: true})}</div>`
         ).join('')}</div>
         ${pagination(layout, group.page, Math.ceil(group.total / group.pageSize), title)}
       </section>`;
@@ -92,19 +92,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const featured = offers('hero', heading);
     const description = response.policy.description !== 'Choose the features and uses you need.' ? response.policy.description : '';
     const quick = offers('row', copy('quickOffers'));
+    const listed = [...response.sections.hero.items, ...response.sections.row.items];
     const spotlight = response.policy.enabled && !response.feature
-      ? [...response.sections.hero.items, ...response.sections.row.items].find(item =>
+      ? listed.find(item =>
         item.claim?.enabled ? item.claim.state === 'available' : item.promotion_active && Number(item.discount_percent) > 0)
       : null;
+    const artwork = tint => `<div class="store-catalog-art" aria-hidden="true">${coin('large', tint)}${coin('large', tint)}</div>`;
     const packageLead = spotlight ? `<section class="store-catalog-lead store-current-offer" aria-labelledby="store-catalog-title">
-        <div><p>${copy('currentOffer')}</p><h2 id="store-catalog-title">${safe(spotlight.offer_headline || spotlight.name)}</h2></div>
+        <div><h2 id="store-catalog-title">${safe(spotlight.offer_headline || spotlight.name)}</h2></div>
         <div class="store-offer-cta"><div class="store-offer-price"><strong>${spotlight.claim?.enabled ? safe(t('commerce.free')) : safe(money(spotlight.display_price_minor,spotlight.currency))}</strong>
           ${spotlight.claim?.enabled?'':`<s>${safe(money(spotlight.compare_price_minor,spotlight.currency))}</s>`}</div>
-          <a class="btn btn-secondary" href="#package-offer-${Number(spotlight.id)}">${copy('reviewOffer')} ${ReGenIcons.icon('arrowRight')}</a></div>
+          <a class="btn btn-secondary" href="#package-offer-${Number(spotlight.id)}">${copy('reviewOffer')}</a></div>
+        ${artwork(spotlight.coin_color)}
       </section>`
       : !response.feature && (featured || quick) ? `<section class="store-catalog-lead" aria-labelledby="store-catalog-title">
-        <div><h2 id="store-catalog-title">${copy('catalogTitle')}</h2><p>${copy('catalogDescription')}</p></div>
-        <a class="btn btn-secondary" href="#package-offers">${copy('explore')} ${ReGenIcons.icon('arrowRight')}</a>
+        <h2 id="store-catalog-title">${copy('catalogTitle')}</h2>
+        <a class="btn btn-secondary" href="#package-offers">${copy('explore')}</a>
+        ${artwork(listed.find(item => item.highlighted)?.coin_color ?? 'gold')}
       </section>` : '';
     return `<div class="store-catalog-header${packageLead?'':' store-catalog-wallet-only'}">${packageLead}${balance(response.balance, {compact:true})}</div>`
       + (description ? `<p class="token-offers-notice">${safe(description)}</p>` : '')
@@ -135,8 +139,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const pager = host.contains(focused) && focused.dataset.pager;
       const direction = focused.dataset.direction;
       const walletOpen = host.querySelector('.store-wallet-breakdown')?.open;
+      const openBenefits = new Set([...host.querySelectorAll('.store-benefits-more[open]')]
+        .map(detail => detail.closest('.store-catalog-item').id));
       host.innerHTML = activity ? activityView(response) : packageView(response);
       if (walletOpen) host.querySelector('.store-wallet-breakdown').open = true;
+      for (const id of openBenefits) {
+        const detail = document.getElementById(id)?.querySelector('.store-benefits-more');
+        if (detail) detail.open = true;
+      }
       if (pager) {
         const buttons = [...host.querySelectorAll('[data-pager]')].filter(button => button.dataset.pager === pager && !button.disabled);
         (buttons.find(button => button.dataset.direction === direction) ?? buttons[0])?.focus({preventScroll: true});

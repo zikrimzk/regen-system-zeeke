@@ -65,8 +65,10 @@
   <header class="workbench-header letter-workbench-header" aria-label="{{i18n.studio.lettersTitle}}">
     <div class="workbench-identity">{{STUDIO_BACK}}<div class="studio-identity"><span>{{i18n.studio.lettersTitle}}</span><h1 id="letter-editor-title">{{i18n.letter.new}}</h1></div></div>
     <div class="workbench-file-actions" id="letter-file-actions">
-      <button type="button" id="letter-library-toggle" hidden class="studio-icon" title="{{i18n.letter.saved}}" aria-haspopup="dialog" aria-expanded="false" aria-controls="letter-library-dialog">{{icon.folder}}<span class="sr-only">{{i18n.letter.saved}}</span></button>
+      <button type="button" id="letter-library-toggle" hidden class="studio-icon" title="{{i18n.letter.saved}}" aria-haspopup="dialog" aria-expanded="false" aria-controls="letter-library-dialog">{{icon.library}}<span class="sr-only">{{i18n.letter.saved}}</span></button>
       <button type="button" id="new-letter" hidden class="studio-icon " title="{{i18n.letter.new}}">{{icon.add}}<span class="sr-only">{{i18n.letter.new}}</span></button>
+      <button type="button" class="studio-icon" data-studio-focus aria-pressed="false" title="{{i18n.studio.focus}}" hidden>{{icon.focus}}<span class="sr-only">{{i18n.studio.focus}}</span></button>
+      {{STUDIO_MOCHI_CONTROLS}}
     </div>
     <div class="workbench-tools" id="letter-workbench-tools" hidden>
       <button type="button" id="letter-design-settings" class="studio-icon " title="{{i18n.common.appearance}}" data-price-feature="document_settings">{{icon.settings}}<span class="sr-only">{{i18n.common.appearance}}</span></button>
@@ -90,16 +92,19 @@
       <aside class="letter-sidebar" id="letter-library" aria-labelledby="saved-letters-title">
         <header class="letter-library-header">
           <h2 id="saved-letters-title">{{i18n.letter.saved}} <span id="letter-count" class="letter-count"></span></h2>
-          <button type="button" class="studio-icon" data-close-library title="{{i18n.common.close}}" hidden>{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button>
+          <div class="letter-library-actions">
+            <button type="button" class="studio-icon" id="letter-search-toggle" aria-expanded="false" aria-controls="letter-search-field" title="{{i18n.letter.searchToggle}}">{{icon.search}}<span class="sr-only">{{i18n.letter.searchToggle}}</span></button>
+            <button type="button" class="studio-icon" data-close-library title="{{i18n.common.close}}" hidden>{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button>
+          </div>
         </header>
-        <label class="letter-search-label" for="letter-search">{{icon.search}}<span class="sr-only">{{i18n.letter.find}}</span><input type="search" id="letter-search" placeholder="{{i18n.letter.search}}"></label>
+        <label class="letter-search-label" id="letter-search-field" for="letter-search" hidden><span class="sr-only">{{i18n.letter.find}}</span><input type="search" id="letter-search" placeholder="{{i18n.letter.search}}"></label>
+        <button type="button" class="letter-title-toggle" id="letter-full-titles" aria-pressed="false" hidden>{{i18n.letter.fullTitles}}</button>
         <div class="letter-list" id="letter-list"></div>
         <nav class="letter-pagination" id="letter-pagination" aria-label="{{i18n.letter.libraryPages}}" hidden></nav>
       </aside>
       <section class="letter-editor" aria-labelledby="letter-editor-title">
         <div class="letter-document-status">
           <span class="letter-editor-active">{{icon.edit}} {{i18n.studio.write}}</span>
-          <p class="muted" id="letter-template-note"></p>
           <p class="letter-save-state" id="letter-save-state" role="status">{{i18n.letter.newState}}</p>
         </div>
         <form id="letter-form">
@@ -111,11 +116,21 @@
             <div class="letter-field wide"><label for="letter-job-description">{{i18n.letter.jobDescription}} <span class="muted">({{i18n.letter.optional}})</span></label><textarea id="letter-job-description" name="job_description" rows="4" maxlength="8000" placeholder="{{i18n.letter.jobPrompt}}"></textarea></div>
 </div></details>
           <div class="letter-field letter-body-field">
+            <section class="ai-section-assist letter-ai-tools" aria-labelledby="letter-ai-title">
+              <div class="ai-section-toolbar"><div class="ai-section-heading"><span class="ai-section-icon">{{icon.sparkles}}</span><h3 id="letter-ai-title">{{i18n.studio.aiDesk}}</h3></div></div>
+              <div class="letter-ai-actions">
+                <p class="letter-ai-source">{{i18n.letter.aiGrounded}}</p>
+                <fieldset id="letter-draft-style" class="draft-length"><legend>{{i18n.letter.aiStyle}}</legend>
+                  <div><label><input type="radio" name="draft_length" value="standard" checked><span>{{i18n.letter.aiStandard}}</span></label>
+                  <label><input type="radio" name="draft_length" value="concise"><span>{{i18n.letter.aiConcise}}</span></label></div>
+                </fieldset>
+                <button type="button" class="btn btn-secondary" id="generate-letter" aria-describedby="letter-ai-quota">{{icon.sparkles}}<span class="button-label">{{i18n.letter.aiGenerate}}</span></button>
+              </div>
+              <p id="letter-ai-quota" role="status"></p>
+            </section>
             <div class="letter-composer-tools">
               <div><label for="letter-body">{{i18n.letter.body}}</label><span id="letter-word-count" role="status" aria-live="polite"></span></div>
-              <button type="button" class="btn btn-secondary" id="generate-letter" aria-describedby="letter-ai-quota">{{icon.sparkles}}<span class="button-label">{{i18n.letter.aiGenerate}}</span></button>
             </div>
-            <p id="letter-ai-quota" role="status"></p>
             <textarea id="letter-body" name="body" rows="11" maxlength="16000" data-preserve-spaces="true" placeholder="{{i18n.letter.bodyPrompt}}"></textarea>
           </div>
           <section id="letter-suggestion" class="ai-suggestion" hidden aria-labelledby="suggestion-title"><h3 id="suggestion-title">{{i18n.letter.reviewSuggestion}}</h3><pre id="letter-suggestion-text"></pre><div class="letter-actions"><button type="button" class="btn btn-primary" id="apply-letter-suggestion">{{i18n.letter.aiApply}}</button><button type="button" class="btn btn-secondary" id="discard-letter-suggestion">{{i18n.letter.aiDiscard}}</button></div></section>

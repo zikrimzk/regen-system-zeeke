@@ -1,13 +1,13 @@
 # Kerjaya. · Phase 02C design handoff
 
-The project owner selected **B · Career Workspace** in the Phase 02C conversation. The following Phase 02B artifacts are the implementation reference.
+The project owner selected **B · Career Workspace** in Phase 02C. The standalone prototype was retired after the workspace shipped. Its snapshots remain in Git revision `40ed277`.
 
-| Surface | Prototype |
+| Surface | Current implementation |
 | --- | --- |
-| Public landing and navigation | [Workspace landing](../../prototypes/kerjaya/workspace/index.html) |
-| Candidate dashboard | [Workspace dashboard](../../prototypes/kerjaya/workspace/dashboard.html) |
-| Resume Studio desktop and phone | [Workspace Studio](../../prototypes/kerjaya/workspace/studio.html), [phone Preview mode](../../prototypes/kerjaya/screenshots/workspace-studio-preview-mobile.png) |
-| Tokens, type, spacing and controls | [Prototype styles](../../prototypes/kerjaya/prototype.css), [brand foundation](brand-foundation.md), [review board](../../prototypes/kerjaya/screenshots/workspace-review.png) |
+| Public landing and navigation | [Landing view](../../php/views/landing.html) |
+| Candidate dashboard | [Overview view](../../php/views/dashboard.html) |
+| Resume Studio desktop and phone | [Resume Studio view](../../php/views/builder.html), [workbench styles](../../public/css/editor-workbench.css) |
+| Tokens, type, spacing and controls | [Workspace tokens](../../public/css/tokens.css), [brand foundation](brand-foundation.md) |
 
 ## Implementation acceptance criteria
 

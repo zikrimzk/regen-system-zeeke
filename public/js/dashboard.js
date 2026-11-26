@@ -4,13 +4,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pdfPages = document.getElementById('dashboard-pdf-pages');
   const metrics = document.getElementById('dashboard-metrics');
   const writing = document.getElementById('dashboard-ai-token-card');
+  const nextAction = document.getElementById('overview-next-action');
   const t = (key, fallback) => ReGenText.get(key, fallback);
   const safe = ReGenCommerce.safe;
   const number = ReGenCommerce.number;
   const icon = ReGenIcons.icon;
   let activeResume;
   let revision = 0;
-  let signature;
+  let signature, balance, dashboardState, coverAccess;
+  let renderedMetrics;
+  let identityRevision = 0;
 
   function resumeUrl(id, section) {
     return '/builder?id=' + encodeURIComponent(id) + (section ? '&section=' + encodeURIComponent(section) : '');
@@ -28,24 +31,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `<a class="btn ${primary ? 'btn-primary' : 'btn-secondary'}" href="${path}"${pricingLabel}>${icon(name)}${safe(label)}</a>`;
   }
 
-  function metric(mark, label, value, detail, progress = null) {
+  function metric(mark, label, value, detail = '') {
     return `<div class="overview-metric"><div class="overview-metric-title">${mark}<h2>${safe(label)}</h2></div>
-      <strong>${safe(value)}</strong><p>${safe(detail)}</p>
-      ${progress === null ? '' : `<progress max="100" value="${Number(progress)}" aria-label="${safe(label)}"></progress>`}</div>`;
+      <strong>${safe(value)}</strong>${detail ? `<p>${safe(detail)}</p>` : ''}</div>`;
   }
 
   function renderMetrics(dashboard, balance) {
-    const profile = dashboard?.profile;
+    const snapshot = JSON.stringify([dashboard === undefined, dashboard?.coverLetterCount, balance === undefined, balance?.total, balance?.coinColor]);
+    if (renderedMetrics === snapshot) return;
+    renderedMetrics = snapshot;
     const count = dashboard ? number(dashboard.coverLetterCount) : null;
-    const progress = profile ? number(profile.completion) + '%' : dashboard ? '0%' : '—';
-    metrics.innerHTML = metric(icon('template'), t('overview.resumeProgress'), progress,
-      profile ? t('overview.resumeProgressHelp') : t(dashboard ? 'overview.resumeNone' : 'overview.dataUnavailable'), profile?.completion ?? null)
-      + metric(icon('letter'), t('overview.letterCount'), count ?? '—',
-        t(!dashboard ? 'overview.dataUnavailable' : Number(count) === 0 ? 'dashboard.letterEmpty' : 'overview.letterCountHelp'))
-      + metric(ReGenCommerce.coin('small', balance?.coinColor), t('commerce.wallet'),
-        balance ? number(balance.total) : '—', t(balance ? 'commerce.available' : 'overview.balanceUnavailable'));
-    metrics.setAttribute('aria-busy', 'false');
-    document.querySelector('.overview-store-coin').innerHTML = ReGenCommerce.coin('large', balance?.coinColor);
+    const documentMetrics = metric(icon('letter'), t('overview.letterCount'), count ?? '—',
+      dashboard ? '' : t('overview.dataUnavailable'));
+    const placeholder = '<div class="overview-metric overview-placeholder" aria-hidden="true"><span></span><strong></strong></div>';
+    metrics.innerHTML = (dashboard === undefined ? placeholder : documentMetrics)
+      + (balance === undefined ? placeholder : metric(ReGenCommerce.coin('small', balance?.coinColor), t('commerce.wallet'),
+        balance ? number(balance.total) : '—', balance ? '' : t('overview.balanceUnavailable')));
+    metrics.setAttribute('aria-busy', String(dashboard === undefined || balance === undefined));
+    if (balance) document.querySelector('.overview-store-coin').innerHTML = ReGenCommerce.coin('large', balance.coinColor);
   }
 
   function renderWriting(ai) {
@@ -60,6 +63,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderError(result) {
     activeResume = null;
+    nextAction.hidden = true;
+    nextAction.setAttribute('aria-busy', 'false');
     const expired = result.status === 401;
     home.innerHTML = `<div class="overview-panel overview-empty"><h2>${safe(t(expired ? 'dashboard.authExpired' : 'dashboard.unavailable'))}</h2>
       ${expired ? action('/login', t('common.signIn'), 'arrowRight', true) :
@@ -91,14 +96,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderChecklist(profile) {
     const sections = (profile.sections || []).filter(section => !section.optional);
-    const done = sections.filter(section => section.complete).length;
-    const summary = t('overview.sectionCoverage').replace('{done}', number(done)).replace('{total}', number(sections.length));
-    return `<div class="overview-checklist">
-      <div class="overview-section-meter" aria-hidden="true">${sections.map(section => `<span${section.complete ? ' data-complete' : ''}></span>`).join('')}</div>
-      <p>${safe(summary)}</p><ul aria-label="${safe(t('overview.sectionList'))}">
-      ${sections.map(section => `<li><a href="${resumeUrl(profile.id, section.id)}">${icon(section.complete ? 'check' : 'circle')}
-        ${safe(t('section.' + section.id, section.label))}<span class="sr-only">${safe(t(section.complete ? 'overview.complete' : 'overview.incomplete'))}</span></a></li>`).join('')}
-      </ul></div>`;
+    if (!sections.length) return '';
+    return `<ul class="overview-milestones" aria-label="${safe(t('overview.sectionList'))}">
+      ${sections.map(section => `<li><a data-state="${section.complete ? 'done' : 'pending'}" href="${resumeUrl(profile.id, section.id)}">
+        ${icon(section.complete ? 'check' : 'circle')}<span>${safe(t('section.' + section.id, section.label))}</span>
+        <small>${safe(t(section.complete ? 'overview.complete' : 'overview.incomplete'))}</small></a></li>`).join('')}
+      </ul>`;
   }
 
   function renderBoard(profile, latest) {
@@ -116,57 +119,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     ].filter(Boolean).sort(([left], [right]) => Api.parseDate(right) - Api.parseDate(left));
     const next = profile?.sections?.find(section => section.id === profile.nextSection && !section.complete);
     const nextLabel = next && t('section.' + next.id, next.label);
+    const title = next ? t('overview.continueSection').replace('{section}', nextLabel)
+      : t(profile ? 'overview.readyToReview' : 'overview.startResume');
+    const destination = !profile ? '/templates' : next ? resumeUrl(profile.id, next.id)
+      : resumeUrl(profile.id, 'references') + '&review=1';
+    const actionLabel = !profile ? t('dashboard.choose') : t(next ? 'dashboard.continue' : 'dashboard.reviewOpen');
+    const filled = (profile?.sections || []).filter(section => !section.optional && section.complete).length;
+    const total = (profile?.sections || []).filter(section => !section.optional).length;
+    nextAction.hidden = false;
+    nextAction.setAttribute('aria-busy', 'false');
+    const coverage = t('overview.sectionCoverage').replace('{done}', number(filled)).replace('{total}', number(total));
+    nextAction.innerHTML = `<div class="overview-next-content">${profile && total ? `<p class="overview-progress-caption">${safe(t('overview.resumeProgress'))}</p>` : ''}<h2>${safe(title)}</h2>${!profile ? `<p class="overview-first-resume">${safe(t('overview.firstResumeGuide'))}</p>` : ''}
+      <div class="overview-next-links">${action(destination, actionLabel, next || !profile ? 'edit' : 'check', true)}
+      </div></div>${profile && total ? `<div class="overview-progress-dial" style="--coverage:${filled/total*100}%">
+      <span aria-hidden="true">${number(filled)}<small>/${number(total)}</small></span>
+      <progress class="sr-only" id="overview-resume-progress" aria-label="${safe(coverage)}" value="${filled}" max="${total}"></progress></div>${renderChecklist(profile)}`
+      : `<div class="overview-next-art" aria-hidden="true"><div class="overview-next-paper">${icon('template')}<i></i><i></i><i></i></div></div>`}`;
     home.innerHTML = `<section class="overview-recent"><header><h2>${safe(t('overview.recentDocuments'))}</h2></header>
       ${recent.length ? recent.map(([, row]) => row).join('') : `<div class="overview-empty">
-        <p>${safe(t('dashboard.emptyText'))}</p>${action('/templates', t('dashboard.choose'), 'add', true)}</div>`}</section>
-      ${profile ? `<section class="overview-next"><h2>${safe(t('overview.resumeProgress'))}</h2>${renderChecklist(profile)}
-        ${next ? `<p>${safe(t('overview.nextSection').replace('{section}', nextLabel))}</p>
-          ${action(resumeUrl(profile.id, next.id), t('dashboard.continue'), 'edit', true)}`
-          : `<p>${safe(t('dashboard.reviewHelp'))}</p>
-          ${action(resumeUrl(profile.id, 'references') + '&review=1', t('dashboard.reviewOpen'), 'check', true)}`}</section>` : ''}`;
+        <p>${safe(t('dashboard.emptyText'))}</p></div>`}</section>`;
     if (profile) bindResumeActions(profile);
   }
 
-  async function loadData(showLoading = false) {
+  function loadData(showLoading = false, refreshIdentity = true) {
     const loading = ++revision;
     if (showLoading) {
       signature = undefined;
       home.setAttribute('aria-busy', 'true');
       home.innerHTML = `<p class="overview-loading" role="status">${safe(t('dashboard.loading'))}</p>`;
-      metrics.setAttribute('aria-busy', 'true');
-      metrics.innerHTML = `<p class="overview-loading" role="status">${safe(t('overview.loadingSummary'))}</p>`;
+      dashboardState = undefined;
+      renderMetrics(dashboardState, balance);
     }
-    const [user, dashboard, store] = await Promise.all([Api.getMe(), Api.listResumes(), Api.getFeaturePrices()]);
-    if (loading !== revision) return;
-    if (user.success) {
-      ZeekeAccountMenu.init({userName: user.userName || t('nav.account'), initials: ZeekeAccountMenu.initialsFromUser(user.user)});
+    if (refreshIdentity) {
+      const identityRequest = ++identityRevision;
+      Api.getMe().then(user => {
+        if (identityRequest !== identityRevision || !user.success) return;
+        ZeekeAccountMenu.init({userName: user.userName || t('nav.account'), initials: ZeekeAccountMenu.initialsFromUser(user.user)});
+        if (user.userName) document.querySelector('.dash-page-title').textContent = t('dashboard.welcomeName').replace('{name}', user.userName);
+      });
     }
-    document.querySelector('.dash-page-title').textContent = user.userName
-      ? t('dashboard.welcomeName').replace('{name}', user.userName) : t('nav.overview');
-    renderMetrics(dashboard.success ? dashboard : null, store?.success ? store.balance : null);
-    renderWriting(dashboard.ai);
-    if (!dashboard.success) {
+    return Api.getOverview().then(dashboard => {
+      if (loading !== revision) return;
+      dashboardState = dashboard.success ? dashboard : null;
+      renderMetrics(dashboardState, balance);
+      renderWriting(dashboard.ai);
       home.setAttribute('aria-busy', 'false');
-      signature = undefined;
-      renderError(dashboard);
-      return;
-    }
-    const profile = dashboard.profile;
-    activeResume = profile?.id;
-    const access = store?.prices?.cover_letters;
-    const letters = dashboard.coverLetterCount && access && !access.hiddenByPackage
-      && (access.mode !== 'package_only' || access.packageUnlocked || access.packageUses)
-      ? await Api.listCoverLetters() : null;
-    if (loading !== revision) return;
-    const latest = letters?.success ? letters.data?.[0] : null;
-    home.setAttribute('aria-busy', 'false');
-    const nextSignature = JSON.stringify([profile, latest]);
-    if (nextSignature === signature) return;
-    signature = nextSignature;
-    document.getElementById('dashboard-open-resume').href = profile ? resumeUrl(profile.id, profile.nextSection) : '/builder';
-    document.getElementById('dashboard-design-link').href = profile
-      ? resumeUrl(profile.id, profile.nextSection) + '&designs=1' : '/templates';
-    renderBoard(profile, latest);
+      if (!dashboard.success) {
+        signature = undefined;
+        renderError(dashboard);
+        return;
+      }
+      const {profile, latestLetter} = dashboard;
+      activeResume = profile?.id;
+      const nextSignature = JSON.stringify([profile, latestLetter]);
+      if (nextSignature === signature) return;
+      signature = nextSignature;
+      document.getElementById('dashboard-open-resume').href = profile ? resumeUrl(profile.id, profile.nextSection) : '/builder';
+      document.getElementById('dashboard-design-link').href = profile
+        ? resumeUrl(profile.id, profile.nextSection) + '&designs=1' : '/templates';
+      renderBoard(profile, latestLetter);
+    });
   }
 
   document.getElementById('dashboard-preview-close').addEventListener('click', () => preview.close());
@@ -176,17 +188,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('open-resume-preview')?.focus();
   });
 
-  let liveReload;
+  let liveReload, identityPending = false;
   const updateDashboard = event => {
-    if (event.detail?.topic && !['documents', 'profile', 'ai', 'feedback', 'wallet', 'store', 'pricing'].includes(event.detail.topic)) return;
+    if (event.detail?.topic && !['documents', 'profile', 'ai', 'features', 'store'].includes(event.detail.topic)) return;
     clearTimeout(liveReload);
-    liveReload = setTimeout(loadData, 180);
+    if (!event.detail?.topic || event.detail.topic === 'profile') identityPending = true;
+    liveReload = setTimeout(() => {
+      const refreshIdentity = identityPending;
+      identityPending = false;
+      loadData(false, refreshIdentity);
+    }, 180);
   };
-  window.addEventListener('regen:bonus-updated', updateDashboard);
-  window.addEventListener('regen:wallet-changed', updateDashboard);
+  window.addEventListener('regen:balance-updated', event => {
+    balance = event.detail;
+    renderMetrics(dashboardState, balance);
+  });
   window.addEventListener('regen:live-change', updateDashboard);
-  window.addEventListener('regen:prices-updated', updateDashboard);
+  window.addEventListener('regen:prices-updated', event => {
+    const price = event.detail?.prices?.cover_letters;
+    const canRead = !!price && (price.mode === 'free' || price.unlocked || price.packageUnlocked);
+    if (coverAccess !== undefined && canRead !== coverAccess) updateDashboard(event);
+    coverAccess = canRead;
+  });
   window.addEventListener('regen:reconcile', updateDashboard);
   window.addEventListener('pagehide', () => clearTimeout(liveReload));
-  await loadData(true);
+  balance = window.ReGenTokens.getBalance();
+  void window.ReGenTokens.refresh().then(() => {
+    balance = window.ReGenTokens.getBalance() ?? null;
+    renderMetrics(dashboardState, balance);
+  });
+  loadData();
 });

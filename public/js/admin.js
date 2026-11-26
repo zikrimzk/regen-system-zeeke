@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     users: ['User accounts', 'Account administration', 'Search accounts, review access state and apply user-specific controls.'],
     ai: ['AI usage', 'Usage policy', 'Set system availability, Coin allowance and renewal frequency.'],
     system: ['System settings', 'Application policy', 'Manage public access, account features and session limits.'],
-    mochi: ['Mochi', 'Companion controls', 'Manage how Mochi plays, coaches and appears across ReGen.'],
+    mochi: ['Mochi', 'Companion controls', 'Manage how Mochi plays, coaches and appears across Kerjayaku.'],
     email: ['Test Email', 'Delivery configuration', 'Review SMTP readiness and recent delivery results.'],
     admins: ['Administrators', 'Privileged access', 'Create administrators, review roles and disable access.'],
     operations: ['Session controls', 'Security operations', 'Revoke active user sessions using audited operations.'],
@@ -253,7 +253,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!response.success) return fail(response.message);
     const metrics = response.metrics || {};
     const points = metrics.registrations || [];
-    const maximum = Math.max(1, ...points.map(point => Number(point.registrations) || 0));
+    const productViews = [
+      ['mochi','admin.mochi','profile'], ['ai','admin.ai','ai'], ['features','admin.visibility','system'], ['pricing','admin.pricing','pricing'],
+    ].filter(([view]) => hasView(view));
     const cards = [
       ['users','Registered users',metrics.totalUsers,'All user accounts'],
       ['operations','Active sessions',metrics.activeSessions,'Seen in the last 15 minutes'],
@@ -266,7 +268,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         <article class="admin-panel"><div class="panel-title"><div><h2>Account health</h2><p>Current access state across registered accounts.</p></div></div>${window.ReGenAdminCharts.ring([{label:'Active',value:metrics.activeUsers||0},{label:'Restricted',value:Math.max(0,(metrics.totalUsers||0)-(metrics.activeUsers||0))}],'Account access distribution')}<div class="quick-actions"><button type="button" class="quick-action" data-open-view="users">Manage accounts<span>→</span></button></div></article>
       </section>`;
     root.insertAdjacentHTML('beforeend',`<section class="admin-panel"><div class="panel-title"><div><h2>Operating snapshot</h2><p>Current account and delivery totals.</p></div></div><dl class="operating-snapshot">${[['Verified accounts',metrics.verifiedUsers],['New in 24 hours',metrics.newToday],['AI allowance credits used',metrics.aiTokensUsed],['Queued email',metrics.pendingEmails]].map(([label,value])=>`<div><dt>${label}</dt><dd>${Number(value||0).toLocaleString()}</dd></div>`).join('')}</dl></section>`);
-    root.querySelectorAll('[data-open-view]').forEach(button => {button.hidden=!allowedModules.includes(button.dataset.openView);button.addEventListener('click', () => show(button.dataset.openView));});
+    if (productViews.length) root.insertAdjacentHTML('beforeend', `
+      <section class="admin-panel admin-workspace-controls"><h2>${safe(ReGenText.get('admin.candidateWorkspace'))}</h2>
+        <div class="admin-workspace-actions">${productViews.map(([view,label,mark]) => `<button type="button" class="btn btn-secondary" data-open-view="${view}">${icon(mark)} ${safe(ReGenText.get(label))}</button>`).join('')}</div>
+      </section>`);
+    root.querySelectorAll('[data-open-view]').forEach(button => {button.hidden=!hasView(button.dataset.openView);button.addEventListener('click', () => show(button.dataset.openView));});
     stamp();
   }
 
@@ -337,8 +343,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     root.innerHTML = `<section class="admin-panel"><form method="post" id="ai-settings-form"><div class="panel-title"><div><h2>System allowance</h2><p>Base Coin is used for AI after package benefits, before saved Coin. Individual action prices are configured in Pricing.</p></div>${settings.aiEnabled ? status('active') : status('disabled')}</div>
       <div class="settings-block"><label class="switch-row"><span><strong>AI features</strong><small>Controls AI suggestions and generated ATS comments for all users.</small></span><input id="ai-enabled" type="checkbox" ${settings.aiEnabled ? 'checked' : ''}></label></div>
       <div class="settings-block"><label class="switch-row"><span><strong>Renew AI allowances automatically</strong><small>When off, the base allowance stays used until an administrator resets it. Saved Coin does not expire.</small></span><input id="ai-renewable" type="checkbox" ${settings.aiRenewable!==false?'checked':''}></label></div><div class="settings-block"><p class="admin-section-label">AI allowance policy</p><div class="admin-form-grid"><label class="admin-field">Default base Coin per user<input id="ai-limit" type="number" min="1" max="1000" value="${Number(settings.aiDefaultLimit || 10)}" required><small>Each successful operation uses its configured price. Failed requests are free.</small></label><label class="admin-field">Renewal interval (hours)<input id="ai-hours" type="number" min="1" max="720" value="${Number(settings.aiRenewalHours || 24)}" required><small>Starts from the first AI operation in a new window.</small></label></div></div>
-      <div class="settings-save"><button class="btn btn-primary" id="ai-save" type="submit">Save AI policy</button></div></form></section>`;
-    const renewal=()=>{document.getElementById('ai-hours').disabled=!document.getElementById('ai-renewable').checked;};document.getElementById('ai-renewable').onchange=renewal;renewal();
+      <div class="ai-policy-preview"><strong>${safe(ReGenText.get('admin.policyPreview'))}</strong><output id="ai-policy-preview" aria-live="polite"></output></div>
+      <div class="settings-save"><button class="btn btn-secondary" type="reset" id="ai-revert" hidden>${safe(ReGenText.get('admin.discardEdits'))}</button><button class="btn btn-primary" id="ai-save" type="submit">Save AI policy</button></div></form></section>`;
+    const policy = document.getElementById('ai-settings-form');
+    const field = id => policy.querySelector('#' + id);
+    const updatePolicyPreview = () => {
+      const renewable = field('ai-renewable').checked;
+      const hours = field('ai-hours');
+      hours.disabled = !renewable || !capabilities.includes('ai.manage');
+      const limit = field('ai-limit');
+      const enabled = field('ai-enabled').checked;
+      const valid = limit.validity.valid && (!renewable || hours.validity.valid);
+      const key = !enabled ? 'policyOff' : !valid ? 'policyInvalid' : renewable ? 'policyRenewal' : 'policyFixed';
+      field('ai-policy-preview').textContent = ReGenText.get('admin.' + key).replace('{coin}',limit.value).replace('{hours}',hours.value);
+      field('ai-revert').hidden = !Array.from(policy.querySelectorAll('input')).some(input =>
+        input.type === 'checkbox' ? input.checked !== input.defaultChecked : input.value !== input.defaultValue);
+    };
+    policy.addEventListener('input', updatePolicyPreview);
+    policy.addEventListener('reset', () => queueMicrotask(updatePolicyPreview));
+    updatePolicyPreview();
+    root.insertAdjacentHTML('beforeend',`<section class="admin-panel admin-workspace-controls"><h2>${safe(ReGenText.get('admin.studioTools'))}</h2>
+      <p class="muted">${safe(ReGenText.get('admin.letterDraftModes'))}</p>
+      <div class="admin-workspace-actions">${['features','pricing'].filter(hasView).map(view=>`<button type="button" class="btn btn-secondary" data-studio-admin-view="${view}">${safe(ReGenText.get(view==='pricing'?'admin.pricing':'admin.visibility'))}</button>`).join('')}</div>
+    </section>`);
+    root.querySelectorAll('[data-studio-admin-view]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.studioAdminView)));
     root.insertAdjacentHTML('beforeend','<section class="admin-panel"><div class="panel-title"><div><h2>OpenAI provider usage</h2><p>Coin balances are separate from the provider’s billed API usage.</p></div></div><p class="muted">The documented OpenAI organization API reports usage and costs. It does not provide a documented prepaid credit balance endpoint. Check your provider balance in Billing; a separate organization admin credential would be needed for an automated cost report.</p><div class="settings-save"><a class="btn btn-secondary" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">Open provider billing ↗</a><a class="btn btn-secondary" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">View provider usage ↗</a></div></section>');
     document.getElementById('ai-settings-form').addEventListener('submit', async event => {
       event.preventDefault();
@@ -412,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     root.innerHTML = `<form id="mochi-settings-form" class="admin-mochi">
       <section class="admin-panel mochi-admin-overview">
         <img src="/img/mochi-coach.webp" width="72" height="72" alt="">
-        <div><h2>Global settings</h2><p>Control where Mochi appears, how he plays, and what he can spend.</p></div>
+        <div><h2>${safe(ReGenText.get('admin.mochiIdentity'))}</h2><p>${safe(ReGenText.get('admin.mochiControls'))}</p></div>
         <span id="mochi-global-state"></span>
       </section>
       <div class="mochi-admin-grid">
@@ -430,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <label class="admin-field">Health (%)<input name="health" type="number" min="0" max="100" value="${Number(mochi.health)}" required><small>Below 35, Mochi takes longer breaks.</small></label>
           </div>
         </section>
-        <section class="admin-panel mochi-admin-card mochi-admin-budget"><div><h3>AI spending</h3><p>Only writing requests and optional field feedback use AI. Play and ReGen support are local.</p></div>
+        <section class="admin-panel mochi-admin-card mochi-admin-budget"><div><h3>AI spending</h3><p>${safe(ReGenText.get('admin.mochiBudgetHelp'))}</p></div>
           <div class="mochi-admin-usage"><p id="mochi-app-usage"></p><meter id="mochi-app-meter" aria-label="Daily app AI budget used" min="0" max="1" value="0"></meter><small>Resets at midnight Malaysia time. These are request counts.</small></div>
           <div class="admin-form-grid">
             <label class="admin-field">Daily requests across all accounts<input name="dailyBudget" type="number" min="0" max="100000" value="${Number(mochi.dailyBudget??500)}" required><small>Zero pauses all Mochi AI.</small></label>
@@ -463,7 +491,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         pace:fields.pace.value,start:fields.start.value,end:fields.end.value})});
       setBusy(button,false);
       if (!result.success) return toast('Mochi settings not saved',result.message,'error');
-      if (global.isConnected) showGlobal(result);
+      if (global.isConnected) {
+        delete global.dataset.liveDirty;
+        showGlobal(result);
+      }
       toast('Mochi settings saved');
     };
     const lookup=document.getElementById('mochi-account-lookup'), accountHost=document.getElementById('mochi-account-controls');
@@ -502,7 +533,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const {account}=result;
       accountHost.innerHTML=`<form id="mochi-account-form"><h3>${safe(identity||'Account #'+id)}</h3><p data-mochi-account-usage role="status"></p><div class="admin-form-grid">
         <label class="admin-field">Access for account #${id}<select name="mode">
-          <option value="inherit">Follow the customer’s package</option><option value="play-only">Play and ReGen support only</option><option value="off">Hide Mochi entirely</option>
+          <option value="inherit">Follow the customer’s package</option><option value="play-only">${safe(ReGenText.get('admin.mochiPlayOnly'))}</option><option value="off">Hide Mochi entirely</option>
         </select><small>Changing this does not change the customer’s package.</small></label><label class="admin-field">Daily AI requests for this account<input name="dailyTokens" type="number" min="0" max="1000" placeholder="Use the default account limit" value="${account.dailyTokens??''}"><small>Leave blank to use the default, or enter 0 to pause AI for this customer.</small></label>
         </div><div class="settings-save"><button type="submit" class="btn btn-primary">Save account limits</button></div></form>`;
       const form=accountHost.querySelector('form'), usage=form.querySelector('[data-mochi-account-usage]');
@@ -913,7 +944,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(changed(['support','feedback']))refreshWorkQueues();
     if(changed(['alerts']))refreshAlerts();
     if(changed(['profile','admins']))await updateAccess();
-    const related={overview:['overview'],reports:['reports'],analytics:['analytics'],users:['users'],templates:['templates'],campaigns:['campaigns'],ai:['ai','system'],system:['system'],features:['features','system'],maintenance:['system'],email:['email'],notifications:['email'],support:['support'],feedback:['feedback'],security:['security'],health:['operations'],operations:['operations'],recovery:['recovery'],audit:['audit'],admins:['admins'],alerts:['alerts'],store:['pricing'],pricing:['pricing','store'],uploads:['system']};
+    const related={overview:['overview'],reports:['reports'],analytics:['analytics'],users:['users'],templates:['templates'],campaigns:['campaigns'],ai:['ai','system'],mochi:['system'],system:['system'],features:['features','system'],maintenance:['system'],email:['email'],notifications:['email'],support:['support'],feedback:['feedback'],security:['security'],health:['operations'],operations:['operations'],recovery:['recovery'],audit:['audit'],admins:['admins'],alerts:['alerts'],store:['pricing'],pricing:['pricing','store'],uploads:['system']};
     if(!changed(related[activeView]||[]))return;
     if(activeView==='support')return modules.refreshSupport();
     if(root.querySelector('form[data-live-dirty="true"]')){
@@ -921,7 +952,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const notice=document.createElement('div');notice.className='live-update-note';notice.innerHTML='<p>New data is available. Your unsaved changes are still here.</p><button class="btn btn-secondary" type="button">Review latest data</button>';
       notice.querySelector('button').onclick=()=>openConfirmation({title:'Review the latest data?',message:'Unsaved changes on this page will be replaced by the current server values.',submitLabel:'Review latest',type:'standard',onConfirm:async()=>show(activeView)});root.prepend(notice);return;
     }
-    const builtIn={overview,users:userList,ai:aiControls,system:systemControls,email:emailControls,admins:adminList,operations,audit};
+    const builtIn={overview,users:userList,ai:aiControls,mochi:mochiControls,system:systemControls,email:emailControls,admins:adminList,operations,audit};
     await(modules.views[activeView]||builtIn[activeView])?.();
     window.ReGenAdminCharts.paginateTables(root);
   }

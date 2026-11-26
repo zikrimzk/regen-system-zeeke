@@ -22,7 +22,7 @@ Use decorative color and editorial type deliberately on public pages. Keep docum
 
 ## Skyline asset
 
-The built-in ImageGen tool produced an original editorial illustration for this project. No third-party photo, logos or reference-page assets were used. The production assets are `public/img/kl-skyline-640.webp` and `public/img/kl-skyline-1120.webp`. The existing OFL-licensed EB Garamond face is already bundled with ReGen. Existing PHP-generated fictional templates supply the foreground.
+The built-in ImageGen tool produced an original editorial illustration for this project. No third-party photo, logos or reference-page assets were used. The retired skyline assets are preserved in Git revision `40ed277` under `prototypes/kerjaya/assets/`. The existing OFL-licensed EB Garamond face is bundled with ReGen. Existing PHP-generated fictional templates supply the foreground.
 
 Image prompt used for generation
 

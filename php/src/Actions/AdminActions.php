@@ -52,6 +52,7 @@ trait AdminActions
                 Http::json(['success'=>false, 'message'=>$error->getMessage()],422);
             }
             $this->audit->log('admin.mochi_account_updated', 'user', $userId, $account);
+            (new \ReGen\RealtimeEvents($this->db))->publish('features', 'user', $userId);
         } else {
             $account = $policy->account($userId);
         }
@@ -68,6 +69,9 @@ trait AdminActions
             Http::json(['success'=>false, 'message'=>$error->getMessage()],422);
         }
         $this->audit->log('admin.mochi_settings_updated', 'settings', 'mochi', $settings);
+        $events = new \ReGen\RealtimeEvents($this->db);
+        $events->publish('features', 'users');
+        $events->publish('system', 'admin');
         Http::json(['success'=>true, 'mochi'=>$settings, 'available'=>MochiPolicy::available($settings),'usedToday'=>$policy->usedToday()]);
     }
 

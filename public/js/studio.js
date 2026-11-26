@@ -32,7 +32,8 @@ const Studio = (() => {
     updateStructure();
 
     function updatePreview(immediate = false, draft = Stepper.getDraftResume()) {
-      if (!wide.matches || pane.hidden || layout.querySelector('.builder-left.is-final')) return;
+      if (!wide.matches || pane.hidden || document.body.classList.contains('studio-focus-mode')
+        || layout.querySelector('.builder-left.is-final')) return;
       const available = signedIn && LiveDocumentPreview.allowed();
       status.hidden = available;
       status.textContent = available ? '' : t('previewRestricted');
@@ -94,6 +95,10 @@ const Studio = (() => {
     });
     document.addEventListener('regen:writing-settings-changed', () => updatePreview(true));
     document.addEventListener('regen:studio-review', () => proof.clear());
+    document.addEventListener('regen:studio-focus', event => {
+      if (event.detail.active) proof.clear();
+      else updatePreview(true);
+    });
     updatePreview(true);
   }
 

@@ -5,7 +5,7 @@
 **Date:** 15 November 2026  
 **Status:** **PENDING DESIGN APPROVAL** (Pause gate before Phase 02D.2)  
 **Authoritative Location:** `docs/kerjaya/phase-02d/landing-prototype-review.md`  
-**Prototype URL:** `prototypes/kerjaya/phase-02d/index.html`  
+**Historical prototype** · `prototypes/kerjaya/phase-02d/index.html` in Git revision `40ed277`.
 
 ---
 

@@ -18,6 +18,15 @@ final class CoverLetterRepository
         $q->execute([$userId]);
         return $q->fetchAll() ?: [];
     }
+    public function latestForResume(int $userId, int $resumeId): ?array
+    {
+        $query = $this->db->prepare(
+            'SELECT id, company, role, updated_at FROM cover_letters
+             WHERE user_id = ? AND resume_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1',
+        );
+        $query->execute([$userId, $resumeId]);
+        return $query->fetch() ?: null;
+    }
     public function get(int $id, int $userId): ?array
     {
         $q = $this->db->prepare('SELECT * FROM cover_letters WHERE id = ? AND user_id = ?');

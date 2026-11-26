@@ -29,6 +29,22 @@ const App = (() => {
   }
 
   // ── FINAL SCREEN ──────────────────────────────────────────────
+  const reviewText = key => ReGenText.get('review.' + key);
+
+  function renderReviewPdf() {
+    const pages = document.getElementById('final-pdf-pages');
+    if (!pages) return;
+    const countLabel = document.getElementById('final-page-count');
+    countLabel.textContent = '';
+    void PdfPages.render(pages, Api.documentUrl(), {
+      scrollRoot: document.getElementById('step-content'),
+      onPageCount: count => {
+        countLabel.textContent = reviewText(count === 1 ? 'page' : 'pages')
+          .replace('{count}', new Intl.NumberFormat(ReGenText.locale).format(count));
+      },
+    });
+  }
+
   function showFinalScreen() {
     const content = document.getElementById('step-content');
     const navBar  = document.querySelector('.nav-bar');
@@ -42,65 +58,59 @@ const App = (() => {
 
     if (content) {
       PdfPages.clear(document.getElementById('final-pdf-pages'));
-      const previewSrc = Api.documentUrl();
-      const kind=Stepper.getDraftResume().writing?.documentType==='academic-cv'?'CV':'Resume';
+      const title = reviewText(Stepper.getDraftResume().writing?.documentType === 'academic-cv' ? 'cv' : 'resume');
       content.innerHTML = `
         <div class="final-screen">
+          <header class="review-toolbar">
+            <h2 id="resume-review-title" tabindex="-1">${title}</h2>
+            <div class="review-toolbar-actions">
+              <button type="button" class="btn btn-secondary" id="btn-back-to-edit">
+                ${ReGenIcons.icon('edit')} ${reviewText('edit')}
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-download-pdf">
+                ${ReGenIcons.icon('download')} ${reviewText('download')}
+              </button>
+            </div>
+          </header>
           <div class="final-layout">
             <div class="final-sidebar">
-              <section class="final-panel">
-                <div class="final-ready-row">
-                  <div class="final-icon">
-                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                  </div>
-                  <div>
-                    <h2 class="final-title">${kind} review</h2>
-                  </div>
-                </div>
-                <p class="text-muted mt-sm">
-                  A final look. Then your next move.
-                </p>
-              </section>
-
-              <section class="ats-review-card" id="ats-review-card" aria-live="polite" aria-busy="true">
+              <a class="review-paper-jump" href="#final-pdf-heading">
+                ${ReGenIcons.icon('eye')} ${reviewText('preview')} ${ReGenIcons.icon('next')}
+              </a>
+              <section class="ats-review-card" id="ats-review-card" aria-busy="true">
                 <div class="ats-review-loading">
                   <span class="ai-spinner" aria-hidden="true"></span>
-                  <div>
-                    <strong>Loading writing checks</strong>
-                    <p>This local check does not use a token.</p>
-                  </div>
+                  <strong role="status">${reviewText('loading')}</strong>
                 </div>
               </section>
-
-              <div class="final-actions">
-                <button type="button" class="btn btn-primary btn-lg w-full" id="btn-download-pdf">
-                  <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-                  Download
-                </button>
-                <div class="final-secondary-actions">
-                  <button type="button" class="btn btn-secondary flex-1" id="btn-back-to-edit" aria-label="Edit resume">
-                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
-                      Edit
-                  </button>
-                  <a href="/dashboard" class="btn btn-secondary flex-1">
-                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/></svg>
-                    Dashboard
-                  </a>
-                </div>
-              </div>
             </div>
-            <div class="final-preview-card">
-              <div class="final-preview-header">Your ${kind==='CV'?'CV':'resume'}</div>
+            <section class="final-preview-card" aria-labelledby="final-pdf-heading">
+              <header class="final-preview-header">
+                <h3 id="final-pdf-heading" tabindex="-1">${reviewText('preview')}</h3>
+                <span id="final-page-count" role="status"></span>
+                <button type="button" class="studio-icon" id="final-settings" title="${reviewText('layout')}">
+                  ${ReGenIcons.icon('settings')}<span class="sr-only">${reviewText('layout')}</span>
+                </button>
+              </header>
               <div class="final-preview-stage">
                 <div class="final-preview-page-shell" id="final-preview-page-shell">
                   <div id="final-pdf-pages" class="pdf-pages"></div>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
         </div>`;
 
-      PdfPages.render(document.getElementById('final-pdf-pages'), previewSrc, {documentType:kind==='CV'?'academic-cv':'resume',onSettings:()=>document.getElementById('resume-layout-settings')?.click()});
+      content.scrollTop = 0;
+      document.getElementById('resume-review-title').focus({preventScroll:true});
+      renderReviewPdf();
+      document.getElementById('final-settings').onclick = () => document.getElementById('resume-layout-settings')?.click();
+      content.querySelector('.review-paper-jump').onclick = event => {
+        event.preventDefault();
+        const heading = document.getElementById('final-pdf-heading');
+        heading.scrollIntoView({block:'start'});
+        heading.focus({preventScroll:true});
+      };
       document.getElementById('btn-download-pdf')?.addEventListener('click', async (e) => {
         const res = await Api.downloadPdf(e.currentTarget);
         if (!res.success && !res.handled) App.showToast(res.message || 'PDF download failed.', 'error');
@@ -157,7 +167,7 @@ const App = (() => {
     button.innerHTML = '<span class="ai-spinner" aria-hidden="true"></span><span>Generating comment...</span>';
     card.setAttribute('aria-busy', 'true');
     if (status) {
-      status.textContent = 'ReGen is reviewing the current resume.';
+      status.textContent = reviewText('reviewing');
       status.className = 'ats-review-action-status';
     }
 
@@ -186,7 +196,7 @@ const App = (() => {
       if (nextStatus) {
         nextStatus.textContent = result.quotaExceeded === true
           ? quotaLimitMessage(result.quota)
-          : 'ReGen could not generate the comment this time. You can try again when ready.';
+          : reviewText('failed');
         nextStatus.className = 'ats-review-action-status is-error';
       }
     }
@@ -229,12 +239,12 @@ const App = (() => {
           <span>/100</span>
         </div>
         <div class="ats-review-title">
-          <p class="final-eyebrow">Writing readiness</p>
+          <p class="final-eyebrow">${reviewText('readiness')}</p>
           <h3></h3>
           <span class="ats-review-mode"></span>
         </div>
       </div>
-      <p class="ats-review-comment"></p>
+      <p class="ats-review-comment" aria-live="polite"></p>
       <div class="ats-strengths" aria-label="Resume strengths"></div>
       <div class="ats-priorities">
         <h4>${recommendations.length ? 'Priority improvements' : 'Ready to tailor'}</h4>
@@ -255,8 +265,8 @@ const App = (() => {
     card.querySelector('.ats-score strong').textContent = String(score);
     card.querySelector('.ats-review-title h3').textContent = `${review.label || 'Writing review'}`;
     card.querySelector('.ats-review-mode').textContent = showAiComment
-      ? (cached ? 'Saved ReGen AI review - no Coin used' : 'Reviewed with ReGen AI')
-      : 'Local checks · No token used';
+      ? reviewText(cached ? 'reused' : 'aiReviewed')
+      : reviewText('localChecks');
     card.querySelector('.ats-review-comment').textContent = showAiComment
       ? review.comment
       : review.summary || review.comment || '';
@@ -296,13 +306,13 @@ const App = (() => {
     }
 
     if (hasSavedComment) {
-      requestTitle.textContent = 'Saved ReGen comment available';
+      requestTitle.textContent = reviewText('savedAi');
       requestCopy.textContent = 'View the saved comment without using more Coin.';
       action.id = 'ats-review-view-saved';
       action.textContent = 'View saved comment';
       action.addEventListener('click', () => {
         card.querySelector('.ats-review-comment').textContent = savedComment;
-        card.querySelector('.ats-review-mode').textContent = 'Saved ReGen AI review - no Coin used';
+        card.querySelector('.ats-review-mode').textContent = reviewText('reused');
         requestTitle.textContent = 'Saved comment loaded';
         requestCopy.textContent = 'No Coin was used.';
         action.remove();
@@ -311,7 +321,7 @@ const App = (() => {
     }
 
     if (!aiEnabled) {
-      requestTitle.textContent = 'ReGen AI comment unavailable';
+      requestTitle.textContent = reviewText('unavailable');
       requestCopy.textContent = 'Local writing checks remain available without AI.';
       action.remove();
       return;
@@ -325,14 +335,12 @@ const App = (() => {
     }
 
     const reviewNeedsUpdate = review.hasPriorReview === true && review.isCurrent === false;
-    requestTitle.textContent = reviewNeedsUpdate
-      ? 'ReGen comment needs an update'
-      : 'Want a concise ReGen comment?';
+    requestTitle.textContent = reviewText(reviewNeedsUpdate ? 'outdated' : 'assistance');
     requestCopy.textContent = quota ? `${Number(quota.remaining).toLocaleString()} Coin available` : '';
     action.id = 'ats-review-generate';
-    action.innerHTML = `${ReGenIcons.icon('sparkles')} Generate ReGen comment`;
+    action.innerHTML = `${ReGenIcons.icon('sparkles')} ${reviewText('generate')}`;
     window.ReGenTokens?.setAiCosts({review:reviewCost});
-    window.ReGenTokens?.bind(action,'ai_review','Generate review');
+    window.ReGenTokens?.bind(action,'ai_review',reviewText('generate'));
     action.addEventListener('click', requestAtsReview);
   }
 
@@ -383,6 +391,7 @@ const App = (() => {
     await Stepper.init(resumeData);
     Studio.init(res.title, resumeData.templateId || 'classic');
     document.addEventListener('regen:writing-settings-changed',()=>{if(document.querySelector('.builder-left.is-final'))showFinalScreen();});
+    document.addEventListener('regen:template-changed', renderReviewPdf);
     const templateButton = document.getElementById('change-resume-template');
     function updateTemplateName(id) {
       ReGenTemplates.catalog().then(templates => {

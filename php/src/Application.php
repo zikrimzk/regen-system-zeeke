@@ -390,6 +390,7 @@ final class Application
         if ($path === '/api/mochi/status' && $method === 'GET') {
             Http::json(['success'=>true, 'access'=>$access, 'available'=>$available, 'chatAllowed'=>$chatAllowed,
                 'health'=>$settings['health'], 'autoplay'=>$settings['autoplay'], 'sound'=>$settings['sound'],
+                'scheduled'=>$settings['start'] !== '',
                 'editorReactions'=>$settings['editorReactions'], 'playOnly'=>$account['mode']==='play-only',
                 'pace'=>$settings['pace'],'naps'=>$settings['naps'],'liveFeedback'=>$settings['liveFeedback'],'feedbackSeconds'=>$settings['feedbackSeconds'],
                 'liveAvailable'=>$chatAllowed && $dailyTokens > 0 && $settings['dailyBudget'] > 0 && $coach->enabled(),

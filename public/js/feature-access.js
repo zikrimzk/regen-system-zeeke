@@ -1,6 +1,7 @@
 /* One pricing source for labels, confirmations and account balances. */
 window.ReGenTokens=(()=>{
   let queue=Promise.resolve(),prices={},aiCosts={},request=null,refreshTimer,observer,lastPriceSignature='',pollTimer,balanceRevision=0,accessDialog=null;
+  let balance;
   const originalLabels=new WeakMap();
   const reviewedControls=new WeakSet(), pendingReviews=new WeakSet();
   const safe=value=>ReGenCommerce.safe(value);
@@ -140,7 +141,9 @@ window.ReGenTokens=(()=>{
   }
   function updateBalance(value){
     balanceRevision++;
+    balance = value;
     document.querySelectorAll('[data-token-total]').forEach(element=>{element.textContent=ReGenCommerce.number(value.total);const link=element.closest('a');if(link){link.title=`${value.base} base + ${value.bonus} bonus & saved Coin`;link.setAttribute('aria-label',`${ReGenCommerce.number(value.total)} ${window.ReGenText?.get('commerce.available', 'Coin available') || 'Coin available'}`);}});
+    window.dispatchEvent(new CustomEvent('regen:balance-updated',{detail:value}));
   }
   function setAiCosts(costs){Object.assign(aiCosts,costs);sync();}
   async function review(input){
@@ -230,12 +233,12 @@ window.ReGenTokens=(()=>{
     let queued=false;observer=new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;sync();});});
     observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-busy','data-loading']});
     sync();refresh();
-    pollTimer=setInterval(()=>{if(!document.hidden)refresh();},90000);
+    pollTimer=setInterval(()=>{if(!document.hidden&&!window.ReGenLive?.connected)refresh();},90000);
   });
   const update=event=>{if(event.detail?.topic&&!['store','pricing','wallet','ai'].includes(event.detail.topic))return;clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,180);};
   ['regen:live-change','regen:reconcile','regen:wallet-changed','regen:bonus-updated','regen:priced-action-completed'].forEach(name=>window.addEventListener(name,update));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
   window.addEventListener('pagehide',()=>{observer?.disconnect();clearTimeout(refreshTimer);clearInterval(pollTimer);});
-  window.addEventListener('pageshow',event=>{if(event.persisted){observer?.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-busy','data-loading']});clearInterval(pollTimer);pollTimer=setInterval(()=>{if(!document.hidden)refresh();},90000);refresh();}});
-  return {authorize,showAccess,getPrice:key=>prices[key],fetch:protectedFetch,bind,refresh,setAiCosts,updateBalance};
+  window.addEventListener('pageshow',event=>{if(event.persisted){observer?.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-busy','data-loading']});clearInterval(pollTimer);pollTimer=setInterval(()=>{if(!document.hidden&&!window.ReGenLive?.connected)refresh();},90000);refresh();}});
+  return {authorize,showAccess,getPrice:key=>prices[key],getBalance:()=>balance,fetch:protectedFetch,bind,refresh,setAiCosts,updateBalance};
 })();

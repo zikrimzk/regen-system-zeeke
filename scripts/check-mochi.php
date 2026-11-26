@@ -111,6 +111,8 @@ $check(!MochiCoach::writingRequest($chat) && !MochiCoach::writingRequest(MochiCo
     && MochiCoach::writingRequest(MochiCoach::chatInput(['message'=>'Tolong kemaskan ringkasan resume saya.'])),
     'Spend AI calls only on eligible writing requests, including BM rojak.');
 $focused=MochiCoach::chatInput(['message'=>'Can you suggest stronger wording here?','screen'=>'builder','section'=>'projects','focusField'=>'project']);
+$check(MochiCoach::writingRequest(MochiCoach::chatInput(['message'=>'Tolong tulis ayat resume tentang Python script yang saya bina.','screen'=>'builder','section'=>'projects'])),
+    'A candidate can describe a coding project while code-generation requests remain outside scope.');
 $check(MochiCoach::writingRequest($focused) && $focused['focus']==='project' && $focused['shared']===null,
     'Follow contextual writing requests without implicitly sharing a draft.');
 $outside = $coach(static fn()=> $fixture(['reply'=>'Here is a coding answer.', 'mood'=>'bright', 'scope'=>'outside','suggestion'=>'']))->chat($chat, $profile);

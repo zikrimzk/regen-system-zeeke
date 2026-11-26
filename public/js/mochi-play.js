@@ -171,32 +171,59 @@ window.MochiPlay = (() => {
   }
   document.addEventListener('pointerdown',unlockSound,{passive:true});
   document.addEventListener('keydown',unlockSound);
-  function draggable(pet, anchor=pet) {
-    let start=null, position=null, suppressClick=false;
+  function draggable(pet, anchor=pet, storageKey='') {
+    let start=null, position=null, suppressClick=false, restored=false;
+    function persist(value) {
+      if (!storageKey) return;
+      try {
+        if (value) sessionStorage.setItem(storageKey, JSON.stringify(value));
+        else sessionStorage.removeItem(storageKey);
+      } catch { /* Position is optional. */ }
+    }
     function moveTo(x,y) {
-      const rect=pet.getBoundingClientRect();
-      x=Math.max(8,Math.min(innerWidth-rect.width-8,x));
-      y=Math.max(8,Math.min(innerHeight-rect.height-8,y));
-      for (const selector of ['.feedback-launcher','.mobile-product-nav','.builder-bottom-bar']) {
+      const rect=anchor.getBoundingClientRect();
+      const header=anchor===pet?null:document.querySelector('.workbench-header,.workspace-header');
+      const top=Math.max(8, (header?.getBoundingClientRect().bottom ?? 0)+8);
+      const floor=Math.min(innerHeight, (window.visualViewport?.height ?? innerHeight) + (window.visualViewport?.offsetTop ?? 0));
+      const viewportWidth = document.documentElement.clientWidth;
+      x=Math.max(8,Math.min(viewportWidth-rect.width-8,x));
+      y=Math.max(top,Math.min(floor-rect.height-8,y));
+      for (const selector of ['.feedback-launcher','.mobile-product-nav','.builder-page .nav-bar']) {
         const obstacle=document.querySelector(selector)?.getBoundingClientRect();
         if (obstacle?.width&&x<obstacle.right+8&&x+rect.width>obstacle.left-8&&y<obstacle.bottom+8&&y+rect.height>obstacle.top-8) {
-          y=Math.max(8,obstacle.top-rect.height-8);
+          y=Math.max(top,obstacle.top-rect.height-8);
         }
       }
       if (!anchor.classList.contains('mochi-positioned')) {
         anchor.style.setProperty('--mochi-drag-size',Math.round(rect.width)+'px');
       }
       anchor.classList.add('mochi-positioned');
-      anchor.dataset.mochiDragLeft=String(x<innerWidth/2);
-      anchor.dataset.mochiDragTop=String(y<130);
+      const alignLeft = x + rect.width / 2 < viewportWidth / 2;
+      anchor.dataset.mochiDragLeft=String(alignLeft);
+      anchor.dataset.mochiDragTop=String(y<148);
+      anchor.style.setProperty('--mochi-bubble-space', Math.floor((alignLeft ? viewportWidth - x : x + rect.width) - 8) + 'px');
       anchor.style.setProperty('--mochi-x',Math.round(x)+'px');
       anchor.style.setProperty('--mochi-y',Math.round(y)+'px');
       position={x,y};
     }
+    function restore() {
+      if (restored || !storageKey || !pet.offsetWidth) return;
+      restored = true;
+      try {
+        const saved=JSON.parse(sessionStorage.getItem(storageKey));
+        if (Number.isFinite(saved?.x)&&Number.isFinite(saved.y)) moveTo(saved.x,saved.y);
+      } catch { /* Ignore stale or malformed positions. */ }
+    }
+    function park() {
+      anchor.classList.remove('mochi-positioned');
+      position = null;
+      restored = false;
+    }
     pet.addEventListener('pointerdown',event=>{
       if (event.button!==0||!event.isPrimary) return;
       suppressClick=false;
-      const rect=pet.getBoundingClientRect();
+      stop(pet);
+      const rect=anchor.getBoundingClientRect();
       start={id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top};
       pet.setPointerCapture(event.pointerId);
     });
@@ -208,10 +235,10 @@ window.MochiPlay = (() => {
       suppressClick=true;
       moveTo(start.left+dx,start.top+dy);
     });
-    const finish=()=>{start=null;};
+    const finish=()=>{if(start&&suppressClick)persist(position);start=null;};
     for (const event of ['pointerup','pointercancel','lostpointercapture']) pet.addEventListener(event,finish);
     pet.addEventListener('click',event=>{
-      if (!suppressClick) return;
+      if (!suppressClick || event.detail === 0) return;
       event.stopImmediatePropagation();
       event.preventDefault();
       suppressClick=false;
@@ -220,16 +247,23 @@ window.MochiPlay = (() => {
       if (event.key==='Escape'&&position) {
         anchor.classList.remove('mochi-positioned');
         position=null;
+        persist(null);
+        event.preventDefault();
         return;
       }
       const directions={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
       const direction=directions[event.key];
       if (!direction) return;
       event.preventDefault();
-      const rect=pet.getBoundingClientRect();
+      stop(pet);
+      const rect=anchor.getBoundingClientRect();
       moveTo(rect.left+direction[0]*24,rect.top+direction[1]*24);
+      persist(position);
     });
-    window.addEventListener('resize',()=>{if(position&&pet.offsetWidth)moveTo(position.x,position.y);});
+    const constrain=()=>{if(position&&pet.offsetWidth)moveTo(position.x,position.y);};
+    window.addEventListener('resize',constrain);
+    window.visualViewport?.addEventListener('resize',constrain);
+    return {restore, constrain, park};
   }
 
   function demo() {

@@ -9,7 +9,7 @@ window.PdfPages = (() => {
   const current = state => tasks.get(state.container) === state && !state.abort.signal.aborted && state.container.isConnected;
   function clear(container) {
     const state = tasks.get(container); if (!state) return;
-    tasks.delete(container); state.abort.abort(); clearTimeout(state.timer); state.resize?.disconnect();
+    tasks.delete(container); state.abort.abort(); clearTimeout(state.timer); state.resize?.disconnect(); state.inView?.disconnect();
     window.removeEventListener('resize', state.onResize);
     window.visualViewport?.removeEventListener('resize', state.onResize);
     state.densityQuery?.removeEventListener('change', state.onDensity);
@@ -28,8 +28,8 @@ window.PdfPages = (() => {
     state.items.forEach(item => { item.figure.style.width = `${size.width}px`; });
     return size;
   }
-  async function paint(state, item) {
-    const size = dimensions(state), base = item.page.getViewport({scale: 1});
+  async function paint(state, item, size) {
+    const base = item.page.getViewport({scale: 1});
     const pixels = Math.min(size.width * size.density, Math.sqrt(maxPixels * base.width / base.height), 4095 / Math.max(1, base.height / base.width));
     const viewport = item.page.getViewport({scale: pixels / base.width});
     const width = Math.ceil(viewport.width), height = Math.ceil(viewport.height);
@@ -40,15 +40,26 @@ window.PdfPages = (() => {
     state.renderTask = item.page.render({canvasContext: canvas.getContext('2d', {alpha: false}), viewport, background: '#ffffff'});
     await state.renderTask.promise; if (!current(state)) return;
     state.renderTask = null; item.canvas.replaceWith(canvas);
-    item.canvas.width = item.canvas.height = 0; item.canvas = canvas; item.painted = true; item.page.cleanup();
+    item.canvas.width = item.canvas.height = 0; item.canvas = canvas;
+    if (!item.painted) {
+      const content = await item.page.getTextContent();
+      if (!current(state)) return;
+      item.accessible.textContent = content.items.map(entry => entry.str || '').join(' ');
+    }
+    item.painted = true;
+    item.page.cleanup();
   }
   async function repaint(state) {
     if (!current(state) || state.rendering) return;
     state.rendering = true; state.container.setAttribute('aria-busy', 'true');
     try {
       do {
-        state.dirty = false; layout(state);
-        for (const item of state.items) { if (!current(state)) return; await paint(state, item); }
+        state.dirty = false;
+        const size = dimensions(state);
+        for (const item of state.items) {
+          if (!current(state)) return;
+          if (item.requested) await paint(state, item, size);
+        }
       } while (state.dirty && current(state));
     } catch (error) {
       if (current(state) && error.name !== 'RenderingCancelledException') {
@@ -62,7 +73,8 @@ window.PdfPages = (() => {
   }
   function schedule(state) {
     if (!current(state)) return;
-    const size = layout(state); if (size.key === state.layoutKey) return;
+    const size = dimensions(state); if (size.key === state.layoutKey) return;
+    layout(state);
     state.layoutKey = size.key; state.dirty = true; state.container.setAttribute('aria-busy', 'true');
     clearTimeout(state.timer); state.timer = setTimeout(() => repaint(state), 120);
   }
@@ -71,20 +83,11 @@ window.PdfPages = (() => {
     state.densityQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
     state.densityQuery.addEventListener('change', state.onDensity, {once: true});
   }
-  function fitAdvice(count,type,onSettings){
-    const note=document.createElement('aside');note.className='pdf-fit-note';note.setAttribute('aria-label','Document length');
-    const title=document.createElement('strong');title.textContent=`${count} ${count===1?'page':'pages'} in your PDF`;
-    const text=document.createElement('p');
-    text.textContent=type==='academic-cv'?'Academic CV length follows your discipline and application instructions. Keep relevant citations and experience readable.':type==='cover-letter'?(count>1?'Aim for one readable page. Keep the strongest examples and remove repeated resume details before changing text size.':'A one-page letter. Check the employer, role and examples before sending.'):(count>2?'Review relevance before reducing text size. Most job resumes work well in one or two pages; the employer’s instructions come first.':'A focused length for most job applications. Check relevance, reading order and spacing at full size.');
-    note.append(title,text);
-    if(typeof onSettings==='function'){const button=document.createElement('button');button.type='button';button.className='btn btn-secondary btn-sm';button.textContent='Settings';button.onclick=onSettings;note.append(button);}
-    return note;
-  }
-  async function render(container, source, {zoom = 1, documentType = null, onSettings = null} = {}) {
+  async function render(container, source, {zoom = 1, scrollRoot = null, onPageCount = null} = {}) {
     if (!container) return; clear(container);
     const state = {container, abort: new AbortController(), pdf: null, loading: null, renderTask: null,
       items: [], zoom: safeZoom(zoom), rendering: true, dirty: false, timer: null, resize: null, onResize: null,
-      densityQuery: null, onDensity: null};
+      densityQuery: null, onDensity: null, inView: null};
     tasks.set(container, state); container.setAttribute('aria-busy', 'true');
     const status = document.createElement('p'); status.className = 'pdf-status'; status.setAttribute('role', 'status');
     status.textContent = 'Preparing your PDF preview…'; container.append(status);
@@ -101,35 +104,55 @@ window.PdfPages = (() => {
       if (!current(state)) return;
       state.loading = pdfjs.getDocument({data: data.slice(), standardFontDataUrl: '/lib/pdfjs/standard_fonts/', useWasm: false, isEvalSupported: false});
       state.pdf = await state.loading.promise; if (!current(state)) { await state.loading.destroy(); return; }
-      container.dataset.pageCount = state.pdf.numPages; state.layoutKey = dimensions(state).key;
+      container.dataset.pageCount = state.pdf.numPages;
+      onPageCount?.(state.pdf.numPages);
+      state.layoutKey = dimensions(state).key;
       state.onResize = () => schedule(state);
       state.onDensity = () => { watchDensity(state); schedule(state); }; watchDensity(state);
       state.resize = new ResizeObserver(state.onResize); state.resize.observe(container);
       window.addEventListener('resize', state.onResize); window.visualViewport?.addEventListener('resize', state.onResize);
+      if (scrollRoot && typeof IntersectionObserver !== 'undefined') {
+        state.inView = new IntersectionObserver(entries => {
+          if (!current(state)) return;
+          const near = entries.filter(entry => entry.isIntersecting);
+          if (!near.length) return;
+          for (const {target} of near) {
+            const item = state.items[Number(target.dataset.page) - 1];
+            item.requested = true;
+            state.inView.unobserve(target);
+          }
+          state.dirty = true;
+          void repaint(state);
+        }, {root: scrollRoot, rootMargin: '220px 0px'});
+      }
       for (let number = 1; number <= state.pdf.numPages; number++) {
         if (!current(state)) return;
         const page = await state.pdf.getPage(number); if (!current(state)) return;
         const figure = document.createElement('figure'); figure.className = 'pdf-page';
         figure.style.maxWidth = 'none'; figure.style.alignSelf = 'flex-start'; figure.style.margin = '0 auto';
         const canvas = document.createElement('canvas'), base = page.getViewport({scale: 1});
-        canvas.width = Math.ceil(base.width); canvas.height = Math.ceil(base.height);
+        canvas.width = 0; canvas.height = 0;
+        canvas.style.aspectRatio = `${base.width} / ${base.height}`;
         const caption = document.createElement('figcaption'); caption.textContent = `Page ${number} of ${state.pdf.numPages}`;
         const accessible = document.createElement('div'); accessible.className = 'sr-only';
-        accessible.textContent = (await page.getTextContent()).items.map(item => item.str || '').join(' ');
         figure.append(canvas, accessible, caption); container.insertBefore(figure, status);
-        const item = {number, page, figure, canvas, painted: false}; state.items.push(item); layout(state);
-        await paint(state, item); if (!current(state)) return;
+        const requested = !state.inView || number === 1;
+        const item = {number, page, figure, canvas, accessible, requested, painted: false};
+        const size = dimensions(state);
+        state.items.push(item);
+        figure.style.width = `${size.width}px`;
+        if (requested) { await paint(state, item, size); if (!current(state)) return; }
+        else { figure.dataset.page = number; state.inView.observe(figure); }
         status.textContent = number === state.pdf.numPages ? '' : `Preparing page ${number + 1} of ${state.pdf.numPages}…`;
       }
       status.remove();
-      if (documentType) container.prepend(fitAdvice(state.pdf.numPages, documentType, onSettings));
       return true;
     } catch (error) {
       if (!current(state)) return;
       console.error('PDF preview failed:',error);
       status.textContent = 'The PDF preview could not be loaded. Try again or reopen the document.';
       const retry = document.createElement('button'); retry.className = 'btn btn-secondary'; retry.textContent = 'Retry preview';
-      retry.onclick = () => render(container, source, {zoom: state.zoom, documentType, onSettings}); container.append(retry);
+      retry.onclick = () => render(container, source, {zoom: state.zoom, scrollRoot, onPageCount}); container.append(retry);
     } finally {
       state.rendering = false;
       if (current(state)) {

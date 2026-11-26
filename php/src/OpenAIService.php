@@ -67,12 +67,12 @@ final class OpenAIService
             && !str_contains($normalized, 'example-key');
     }
 
-    public function suggestCoverLetter(string $context, array $application, int $userId = 0): string
+    public function suggestCoverLetter(string $context, array $application, int $userId = 0, string $draftStyle = 'standard'): string
     {
         if (!$this->enabled()) throw new OpenAIServiceException('ReGen AI is not configured yet.', 503);
         $payload = [
             'model' => $this->model,
-            'instructions' => ResumePrompts::coverLetter(),
+            'instructions' => ResumePrompts::coverLetter($draftStyle),
             'input' => self::encodePromptData(['resume' => json_decode($context, true), 'application' => $application]),
             'reasoning' => ['effort' => 'low'],
             'text' => ['verbosity' => 'low'],

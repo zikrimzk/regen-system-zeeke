@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Manage, review, and download your ReGen resume.">
-  <title>{{WORKSPACE_H1}} | {{BRAND_NAME}}</title>
+  <meta name="description" content="Manage, review, and download your {{BRAND_NAME}} resume.">
+  <title>{{i18n.nav.overview}} | {{BRAND_NAME}}</title>
   <link rel="icon" href="/img/app-icon-192.png" type="image/png">
   <script src="/js/theme.js?v=20261105r15"></script>
   <link rel="stylesheet" href="/css/main.css?v=20261105r15">
@@ -82,24 +82,28 @@
       <div><h1 class="dash-page-title">{{i18n.nav.overview}}</h1></div>
     </header>
     <section class="campaign-feed" data-campaign-feed aria-label="{{i18n.nav.notifications}}"></section>
-    <div class="overview-summary">
-      <section id="dashboard-metrics" class="overview-metrics" aria-label="{{i18n.overview.summary}}" aria-busy="true"></section>
-      <section class="overview-shortcuts" aria-labelledby="overview-shortcuts-title">
-        <h2 id="overview-shortcuts-title">{{i18n.overview.quickActions}}</h2>
-        <div>
-          <a id="dashboard-open-resume" href="/builder">{{icon.edit}}<span>{{i18n.studio.title}}</span>{{icon.next}}</a>
-          <a href="/cover-letters">{{icon.letters}}<span>{{i18n.studio.lettersTitle}}</span>{{icon.next}}</a>
-          <a id="dashboard-design-link" href="/templates">{{icon.templates}}<span>{{i18n.nav.templates}}</span>{{icon.next}}</a>
-          <a href="/mochi" data-mochi-room-link>{{icon.mochi}}<span>{{i18n.nav.mochi}}</span>{{icon.next}}</a>
-        </div>
-      </section>
-    </div>
+    <section id="overview-next-action" class="overview-next-action" aria-label="{{i18n.overview.nextStep}}" aria-busy="true">
+      <p class="overview-loading" role="status">{{i18n.dashboard.loading}}</p>
+    </section>
     <div class="overview-board">
-      <section id="resume-home" aria-live="polite" aria-busy="true"></section>
+      <section id="resume-home" aria-live="polite" aria-busy="true"><p class="overview-loading" role="status">{{i18n.dashboard.loading}}</p></section>
       <aside class="overview-account" aria-label="{{i18n.nav.account}}">
+        <section id="dashboard-metrics" class="overview-metrics" aria-label="{{i18n.overview.summary}}" aria-busy="true">
+          <div class="overview-metric overview-placeholder" aria-hidden="true"><span></span><strong></strong></div>
+          <div class="overview-metric overview-placeholder" aria-hidden="true"><span></span><strong></strong></div>
+        </section>
+        <section class="overview-shortcuts" aria-labelledby="overview-shortcuts-title">
+          <h2 id="overview-shortcuts-title">{{i18n.overview.exploreWorkspace}}</h2>
+          <div>
+            <a id="dashboard-open-resume" href="/builder">{{icon.edit}}<span><strong>{{i18n.studio.title}}</strong><small>{{i18n.overview.resumeGuide}}</small></span>{{icon.next}}</a>
+            <a href="/cover-letters">{{icon.letters}}<span><strong>{{i18n.studio.lettersTitle}}</strong><small>{{i18n.overview.letterGuide}}</small></span>{{icon.next}}</a>
+            <a id="dashboard-design-link" href="/templates">{{icon.templates}}<span><strong>{{i18n.nav.templates}}</strong><small>{{i18n.overview.templateGuide}}</small></span>{{icon.next}}</a>
+            <a href="/mochi" data-mochi-room-link>{{icon.mochi}}<span><strong>{{i18n.nav.mochi}}</strong><small>{{i18n.overview.mochiGuide}}</small></span>{{icon.next}}</a>
+          </div>
+        </section>
         <div id="dashboard-k-store" class="overview-k-store">
           <div class="overview-store-coin" aria-hidden="true">{{icon.coin}}</div>
-          <div><h2>{{i18n.nav.billing}}</h2><p>{{i18n.overview.storeHelp}}</p>
+          <div><h2>{{i18n.nav.billing}}</h2>
           <a href="/store" class="overview-store-link">{{i18n.overview.exploreStore}}{{icon.next}}</a></div>
         </div>
         <section id="dashboard-ai-token-card" hidden></section>
@@ -126,10 +130,10 @@
     </div>
   </dialog>
 
-  <script src="/js/pdf-pages.js?v=20261105r15"></script>
-  <script src="/js/api.js?v=20261105r15"></script>
-  <script src="/js/preview-protection.js?v=20261105r15"></script>
-  <script src="/js/dashboard.js?v=20261105r15"></script>
+  <script src="/js/pdf-pages.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/preview-protection.js" defer></script>
+  <script src="/js/dashboard.js" defer></script>
   <script src="/js/ui.js?v=20261105r15" defer></script>
   <script src="/js/mobile-viewport.js?v=20261105r15" defer></script>
   <script src="/js/pwa.js?v=20261105r15" defer></script>

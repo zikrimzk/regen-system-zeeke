@@ -42,7 +42,8 @@ window.ReGenAssist = (() => {
     if (!supported.has(section)) return;
     const launcher = document.createElement('div');
     launcher.className = 'assist-launcher';
-    launcher.innerHTML = `<div class="assist-launcher-copy"><strong>Draft from your experience</strong><p>Turn your answers into a draft you can review.</p><span class="assist-launcher-note" hidden></span></div><button type="button" class="btn btn-primary assist-open" aria-haspopup="dialog">${ReGenIcons.icon('writing')} <span>Assist me</span></button>`;
+    const actionLabel = ReGenText.get('studio.aiDraftAction');
+    launcher.innerHTML = `<button type="button" class="desk-command assist-open" aria-haspopup="dialog" data-price-base="${ZeekeSafe.attr(actionLabel)}">${ReGenIcons.icon('writing')}<span class="desk-command-copy"><strong class="button-label">${actionLabel}</strong><small class="assist-launcher-note">${ReGenText.get('studio.aiDraftHint')}</small></span></button>`;
     card.querySelector('.ai-refine-row').before(launcher);
     const opener = launcher.querySelector('.assist-open');
     const dialog = document.createElement('dialog');
@@ -100,9 +101,7 @@ window.ReGenAssist = (() => {
       const unavailable = status?.loaded && !status.enabled && !busy && !pending;
       if (opener.disabled !== Boolean(unavailable)) opener.disabled = Boolean(unavailable);
       const note = launcher.querySelector('.assist-launcher-note');
-      note.textContent = unavailable ? (window.ReGenText?.get('dashboard.aiUnavailable') || 'Writing assistance is unavailable.')
-        : busy ? 'Writing your draft… You can open it here.' : pending ? 'Your draft is ready to review' : '';
-      note.hidden = !(unavailable || busy || pending);
+      note.textContent = ReGenText.get(busy ? 'letter.aiWriting' : pending ? 'studio.aiDraftReady' : 'studio.aiDraftHint');
     }
     function remember() {
       if (questionKey) drafts.set(questionKey, Object.fromEntries([...dialog.querySelectorAll('.assist-question')].map(input => [input.name, input.value])));

@@ -41,7 +41,6 @@
 .editor-sheet-head {display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:12px}
 .editor-sheet-head h2 {font-size:22px;letter-spacing:-.03em}
 .editor-sheet-head .btn {min-width:44px;padding:9px}
-.editor-sheet-help {font-size:13px;color:var(--text-2);margin-bottom:16px}
 .mobile-section-list {display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mobile-section-list button {display:flex;align-items:center;gap:10px;min-height:48px;padding:10px;border:1px solid var(--border);border-radius:6px;background:white;color:var(--text);font-size:14px;text-align:left}
 .mobile-section-list button[aria-current=step] {border-color:var(--primary);color:var(--primary);background:var(--primary-lt)}

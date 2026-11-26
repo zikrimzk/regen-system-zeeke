@@ -62,28 +62,65 @@ body.user-workspace {
 .user-workspace .btn:has(> .token-action-status) { flex-wrap: wrap; row-gap: 3px; }
 .user-workspace .token-action-status { line-height: 1.2; white-space: nowrap; }
 
-.user-workspace .mochi-float .mochi-pet { display: none; }
-.user-workspace .mochi-float-stage { flex-basis: 52px; width: 52px; height: 52px; }
-.user-workspace .mochi-float-chat {
-  inset: 0;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 1px solid var(--workspace-glass-line);
-  background: var(--workspace-glass);
-  box-shadow: inset 0 1px var(--workspace-edge-light), var(--workspace-surface-shadow);
-  backdrop-filter: blur(12px);
+.user-workspace :is(.mochi-header-toggle,.mochi-header-chat) {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
 }
-.user-workspace .mochi-float-chat img { display: block; width: 42px; height: 42px; object-fit: contain; }
-.user-workspace .mochi-float-chat:hover { background: var(--workspace-material); }
-body.user-workspace.studio-workbench { --mochi-dock: 18px; }
-body.user-workspace.studio-workbench.builder-page { --mochi-dock: 78px; }
+.user-workspace :is(.mochi-header-toggle,.mochi-header-chat)[hidden] { display: none; }
+.user-workspace :is(.mochi-header-toggle,.mochi-header-chat):hover { background: var(--workspace-selected); }
+.mochi-header-toggle img { grid-area: 1 / 1; display: block; inline-size: 28px; block-size: 28px; object-fit: contain; }
+.mochi-header-toggle[aria-expanded="false"] img { opacity: .65; }
+.mochi-header-toggle[aria-expanded="false"]::after { content: ''; grid-area: 1 / 1; inline-size: 24px; block-size: 2px; border-radius: 2px; background: currentColor; transform: rotate(-42deg); }
+.mochi-header-chat .ui-icon { inline-size: 20px; block-size: 20px; }
+:is(.mochi-header-toggle,.mochi-header-chat):focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+body.user-workspace.studio-workbench { --mochi-dock: 20px; --mochi-size: 88px; }
+body.user-workspace.studio-workbench.builder-page { --mochi-dock: 84px; }
+body.user-workspace.studio-workbench.builder-page:has(> .feedback-launcher) { --mochi-dock: 84px; }
 .notification-inbox-actions .ui-icon { width: 17px; height: 17px; flex: none; }
 .notification-inbox-actions #clear-all-notifications:not(:disabled) { color: var(--workspace-accent-ink); }
 
+@media (min-width: 981px) and (min-height: 740px) {
+  .user-workspace:not(.studio-workbench,.mochi-room-page) .mochi-float { z-index: 96; }
+  .user-workspace:not(.studio-workbench,.mochi-room-page) .mochi-float:not(.mochi-positioned) {
+    inset-inline: 20px auto;
+    bottom: 72px;
+  }
+  .user-workspace:not(.studio-workbench,.mochi-room-page) .mochi-float:not(.mochi-positioned) .mochi-bubble {
+    inset-inline: 0 auto;
+  }
+  :root[data-sidebar-compact] .user-workspace:not(.studio-workbench,.mochi-room-page) .mochi-float:not(.mochi-positioned) {
+    --mochi-size: 52px;
+    inset-inline-start: 8px;
+    bottom: 116px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .cover-letter-page:has(.letter-working-preview:not([hidden])) .mochi-float:not(.mochi-positioned) { inset-inline: 20px auto; }
+}
+@media (min-width: 1400px) {
+  .builder-page:has(.builder-left.is-final) .mochi-float:not(.mochi-positioned) { --mochi-size: 60px; inset: auto auto var(--mochi-bottom) 12px; }
+}
+@media (max-width: 1399px) {
+  .builder-page:has(.builder-left.is-final) .mochi-float { display: none; }
+}
+@media (max-width: 1199px) {
+  .studio-workbench.letter-proof-mode .mochi-float { display: none; }
+}
 @media (max-width: 760px) {
-  body.user-workspace.studio-workbench.cover-letter-page { --mochi-dock: 16px; }
-  body.user-workspace.studio-workbench.builder-page { --mochi-dock: 82px; }
+  body.user-workspace.studio-workbench { --mochi-size: 64px; }
+  body.user-workspace.studio-workbench.builder-page { --mochi-dock: 86px; }
+  body.user-workspace.studio-workbench.builder-page:has(> .feedback-launcher) { --mochi-dock: 148px; }
+  body.user-workspace[data-keyboard-open="true"] .mochi-float { display: none; }
   .notification-inbox-actions { display: flex; flex-wrap: wrap; }
 }
 
@@ -93,5 +130,4 @@ body.user-workspace.studio-workbench.builder-page { --mochi-dock: 78px; }
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .user-workspace .mochi-float-chat { background: var(--workspace-material); backdrop-filter: none; }
 }

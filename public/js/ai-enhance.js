@@ -104,7 +104,7 @@ window.ReGenAI = (() => {
   }
 
   function requestLabel(quota) {
-    if (!quota) return 'ReGen AI usage details unavailable';
+    if (!quota) return 'Kerjayaku AI usage details unavailable';
     const remaining = Math.max(0, Math.floor(Number(quota.remaining) || 0));
     return `${remaining} Coin`;
   }
@@ -174,9 +174,9 @@ window.ReGenAI = (() => {
       && Number.isFinite(Number(availability.quota?.remaining));
     if (token) {
       token.textContent = !availability.loaded
-        ? 'Checking…'
+        ? ReGenText.get('studio.aiChecking')
         : !availability.enabled
-          ? 'AI unavailable'
+          ? ReGenText.get('studio.aiUnavailable')
           : requestLabel(availability.quota);
     }
     if (refill) {
@@ -201,11 +201,11 @@ window.ReGenAI = (() => {
       button.title = !availability.loaded
         ? 'Checking…'
         : !availability.enabled
-          ? 'ReGen AI assistance is temporarily unavailable'
+          ? ReGenText.get('studio.aiUnavailable')
           : exhausted
             ? exhaustedMessage(availability.quota)
             : `Uses ${cost} Coin on success. Errors cost nothing.`;
-      if (button.dataset.loading !== 'true') window.ReGenTokens?.bind(button,'ai_refine','Refine');
+      if (button.dataset.loading !== 'true') window.ReGenTokens?.bind(button,'ai_refine',ReGenText.get('studio.aiRefineAction'));
     }
   }
 
@@ -223,9 +223,7 @@ window.ReGenAI = (() => {
       control.dataset.loading = String(loading);
       control.disabled = loading;
     });
-    button.innerHTML = loading
-      ? '<span class="ai-spinner" aria-hidden="true"></span><span>Creating suggestions...</span>'
-      : `${ReGenIcons.icon('writing')} <span>Refine</span>`;
+    button.querySelector('.button-label').textContent = ReGenText.get(loading ? 'studio.aiWorking' : 'studio.aiRefineAction');
     card.setAttribute('aria-busy', String(loading));
     if (!loading) updateCard(card);
   }
@@ -404,7 +402,7 @@ window.ReGenAI = (() => {
         && Number(result.quota.remaining) < Number(result.quota.costs?.refine ?? 1);
       const message = result.status === 429 && quotaExhausted
         ? exhaustedMessage(result.quota)
-        : result.message || 'ReGen AI could not create a suggestion. Please try again.';
+        : result.message || 'Kerjayaku AI could not create a suggestion. Please try again.';
       setStatus(card, message, 'error');
       return;
     }
@@ -422,8 +420,8 @@ window.ReGenAI = (() => {
     card.innerHTML = `
       <div class="ai-section-toolbar">
         <div class="ai-section-heading">
-          <span class="ai-section-icon">${ReGenIcons.icon('writing')}</span>
-          <h3>AI writing studio</h3>
+          <span class="ai-section-icon">${ReGenIcons.icon('sparkles')}</span>
+          <h3>${ZeekeSafe.attr(ReGenText.get('studio.aiDesk'))}</h3>
         </div>
         <div class="ai-section-controls">
           <details class="ai-token-summary">
@@ -432,11 +430,11 @@ window.ReGenAI = (() => {
           </details>
         </div>
       </div>
-      <div class="ai-refine-row"><p><strong>Refine existing text</strong><span>Review suggested edits before applying them.</span></p>
-          <button type="button" class="btn btn-secondary ai-section-request" aria-controls="${resultId}" aria-expanded="false" disabled>
-            ${ReGenIcons.icon('writing')} <span>Refine</span>
+      <div class="ai-desk-actions"><div class="ai-refine-row">
+          <button type="button" class="desk-command ai-section-request" aria-controls="${resultId}" aria-expanded="false" disabled>
+            ${ReGenIcons.icon('edit')}<span class="desk-command-copy"><strong class="button-label">${ReGenText.get('studio.aiRefineAction')}</strong><small>${ReGenText.get('studio.aiRefineHint')}</small></span>
           </button>
-      </div>
+      </div></div>
       <p class="ai-section-status" role="status"></p>
       <div class="ai-section-result hidden" id="${resultId}" role="region" aria-labelledby="${resultTitleId}">
         <div class="ai-result-head">

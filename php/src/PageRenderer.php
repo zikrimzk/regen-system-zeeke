@@ -39,6 +39,7 @@ final class PageRenderer
                     $replacements += [
                         '{{WORKSPACE_HEADER}}' => $studio ? '' : WorkspaceShell::header($file),
                         '{{STUDIO_BACK}}' => $studio ? WorkspaceShell::studioBack() : '',
+                        '{{STUDIO_MOCHI_CONTROLS}}' => $studio ? WorkspaceShell::mochiHeaderControls(true) : '',
                         '{{STORE_NAVIGATION}}' => str_contains($html, '{{STORE_NAVIGATION}}') ? WorkspaceShell::storeNavigation() : '',
                     ];
                     $mobile = $studio ? '' : WorkspaceShell::mobileNavigation($file);
@@ -46,7 +47,10 @@ final class PageRenderer
                     $html=preg_replace_callback('/(<meta name="viewport" content=")([^"]+)(")/i',static fn(array $m):string =>
                         $m[1].$m[2].(str_contains($m[2],'viewport-fit=')?'':',viewport-fit=cover').$m[3],$html,1) ?? $html;
                     $html=str_replace('</body>',$mobile.WorkspaceShell::mochiPanel().'</body>',$html);
-                    foreach(['css/workspace.css','css/privacy.css','css/token-store.css','css/support-attachments.css','css/mochi.css','js/api.js','js/ui.js','js/privacy.js','js/pwa.js','js/mobile-viewport.js','js/commerce-ui.js','js/feature-access.js','js/support-attachments.js','js/live-notifications.js','js/mochi-avatar.js','js/mochi-activities.js','js/mochi-play.js','js/mochi-assist.js','js/mochi.js'] as $asset) {
+                    $assets = ['css/workspace.css','css/privacy.css','css/token-store.css','css/mochi.css','js/api.js','js/ui.js','js/privacy.js','js/pwa.js','js/mobile-viewport.js','js/commerce-ui.js','js/feature-access.js','js/live-notifications.js','js/mochi-activities.js','js/mochi-play.js','js/mochi-assist.js','js/mochi.js'];
+                    if ($file === 'support.html') array_push($assets, 'css/support-attachments.css', 'js/support-attachments.js');
+                    if ($file === 'mochi.html') $assets[] = 'js/mochi-avatar.js';
+                    foreach ($assets as $asset) {
                         if(str_contains($html,'/'.$asset))continue;
                         $url='/'.$asset.'?v='.self::assetVersion($root,$asset);
                         $tag=str_ends_with($asset,'.css')?'<link rel="stylesheet" href="'.$url.'">':'<script src="'.$url.'" defer></script>';
@@ -81,7 +85,7 @@ final class PageRenderer
                 }
                 $html = preg_replace_callback('/\{\{icon\.([a-z]+)\}\}/', static fn(array $match): string => WorkspaceShell::icon($match[1]), $html) ?? $html;
                 $html = preg_replace_callback('/\{\{i18n\.([A-Za-z0-9.]+)\}\}/', static fn(array $match): string => InterfaceText::html($match[1]), $html) ?? $html;
-                if (!empty($studio)) $html = str_replace('</head>', '<link rel="stylesheet" href="/css/editor-workbench.css"></head>', $html);
+                if (!empty($studio)) $html = str_replace('</head>', '<link rel="stylesheet" href="/css/editor-workbench.css"><script src="/js/studio-focus.js" defer></script></head>', $html);
                 if ($file === 'dashboard.html') $html = str_replace('</head>', '<link rel="stylesheet" href="/css/workspace-overview.css"></head>', $html);
                 if (in_array($file, ['store.html', 'token-activity.html', 'payments.html'], true)) $html = str_replace('</head>', '<link rel="stylesheet" href="/css/k-store.css"></head>', $html);
                 if (isset($destination)) $html = str_replace('</head>', '<link rel="stylesheet" href="/css/workspace-material.css"></head>', $html);

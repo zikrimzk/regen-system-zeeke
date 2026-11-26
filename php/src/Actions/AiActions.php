@@ -16,7 +16,7 @@ trait AiActions
 {
     private function aiStatus(): never
     {
-        Http::json(['success' => true, ...$this->aiStatusPayload()]);
+        Http::json(['success' => true, ...$this->aiStatusPayload(($_GET['view'] ?? null) === 'summary')]);
     }
 
     private function assistResumeSection(int $id): never
@@ -46,7 +46,7 @@ trait AiActions
         if ($this->containsSensitiveAiText(json_encode([$answers, $target], JSON_UNESCAPED_UNICODE) ?: '', $privacySource)) {
             Http::json(['success' => false, 'message' => 'Remove names, contact details and personal addresses from your notes before generating.'], 422);
         }
-        if (!$this->openai->enabled()) Http::json(['success' => false, 'message' => 'ReGen AI is not configured yet.'], 503);
+        if (!$this->openai->enabled()) Http::json(['success' => false, 'message' => 'Kerjayaku AI is not configured yet.'], 503);
         $reservation = $this->reserveAiRequest('assist', $body['expectedCost'] ?? null);
         try {
             if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
@@ -54,7 +54,7 @@ trait AiActions
             $this->finalizeAiRequest($reservation);
         } catch (\Throwable $error) {
             $this->refundAiRequest($reservation);
-            Http::json(['success' => false, 'message' => $error instanceof OpenAIServiceException ? $error->getMessage() : 'ReGen AI could not complete your draft. No Coin was charged. Please try again.', 'quota' => $this->aiQuota->status(Session::userId())], $error instanceof OpenAIServiceException ? $error->httpStatus() : 503);
+            Http::json(['success' => false, 'message' => $error instanceof OpenAIServiceException ? $error->getMessage() : 'Kerjayaku AI could not complete your draft. No Coin was charged. Please try again.', 'quota' => $this->aiQuota->status(Session::userId())], $error instanceof OpenAIServiceException ? $error->httpStatus() : 503);
         }
         Http::json(['success' => true, 'draft' => $draft, 'quota' => $this->aiQuota->status(Session::userId())]);
     }
@@ -69,7 +69,7 @@ trait AiActions
         }
         if (!$reservation['allowed']) {
             $disabled = ($reservation['enabled'] ?? true) === false;
-            Http::json(['success' => false, 'message' => $disabled ? 'ReGen AI is currently paused.' : 'This action needs ' . ($reservation['cost'] ?? 1) . ' Coin. Check your balance in K-Store.', 'quota' => $this->publicAiQuota($reservation)], $disabled ? 503 : 429);
+            Http::json(['success' => false, 'message' => $disabled ? 'Kerjayaku AI is currently paused.' : 'This action needs ' . ($reservation['cost'] ?? 1) . ' Coin. Check your balance in K-Store.', 'quota' => $this->publicAiQuota($reservation)], $disabled ? 503 : 429);
         }
         return $reservation;
     }
@@ -123,7 +123,7 @@ trait AiActions
         if ($this->containsSensitiveAiText($encodedSection, $resumeData)) {
             Http::json([
                 'success' => false,
-                'message' => 'Remove contact or personal details before asking ReGen AI.',
+                'message' => 'Remove contact or personal details before using Kerjayaku AI.',
             ], 422);
         }
         $professionalContext = $this->ats->safeAiContext($resumeData);
@@ -131,15 +131,15 @@ trait AiActions
             Http::json([
                 'success' => false,
                 'message' => match ($section) {
-                    'summary', 'skills' => 'Add professional experience, project details, achievements, certifications, or a few skills first so ReGen has evidence to use.',
-                    default => 'Add a short rough note first so ReGen can improve your facts without guessing.',
+                    'summary', 'skills' => 'Add professional experience, project details, achievements, certifications, or a few skills first so Kerjayaku has evidence to use.',
+                    default => 'Add a short rough note first so Kerjayaku can improve your facts without guessing.',
                 },
             ], 422);
         }
         if (!$this->openai->enabled()) {
             Http::json([
                 'success' => false,
-                'message' => 'ReGen AI is not configured yet.',
+                'message' => 'Kerjayaku AI is not configured yet.',
                 'quota' => $this->publicAiQuota($this->aiQuota->status(Session::userId())),
             ], 503);
         }
@@ -169,7 +169,7 @@ trait AiActions
             Http::json([
                 'success' => false,
                 'message' => $disabled
-                    ? 'ReGen AI is currently paused by an administrator.'
+                    ? 'Kerjayaku AI is currently paused by an administrator.'
                     : $this->aiQuotaMessage($reservation),
                 'quota' => $this->publicAiQuota($reservation),
             ], $disabled ? 503 : 429);
@@ -197,7 +197,7 @@ trait AiActions
             error_log('[ReGen AI] Unexpected section failure: ' . $error::class);
             Http::json([
                 'success' => false,
-                'message' => 'ReGen AI is temporarily unavailable. Please try again.',
+                'message' => 'Kerjayaku AI is temporarily unavailable. Please try again.',
                 'quota' => $this->aiQuota->status(Session::userId()),
             ], 503);
         }
@@ -387,17 +387,19 @@ trait AiActions
     }
 
     /** @return array<string, mixed> */
-    private function aiStatusPayload(): array
+    private function aiStatusPayload(bool $summary = false): array
     {
         $quota = $this->aiQuota->status(Session::userId());
         return [
             'enabled' => $this->openai->enabled() && (($quota['enabled'] ?? true) === true),
+            'quota' => $quota,
+            ...($summary ? [] : [
             'provider' => 'OpenAI',
             'privacy' => 'Contact details, locations, photos, and references are excluded. Professional resume content is sent to OpenAI only after an explicit AI request.',
             'requestUnit' => 'Package uses first, then base Coin, then bonus Coin. Failed AI actions are not charged.',
-            'costs' => $this->aiQuota->costs(),
+            'costs' => $quota['costs'],
             'assistance' => ResumeAssistance::catalogue(),
-            'quota' => $this->aiQuota->status(Session::userId()),
+            ]),
         ];
     }
 

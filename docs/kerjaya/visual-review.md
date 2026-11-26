@@ -2,24 +2,9 @@
 
 **Status** · Phase 02B comparison. See the [approved design handoff](approved-design-handoff.md) for the recorded selection.
 
-Use the [City to Career review board](../../prototypes/kerjaya/screenshots/city-review.png) and [Career Workspace review board](../../prototypes/kerjaya/screenshots/workspace-review.png) for a side-by-side comparison of each concept's surfaces. The individual Chrome screenshots below retain their original resolution. Desktop captures are 1440 × 1000 px and mobile captures are 390 × 844 px.
+Git revision `40ed277` preserves both concepts under `prototypes/kerjaya`, including the six HTML pages, review boards, source assets, and browser results. Desktop captures are 1440 × 1000 px and mobile captures are 390 × 844 px. The current implementation is linked from the [approved design handoff](approved-design-handoff.md).
 
-| Concept and screen | Runnable page | Desktop screenshot | Mobile screenshot |
-| --- | --- | --- | --- |
-| A · Landing | [city/index.html](../../prototypes/kerjaya/city/index.html) | [city-landing-desktop.png](../../prototypes/kerjaya/screenshots/city-landing-desktop.png) | [city-landing-mobile.png](../../prototypes/kerjaya/screenshots/city-landing-mobile.png) |
-| A · Candidate dashboard | [city/dashboard.html](../../prototypes/kerjaya/city/dashboard.html) | [city-dashboard-desktop.png](../../prototypes/kerjaya/screenshots/city-dashboard-desktop.png) | [city-dashboard-mobile.png](../../prototypes/kerjaya/screenshots/city-dashboard-mobile.png) |
-| A · Resume Studio | [city/studio.html](../../prototypes/kerjaya/city/studio.html) | [city-studio-desktop.png](../../prototypes/kerjaya/screenshots/city-studio-desktop.png) | [city-studio-mobile.png](../../prototypes/kerjaya/screenshots/city-studio-mobile.png) |
-| B · Landing | [workspace/index.html](../../prototypes/kerjaya/workspace/index.html) | [workspace-landing-desktop.png](../../prototypes/kerjaya/screenshots/workspace-landing-desktop.png) | [workspace-landing-mobile.png](../../prototypes/kerjaya/screenshots/workspace-landing-mobile.png) |
-| B · Candidate dashboard | [workspace/dashboard.html](../../prototypes/kerjaya/workspace/dashboard.html) | [workspace-dashboard-desktop.png](../../prototypes/kerjaya/screenshots/workspace-dashboard-desktop.png) | [workspace-dashboard-mobile.png](../../prototypes/kerjaya/screenshots/workspace-dashboard-mobile.png) |
-| B · Resume Studio | [workspace/studio.html](../../prototypes/kerjaya/workspace/studio.html) | [workspace-studio-desktop.png](../../prototypes/kerjaya/screenshots/workspace-studio-desktop.png) | [workspace-studio-mobile.png](../../prototypes/kerjaya/screenshots/workspace-studio-mobile.png) |
-
-The additional Studio captures show the same edited fixture in [A’s mobile preview dialog](../../prototypes/kerjaya/screenshots/city-studio-preview-mobile.png) and [B’s mobile Preview mode](../../prototypes/kerjaya/screenshots/workspace-studio-preview-mobile.png).
-
-## Run the prototypes
-
-From the repository root, run `node prototypes/kerjaya/capture.mjs --serve`. Open either loopback URL printed by the command. Press Ctrl+C when finished. Use `node prototypes/kerjaya/capture.mjs` to reproduce the individual screenshots and [browser-results.json](../../prototypes/kerjaya/screenshots/browser-results.json). The tested runtime was Node 24.14.1 and Google Chrome 157.0.8103.51, controlled through the Chrome DevTools Protocol. Set `KERJAYA_CHROME` to the Chrome executable path if it differs from the script's default. The two review boards are assembled from the individual captures.
-
-[prototype.css](../../prototypes/kerjaya/prototype.css) and [prototype.js](../../prototypes/kerjaya/prototype.js) are shared by both concepts. The static host exposes only the prototype pages, these sources and the public artwork, fonts and sample PDFs listed in [brand foundation](brand-foundation.md). The application's [release script](../../scripts/build-release.php) packages `public`, `php`, `vendor` and `database`, so these prototype files fall outside that release map.
+The standalone prototype server and captures were retired from the active tree. The [release script](../../scripts/build-release.php) packages the application's views and assets.
 
 ## What to try
 

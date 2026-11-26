@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Edit resume details in the ReGen resume management system.">
+  <meta name="description" content="Edit resume details in the {{BRAND_NAME}} resume management system.">
   <title>{{i18n.studio.title}} | {{BRAND_NAME}}</title>
   <link rel="icon" href="/img/app-icon-192.png" type="image/png">
   <script src="/js/theme.js?v=20261105r15"></script>
@@ -81,8 +81,13 @@
   {{WORKSPACE_HEADER}}
 
   <header class="studio-command-bar workbench-header" aria-label="{{i18n.studio.title}}">
-    <div class="workbench-identity">{{STUDIO_BACK}}<div class="studio-identity"><span>{{i18n.studio.title}}</span><div class="studio-name-line"><h1 id="studio-document-title">{{i18n.dashboard.untitled}}</h1>
-      <button type="button" id="resume-rename" class="studio-icon" aria-haspopup="dialog" title="{{i18n.studio.rename}}">{{icon.edit}}<span class="sr-only">{{i18n.studio.rename}}</span></button></div></div></div>
+    <div class="workbench-identity">{{STUDIO_BACK}}<div class="studio-identity"><span>{{i18n.studio.title}}</span><h1 id="studio-document-title">{{i18n.dashboard.untitled}}</h1></div>
+      <button type="button" id="resume-rename" class="studio-icon" aria-haspopup="dialog" title="{{i18n.studio.rename}}">{{icon.edit}}<span class="sr-only">{{i18n.studio.rename}}</span></button>
+    </div>
+    <div class="workbench-file-actions">
+      <button type="button" class="studio-icon" data-studio-focus aria-pressed="false" title="{{i18n.studio.focus}}">{{icon.focus}}<span class="sr-only">{{i18n.studio.focus}}</span></button>
+      {{STUDIO_MOCHI_CONTROLS}}
+    </div>
     <div class="workbench-tools">
       <div class="studio-mobile-modes">
         <button type="button" id="studio-sections-open" class="studio-icon " title="{{i18n.studio.structure}}" aria-haspopup="dialog" aria-controls="editor-sections">{{icon.sections}}<span class="sr-only">{{i18n.studio.structure}}</span></button>
@@ -168,7 +173,6 @@
   </dialog>
   <dialog id="editor-sections" class="editor-sections-dialog" aria-labelledby="editor-sections-title">
     <div class="editor-sheet-head"><h2 id="editor-sections-title">{{i18n.studio.structure}}</h2><button type="button" id="editor-sections-close" class="studio-icon " title="{{i18n.common.close}}">{{icon.close}}<span class="sr-only">{{i18n.common.close}}</span></button></div>
-    <p class="editor-sheet-help">{{i18n.studio.sectionsHelp}}</p>
     <nav class="mobile-section-list" id="mobile-section-list" aria-label="{{i18n.studio.structure}}"></nav>
     <div class="sheet-settings"><button type="button" class="btn btn-secondary" data-editor-action="change-resume-template">{{i18n.demo.design}}</button><button type="button" class="btn btn-secondary" data-editor-action="resume-layout-settings">{{i18n.studio.pageSettings}}</button></div>
   </dialog>

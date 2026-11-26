@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const libraryToggle = document.getElementById('letter-library-toggle');
   const library = document.getElementById('letter-library');
   const libraryDialog = document.getElementById('letter-library-dialog');
+  const fullTitles = document.getElementById('letter-full-titles');
+  const searchToggle = document.getElementById('letter-search-toggle');
+  const searchField = document.getElementById('letter-search-field');
+  const search = document.getElementById('letter-search');
+  const draftStyle = document.getElementById('letter-draft-style');
+  const focusToggle = document.querySelector('[data-studio-focus]');
   const closeLibrary = library.querySelector('[data-close-library]');
   const workspace = document.getElementById('letter-workspace');
   const quickTools = document.getElementById('letter-workbench-tools');
@@ -35,17 +41,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!libraryBreakpoint.matches) libraryToggle.focus({preventScroll:true});
   });
   libraryBreakpoint.addEventListener('change', () => setLibrary(false));
+  fullTitles.addEventListener('click', () => {
+    const expanded = list.classList.toggle('show-full-titles');
+    fullTitles.setAttribute('aria-pressed', String(expanded));
+  });
+  function setSearch(open) {
+    searchField.hidden = !open;
+    searchToggle.setAttribute('aria-expanded', String(open));
+    if (open) search.focus();
+    else {
+      search.value = '';
+      search.dispatchEvent(new Event('input'));
+      searchToggle.focus();
+    }
+  }
+  searchToggle.onclick = () => setSearch(searchField.hidden);
+  search.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setSearch(false);
+    }
+  });
   const proofToggle = document.getElementById('letter-proof-toggle');
   const proof = LiveDocumentPreview.create(document.getElementById('letter-working-paper'), Api.letterDraftPdf);
   const fullProof = LiveDocumentPreview.create(document.getElementById('letter-pdf-pages'), Api.letterDraftPdf);
   const reading = document.getElementById('letter-writing-mode');
   const previewButton = document.getElementById('preview-letter');
+  const workbench = document.getElementById('main-content');
   const accessNote = document.getElementById('letter-preview-access');
   const targetMeta = document.getElementById('letter-target-meta');
   const retryLoad = document.getElementById('letter-retry-load');
   retryLoad.onclick = () => location.reload();
   let previewReady = false;
   let fullZoom = 1;
+  let editorScroll = 0;
   const wide = matchMedia('(min-width: 1200px)');
   const fields = ['company', 'role', 'recipient', 'company_details', 'job_description', 'body', 'recipient_address', 'letter_date'];
   let activeId = null;
@@ -76,23 +105,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     history.replaceState(null, '', url);
   }
   function draftPdf() {
-    return {letter: data(), appearance: resume?.appearance};
+    const {job_description, company_details, ...letter} = data();
+    return {letter, appearance: resume?.appearance};
   }
   function updateProof(immediate = false) {
     if (!previewReady) return;
     const allowed = signedIn && LiveDocumentPreview.allowed();
-    const inline = !wide.matches && proofOpen && allowed;
-    previewPanel.hidden = !proofOpen || (!wide.matches && !allowed);
+    const focused = document.body.classList.contains('studio-focus-mode');
+    const inline = !focused && !wide.matches && proofOpen && allowed;
+    const wasReading = document.body.classList.contains('letter-proof-mode');
+    const wasHidden = previewPanel.hidden;
+    if (inline && !wasReading) editorScroll = workbench.scrollTop;
+    previewPanel.hidden = focused || !proofOpen || (!wide.matches && !allowed);
     document.body.classList.toggle('letter-proof-mode', inline);
+    if (inline !== wasReading) workbench.scrollTop = inline ? 0 : editorScroll;
+    if (wasHidden && !previewPanel.hidden) document.dispatchEvent(new Event('regen:document-reading'));
     reading.setAttribute('aria-pressed', String(!inline));
     proofToggle.setAttribute('aria-pressed', String(wide.matches ? !previewPanel.hidden : inline));
     proofToggle.setAttribute('aria-expanded', String(!previewPanel.hidden));
     accessNote.hidden = allowed;
     if (!allowed || previewPanel.hidden) proof.clear();
-    else proof.update(draftPdf(), {immediate});
+    else if (!previewDialog.open) proof.update(draftPdf(), {immediate});
     if (allowed && previewDialog.open) fullProof.update(draftPdf(), {immediate});
   }
   proofToggle.addEventListener('click', () => {
+    if (focusToggle.getAttribute('aria-pressed') === 'true') {
+      proofOpen = true;
+      focusToggle.click();
+      if (wide.matches || LiveDocumentPreview.allowed()) return;
+    }
     if (!wide.matches && !LiveDocumentPreview.allowed()) {
       previewButton.click();
       return;
@@ -101,10 +142,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!wide.matches && proofOpen) setLibrary(false);
     updateProof(true);
   });
+  document.addEventListener('regen:studio-focus', event => {
+    if (event.detail.active && !wide.matches) proofOpen = false;
+    updateProof(true);
+  });
   reading.addEventListener('click', () => {
     proofOpen = false;
     updateProof();
-    document.getElementById('letter-body').focus({preventScroll:true});
   });
   wide.addEventListener('change', event => { proofOpen = event.matches; updateProof(true); });
   function updateDraftLabel() {
@@ -124,17 +168,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('download-letter').disabled = busy || !activeId;
     document.getElementById('save-letter').disabled=busy;
     if (generate.dataset.loading === 'true') return;
-    generate.disabled = busy || !activeId || !aiAvailable || (quotaRemaining !== null && quotaRemaining < generationCost) || !value('company') || !value('role');
+    const price = window.ReGenTokens?.getPrice('ai_cover_letter');
+    const included = price?.packageUnlocked || Number(price?.packageUses) > 0;
+    generate.disabled = busy || !signedIn || !activeId || !aiAvailable || (!included && quotaRemaining !== null && quotaRemaining < generationCost) || !value('company') || !value('role');
+    draftStyle.disabled = generate.disabled;
     generate.title = !activeId ? label('letter.aiSaveFirst') : !value('company') || !value('role') ? label('letter.aiTargetFirst') : '';
   }
   function setBusy(state) {
     busy = state;form.setAttribute('aria-busy',String(state));
-    form.querySelectorAll('button,input,textarea').forEach(control => { control.disabled = state; });
+    form.querySelectorAll('button,input,textarea,select').forEach(control => { control.disabled = state; });
     document.getElementById('new-letter').disabled = state;
     list.querySelectorAll('button').forEach(button => { button.disabled = state; });
     updateAi();
     updateWordCount();
-    document.dispatchEvent(new Event('regen:letter-loaded'));
   }
   function updateQuota(quota) {
     if (quota) { quotaRemaining = Number(quota.remaining); generationCost = Number(quota.costs?.cover_letter ?? generationCost); }
@@ -152,21 +198,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pages=Math.max(1,Math.ceil(filtered.length/listSize));listPage=Math.min(listPage,pages);
     document.getElementById('letter-count').textContent=letters.length || '';
     const dateFormat = new Intl.DateTimeFormat(ReGenText.locale,{month:'short',day:'numeric',timeZone:'Asia/Kuala_Lumpur'});
-    list.innerHTML=filtered.length?filtered.slice((listPage-1)*listSize,listPage*listSize).map(letter=>{
+    const visible = filtered.slice((listPage-1)*listSize,listPage*listSize);
+    fullTitles.hidden = !filtered.some(letter => letter.role.length > 20 || letter.company.length > 20);
+    list.innerHTML=visible.length?visible.map(letter=>{
       const selected=Number(letter.id)===Number(activeId);
-      const date=new Date(String(letter.updated_at).replace(' ','T')+'Z');
+      const date=Api.parseDate(letter.updated_at);
       return `<button type="button" data-id="${Number(letter.id)}" aria-current="${selected}">
-        <span class="letter-list-document">${ReGenIcons.icon('letter')}</span>
-        <span class="letter-list-information"><strong>${safe(letter.role)}</strong><small>${safe(letter.company)}</small></span>
-        <span class="letter-list-marker">${selected?ReGenIcons.icon('check'):Number.isFinite(date.getTime())?safe(dateFormat.format(date)):''}</span>
+        <span class="letter-list-information"><strong>${safe(letter.role)}</strong><span class="letter-list-meta">
+          <small>${safe(letter.company)}</small>${date ? '<time datetime="' + date.toISOString() + '">' + safe(dateFormat.format(date)) + '</time>' : ''}</span></span>
+        ${selected ? '<span class="letter-list-marker">' + ReGenIcons.icon('check') + '</span>' : ''}
       </button>`;
     }).join(''):`<p class="letter-list-empty">${safe(label(letters.length?'letter.libraryNoMatches':'letter.libraryEmpty'))}</p>`;
     list.querySelectorAll('button').forEach(button=>button.onclick=()=>openLetter(Number(button.dataset.id)));
     const nav=document.getElementById('letter-pagination');nav.hidden=pages<=1;
     nav.innerHTML=`<button type="button" class="studio-icon" data-prev aria-label="${safe(label('letter.previousPage'))}" ${listPage<=1?'disabled':''}>${ReGenIcons.icon('arrowLeft')}</button><span>${listPage} / ${pages}</span><button type="button" class="studio-icon" data-next aria-label="${safe(label('letter.nextPage'))}" ${listPage>=pages?'disabled':''}>${ReGenIcons.icon('arrowRight')}</button>`;
-    nav.querySelector('[data-prev]').onclick=()=>{listPage--;renderList();};nav.querySelector('[data-next]').onclick=()=>{listPage++;renderList();};
+    nav.onclick = event => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      const forward = button.hasAttribute('data-next');
+      listPage += forward ? 1 : -1;
+      renderList();
+      (nav.querySelector(forward ? '[data-next]:enabled' : '[data-prev]:enabled') || nav.querySelector('button:enabled'))?.focus();
+    };
   }
-  document.getElementById('letter-search').oninput=event=>{listSearch=event.target.value.trim().toLocaleLowerCase();listPage=1;renderList();};
+  search.oninput=event=>{listSearch=event.target.value.trim().toLocaleLowerCase();listPage=1;renderList();};
   matchMedia('(max-width:760px)').addEventListener('change',event=>{listSize=event.matches?4:6;listPage=1;renderList();});
   function loadLetter(letter = {}) {
     revision++;
@@ -189,13 +244,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateWordCount();
     previewReady = true;
     updateProof(true);
+    document.dispatchEvent(new Event('regen:letter-loaded'));
   }
   async function refreshList() {
     const result = await Api.listCoverLetters();
     if (!result.success) throw new Error(result.message || 'Unable to load cover letters.');
     letters = result.data || [];
     template = result.template || template;
-    document.getElementById('letter-template-note').textContent = label('letter.designNote');
     renderList();
   }
   async function save() {
@@ -231,7 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       dirty = submitted !== revision;
       document.getElementById('delete-letter').hidden = false;
       saveState.textContent = label(dirty ? 'letter.unsavedState' : 'letter.savedState');
-      document.getElementById('letter-editor-title').textContent = result.data.role;
+      if (!dirty) updateDraftLabel();
       updateLocation(activeId);
       letters = [result.data, ...letters.filter(letter => Number(letter.id) !== Number(activeId))];
       renderList();
@@ -269,7 +324,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (error) { status(error.message, true); } finally { setBusy(false); }
   }
-  form.addEventListener('input', () => {
+  form.addEventListener('input', event => {
+    if (draftStyle.contains(event.target)) return;
     dirty = true;
     revision++;
     updateDraftLabel();
@@ -312,7 +368,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       if (!await save()) return;
       const expectedRevision = revision;
-      const result = await Api.suggestCoverLetter(activeId, { ...data(), expectedCost: generationCost });
+      const draftLength = draftStyle.querySelector('input:checked').value;
+      const result = await Api.suggestCoverLetter(activeId, { ...data(), draftStyle:draftLength, expectedCost: generationCost });
       updateQuota(result.quota);
       if (!result.success) throw new Error(result.message || 'Unable to generate a suggestion.');
       if (expectedRevision !== revision) return;
@@ -345,6 +402,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (busy || !signedIn || previewDialog.open) return;
     if (!value('letter_date')) { form.reportValidity(); return; }
     previewDialog.showModal();
+    setZoom(1);
+    previewDialog.querySelector('.letter-preview-stage').scrollTo(0, 0);
     fullProof.update(draftPdf(), {immediate:true, interactive:!LiveDocumentPreview.allowed()});
   };
   document.getElementById('close-letter-preview').onclick = () => previewDialog.close();
@@ -357,6 +416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('letter-zoom-in').onclick = () => setZoom(fullZoom + .15);
   previewDialog.addEventListener('close', () => {
     fullProof.clear();
+    updateProof(true);
     if (previewButton.getClientRects().length) previewButton.focus({preventScroll:true});
   });
 
@@ -377,53 +437,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       const link = document.createElement('a'); link.href = url; link.download = (response.headers.get('content-disposition')||'').match(/filename="([^"]+)"/i)?.[1]||'Cover_Letter.pdf'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) { status(error.message, true); } finally { setBusy(false); }
   };
-  generate.innerHTML = `${ReGenIcons.icon('sparkles')} ${safe(label('letter.aiGenerate'))}`;
+  function applyAiStatus(ai) {
+    aiAvailable = ai.success && ai.enabled === true;
+    updateQuota(ai.quota);
+  }
   try {
-    const me = await Api.getMe();
-    if (!me.success) throw new Error(me.message || label('letter.loadError'));
     status(label('letter.loading'));
-    const dashboard = await Api.listResumes();
-    if (!dashboard.success) throw new Error(dashboard.message);
-    if (!dashboard.profile) {
+    const params = new URLSearchParams(location.search);
+    const requested = params.get('id') || (params.get('new') === '1' ? 'new' : '');
+    const aiStatus = Api.getAIStatus(true);
+    const result = await Api.getLetterStudio(requested);
+    if (!result.success) throw new Error(result.message);
+    if (!result.studio) {
       status('');
       const empty = document.getElementById('letter-start');
       empty.querySelector('.letter-start-icon').innerHTML = ReGenIcons.icon('template');
       empty.hidden = false;
       return;
     }
-    Api.setResumeId(dashboard.profile.id);
+    Api.setResumeId(result.studio.resumeId);
+    resume = result.studio.settings;
+    template = result.template;
+    letters = result.data || [];
     const appearance = document.getElementById('letter-design-settings');
-    appearance.disabled = true;
-    const resumeRequest = Api.getResume().then(result => {
-      if (!result.success) return;
-      resume = result.data;
-      appearance.disabled = false;
-      updateProof();
-    });
     DocumentSettings.init({
       button:appearance, read:() => resume, letterDraft:data, template:() => template,
       apply:settings => { Object.assign(resume, settings); updateProof(true); status(''); },
     });
-    const [, ai] = await Promise.all([refreshList(), Api.getAIStatus()]);
-    aiAvailable = ai.success && ai.enabled === true;
-    updateQuota(ai.quota);
     document.getElementById('letter-workspace').hidden = false;
     quickTools.hidden = false;
     libraryToggle.hidden = false;
+    focusToggle.hidden = false;
     document.getElementById('new-letter').hidden = false;
-    const params = new URLSearchParams(location.search);
-    const requested = params.get('id') || (params.get('new') !== '1' && letters[0]?.id);
-    if (requested && /^\d+$/.test(String(requested))) {
-      const result = await Api.getCoverLetter(requested);
-      if (!result.success) {
-        loadLetter();
-        status(result.message || 'Choose an available letter.', true);
-        return;
-      }
-      loadLetter(result.data);
-    } else loadLetter();
-    void resumeRequest;
-    status('');
+    loadLetter(result.studio.letter || {});
+    void aiStatus.then(applyAiStatus);
+    const missingDraft = /^\d+$/.test(requested) && !result.studio.letter;
+    status(missingDraft ? label('letter.libraryNoMatches') : '', missingDraft);
   } catch (error) { status(error.message || label('letter.loadError'), true); retryLoad.hidden = false; }
   let liveRefresh;
   window.addEventListener('offline', () => { if (dirty) saveState.textContent = label('letter.offlineState'); });
@@ -445,17 +494,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!event.detail.available && previewDialog.open) previewDialog.close();
     updateProof(true);
   });
-  window.addEventListener('regen:prices-updated',async()=>{const ai=await Api.getAIStatus();aiAvailable=ai.success&&ai.enabled===true;updateQuota(ai.quota);});
+  window.addEventListener('regen:prices-updated',()=>updateQuota());
   const updateLetters = event => {
-    if (event.detail?.topic && !['documents','profile','ai','feedback'].includes(event.detail.topic)) return;
+    const topic = event.detail?.topic;
+    if (topic === 'ai' || topic === 'features') {
+      void Api.getAIStatus(true).then(applyAiStatus);
+      return;
+    }
+    if (topic && !['documents','profile'].includes(topic)) return;
     clearTimeout(liveRefresh);
     liveRefresh = setTimeout(async () => {
       if (busy || saveRequest) return;
       try {
         await refreshList();
-        const ai = await Api.getAIStatus();
-        aiAvailable = ai.success && ai.enabled === true;
-        updateQuota(ai.quota);
         if (activeId && !dirty && !busy) {
           const currentRevision = revision;
           const currentId = activeId;

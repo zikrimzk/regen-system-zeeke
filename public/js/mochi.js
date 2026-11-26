@@ -78,8 +78,15 @@
     const panel=document.getElementById('mochi-panel');
     const floating=document.querySelector('[data-mochi-float]');
     if (!panel || !floating || typeof Api==='undefined' || !window.MochiPlay) return;
+    const visibility=document.querySelector('[data-mochi-visibility]');
+    const openers=document.querySelectorAll('[data-mochi-open]');
+    const stage=floating.querySelector('[data-mochi-float-stage]');
+    const text=(key,fallback)=>window.ReGenText?.get('mochi.'+key,fallback) ?? fallback;
+    const visibilityKey='kerjayaku-mochi-hidden';
+    let mascotHidden=false;
+    try { mascotHidden=localStorage.getItem(visibilityKey)==='1'; } catch {}
     const find=(key, root=panel)=>root.querySelector('[data-mochi-'+key+']');
-    const bubble=find('bubble',floating), bubbleText=find('bubble-text',floating), invite=find('invite',floating);
+    const bubble=find('bubble',floating), bubbleText=find('bubble-text',floating);
     const pet=find('pet',floating), fx=find('fx',floating);
     const den=document.querySelector('[data-mochi-den]');
     const denState=den&&find('den-state',den), denCaption=den&&find('den-line',den);
@@ -90,14 +97,15 @@
     const roomClosed=document.querySelector('[data-mochi-room-closed]');
     const roomPlay=den&&find('room-play',den), roomSupport=den&&find('room-support',den);
     const roomSound=den&&find('room-sound',den);
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
     const activitySelect=den&&find('activity',den);
     if (activitySelect) playKit.activities.forEach((activity,i)=>activitySelect.add(new Option(activity.name,i)));
-    playKit.draggable(pet,den?pet:floating);
+    const petPosition = playKit.draggable(pet, den ? pet : floating, den ? '' : 'regen-mochi-position');
     const intro=find('intro'), chat=find('chat'), options=find('options'), sleepView=find('sleep-view'), locked=find('locked');
     const history=find('history'), composer=find('compose'), message=composer.elements.message;
     const supportHistory=history.cloneNode(false);
     supportHistory.removeAttribute('data-mochi-history');
-    supportHistory.setAttribute('aria-label','ReGen support conversation');
+    supportHistory.setAttribute('aria-label',text('productHelp','Ask about Kerjayaku'));
     supportHistory.hidden=true;
     history.after(supportHistory);
     const preferenceButton=find('options-button'), liveButton=find('live'), status=find('status');
@@ -109,15 +117,30 @@
     let section=new URLSearchParams(location.search).get('section')||'';
     let profile={...defaults}, access=null, available=null, chatAllowed=false, health=100;
     let autoplay=true, allowSound=true, editorReactions=true, adminPlayOnly=false, pace='balanced', naps=true;
+    let scheduled=false;
     let liveAvailable=false, liveFeedback=true, feedbackSeconds=90, avatar=null, rendererPending=false, loadFailed=false, refreshing=false, revision=0;
-    let view='chat', opener=null, mood='curious', moodTimer=0, bubbleTimer=0, bubbleKind='', introShown=false;
+    let view='chat', opener=null, mood='curious', moodTimer=0, bubbleTimer=0;
     let field=null, fieldTip=null, displayedTip='', fieldTimer=0, fieldRequest=null, fieldRevision=0, lastExcerpt='', nextFieldRequest=0;
     let displayedModel=false;
     let coaching=null, conversation=[], retryTurn=null, useSavedResume=false, chatRequest=null, writing=false, saving=false, localJoke=0;
-    let playIndex=0, denLine='', teaserShown=false, lastPlayAt=0, playingUntil=0;
+    const troubleshooting = new Map();
+    let playIndex=0, denLine='', lastPlayAt=0, playingUntil=0;
     let napTimer=0, wasNapping=false, longActs=0, lastNapAttempt=0;
     let lastReaction=0, reactionCount=0;
     const praised=new Set();
+    const contextual = {
+      dashboard:['overview',2], builder:['resume',2], 'cover-letters':['letters',2],
+      store:['store',2], 'token-activity':['activity',1], payments:['payments',1],
+      templates:['templates',1], profile:['profile',1], notifications:['notifications',1], support:['support',1],
+    };
+    let pageReactions = 0;
+
+    function pageMove(index) {
+      const [key,count] = contextual[screen] ?? [];
+      if (!key || index >= count) return null;
+      const line = window.ReGenText?.get('mochi.' + key + '.' + index, '');
+      return line ? [index ? 'purr' : 'wave',line,line,line] : null;
+    }
 
     const locationName=()=>{
       if (screen==='builder' && document.querySelector('.builder-left.is-final')) return sections.review;
@@ -129,9 +152,7 @@
     const isSleeping=()=>profile.asleep||isNapping();
     const visibleState=()=>isSleeping()?'sleep':mood;
     const phrase=(english,malay)=>profile.language==='ms'?malay:english;
-    const chatLanguage=text=>profile.language==='auto'
-      ? (/\b(?:saya|awak|nak|boleh|kenal|kat mana|hai|salam|khabar|lawak|pekerjaan)\b/i.test(text)?'ms':'en')
-      : profile.language;
+    const chatLanguage=text=>profile.language==='auto' && !assist?.useMalay.test(text) ? 'en' : profile.language;
 
     function updateShare() {
       const canShare=field?.isConnected&&fieldTip?.kind&&liveAvailable&&!field.readOnly&&!field.disabled;
@@ -148,7 +169,15 @@
       const pose=visibleState();
       const visible=available===true;
       const sleeping=isSleeping(), supporting=view==='support';
-      floating.hidden = false;
+      stage.hidden = !visible || !!den || mascotHidden;
+      floating.hidden = stage.hidden;
+      if (visibility) {
+        visibility.hidden = !visible;
+        const visibilityLabel=mascotHidden?text('show','Show floating Mochi'):text('hide','Hide floating Mochi');
+        visibility.setAttribute('aria-label',visibilityLabel);
+        visibility.setAttribute('aria-expanded',String(!mascotHidden));
+        visibility.title=visibilityLabel;
+      }
       if (!entitled) hideBubble();
       (den||floating).dataset.mochiMood=pose;
       panel.dataset.mochiMood=pose;
@@ -162,7 +191,7 @@
         setText(denCaption,isNapping()?'Shh… Mochi tengah lena. Nanti dia bangun sendiri.':denLine||(!entitled?teaser:profile.asleep?phrase('Shh… tap to wake me.','Senyap… sentuh untuk kejutkan saya.'):
           playKit.line(['','Tap je. Berani tak?','Tap me. I dare you.','Sentuh je. Berani tak?'],profile.language)));
         find('den-chat',den).hidden=!entitled;
-        if (roomSupport) roomSupport.hidden=!entitled;
+        if (roomSupport) roomSupport.hidden=!visible;
         if (roomPlay) {
           roomPlay.hidden=!entitled;
           roomPlay.querySelectorAll('button,select').forEach(item=>item.disabled=sleeping||saving);
@@ -175,10 +204,10 @@
         setText(roomClosed,available===false?'Mochi’s room is closed right now.':loadFailed?'Couldn’t check if Mochi is home. Refresh to try again.':'Checking if Mochi is home…');
       }
       document.querySelectorAll('[data-mochi-room-link]').forEach(link=>link.hidden=available===false);
-      setText(find('expression'),entitled&&pose!=='curious'?expressions[pose]:'Personal coach');
+      setText(find('expression'),entitled&&pose!=='curious'?expressions[pose]:text('coach','Career coach'));
       locked.hidden=entitled||supporting;
       find('packages').hidden=access!==false;
-      setText(find('access-message'),access===false?'Mochi comes with selected ReGen packages.':loadFailed?'I couldn’t check your access. Open Mochi again to retry.':'Checking your Mochi access…');
+      setText(find('access-message'),access===false?text('packageRequired','Mochi comes with selected Kerjayaku packages.'):loadFailed?'I couldn’t check your access. Open Mochi again to retry.':'Checking your Mochi access…');
       sleepView.hidden=!entitled||!sleeping||supporting;
       find('wake').hidden=isNapping();
       setText(find('sleep-copy'),isNapping()?'Mochi dah penat sangat. He’ll wake up on his own in a little while.':'Mochi is asleep. He’ll stay quiet until you wake him.');
@@ -208,7 +237,7 @@
       if (roomSound) {
         roomSound.hidden=soundButton.hidden;
         roomSound.setAttribute('aria-pressed',String(allowSound&&playKit.soundEnabled()));
-        setText(roomSound,allowSound&&playKit.soundEnabled()?'Sound on':'Sound off');
+        setText(roomSound,text(allowSound&&playKit.soundEnabled()?'roomSoundOn':'roomSoundOff'));
       }
       const modelNote=find('model');
       modelNote.hidden=supporting;
@@ -232,13 +261,15 @@
       find('help').disabled=writing;
       composer.querySelector('button').disabled=writing;
       panel.dataset.saving=String(saving);
-      document.querySelectorAll('[data-mochi-open]').forEach(button=>{
+      openers.forEach(button=>{
         button.setAttribute('aria-expanded',String(open()));
+        button.hidden=available===false || (button.matches('.mochi-header-chat:not(.studio-mochi-chat)') && !den && !stage.hidden);
       });
-      if (den && visible && !rendererPending && window.MochiAvatar) {
+      if (den && visible && !reducedMotion.matches && !rendererPending && window.MochiAvatar) {
         rendererPending=true;
         playKit.renderWhenVisible(pet,renderer=>{avatar=renderer;avatar.setMood(visibleState());});
       }
+      if (visible && !document.querySelector('.builder-left.is-final')) petPosition.restore();
     }
     function tell(text='') { setText(status,text); status.hidden=!text; }
     function emotion(next, duration=playKit.duration(next), clip=null, cue=next) {
@@ -258,17 +289,16 @@
     function hideBubble() {
       clearTimeout(bubbleTimer);
       bubble.hidden=true;
-      bubbleKind='';
     }
     function speak(text, kind='tip') {
-      if (den||(!access&&kind!=='teaser')||isSleeping()||open()||!text||(bubbleKind==='invite'&&kind==='tip')) return;
+      if (den||mascotHidden||(!access&&kind!=='teaser')||isSleeping()||open()||!text
+        ||document.body.matches('.studio-focus-mode,.letter-proof-mode,.preview-open,[data-studio-mode="preview"],:has(dialog[open],.builder-left.is-final)')) return;
+      if (document.querySelector('.letter-working-preview:not([hidden])') && innerWidth >= 1200) return;
       clearTimeout(bubbleTimer);
-      bubbleKind=kind;
       setText(bubbleText,text);
-      invite.hidden=kind!=='invite';
       find('bubble-adopt',floating).hidden=kind!=='teaser';
       bubble.hidden=false;
-      bubbleTimer=setTimeout(hideBubble,kind==='invite'?16000:kind==='play'?8500:6500);
+      bubbleTimer=setTimeout(hideBubble,kind==='play'?8500:6500);
     }
     function cancelField() {
       clearTimeout(fieldTimer);
@@ -282,6 +312,7 @@
       writing=false;
     }
     function clearConversation() {
+      troubleshooting.clear();
       cancelChat();
       coaching=null;
       conversation=[];
@@ -299,6 +330,7 @@
       if (!chatAllowed&&writing) cancelChat();
       health=result.health??health;
       autoplay=result.autoplay??autoplay;
+      scheduled=result.scheduled??scheduled;
       pace=result.pace??pace;
       naps=result.naps??naps;
       liveFeedback=result.liveFeedback??liveFeedback;
@@ -343,17 +375,6 @@
       if (open() && view === 'support') seedSupport();
       update();
       if (previous!==isSleeping()) avatar?.setMood(visibleState());
-      const roomForAutomaticPrompts = !matchMedia('(max-width: 760px)').matches && screen !== 'builder';
-      if (roomForAutomaticPrompts && !den&&access&&!isSleeping()&&profile.intro==='new'&&!introShown&&!open()) {
-        introShown=true;
-        emotion('wave');
-        speak('Can I know you better? Let’s kenal!', 'invite');
-      }
-      if (roomForAutomaticPrompts && !access&&available&&!teaserShown) {
-        teaserShown=true;
-        emotion('laugh');
-        speak(teaser,'teaser');
-      }
     }
     async function refresh() {
       if (refreshing) return;
@@ -422,7 +443,7 @@
       panel.hidden=true;
       update();
       if (opener?.isConnected && opener.offsetWidth) opener.focus({preventScroll:true});
-      else if (access) find('open',den||floating).focus({preventScroll:true});
+      else if (access) document.querySelector('[data-mochi-open]:not([hidden])')?.focus({preventScroll:true});
     }
     function append(role,text,suggestion,target,action=null,supporting=false) {
       if (!text) return;
@@ -489,7 +510,7 @@
       } else log.scrollTop=log.scrollHeight;
     }
     function localReply(prompt) {
-      const ms=chatLanguage(prompt)==='ms';
+      const ms=chatLanguage(prompt)!=='en';
       const name=profile.nickname? ', '+profile.nickname : '';
       if (assist?.outside(prompt)) return {reply:ms?'Kod bukan kepakaran Mochi. Kalau ini projek awak, saya boleh bantu terangkan hasilnya untuk resume atau temu duga.':'Coding is outside my lane. If this is your project, I can help you explain what you built on a resume or in an interview.',mood:'curious'};
       if (/^(?:thank(?:s| you)|tq|terima kasih|nice|okay thanks|ok thanks)[.!\s]*$/i.test(prompt)) {
@@ -562,15 +583,29 @@
         return;
       }
       const language=chatLanguage(text);
+      if (screen==='dashboard' && !share && (help || /\b(?:next step|what should i do next|langkah seterusnya)\b/i.test(text))) {
+        const next=document.querySelector('#overview-next-action a.btn-primary:not([data-service-hidden]):not([data-service-unavailable])');
+        if (next) {
+          append('assistant',window.ReGenText.get('mochi.nextStep'),null,null,{href:next.href,label:next.textContent.trim()},supporting);
+          emotion('bright');
+          return;
+        }
+      }
       const starts=!!assist?.needsWriting(text,share?.data,screen);
       const revising=coaching?.draft && /\b(?:this draft|that draft|shorter|more concise|previous draft|last version|draf tadi|lebih ringkas)\b/i.test(text);
       const continuing=(coaching?.kind==='question'||revising)&&!assist?.outside(text)&&!assist?.smallTalk(text);
       const drafting=retry ? retry!=='conversation' : starts||continuing;
-      const support=share?null:assist?.pageHelp(text,screen,language)||assist?.navigate(text,language)||assist?.support(text,language,starts);
-      const guide=assist?.guide(screen,language);
-      const local=share||retry||starts?null:localReply(text);
+      const support=share?null:assist?.followUp(text,language,troubleshooting.get(supporting))
+        || assist?.exportHelp(text,screen,language)
+        || assist?.pageHelp(text,screen,language)||assist?.navigate(text,language)||assist?.support(text,language,starts);
+      if (support?.topic) troubleshooting.set(supporting,support.topic);
+      else if (!share) troubleshooting.delete(supporting);
+      const guide=assist?.guide(screen,language==='auto'?'ms':language);
+      const useLocal = !liveAvailable || supporting || assist?.smallTalk(text) || assist?.outside(text)
+        || /^(?:i got rejected(?: today)?|saya baru kena reject|i got (?:the job|an offer))[.! ]*$/i.test(text);
+      const local=share||retry||starts||!useLocal?null:localReply(text);
       if (local||support||(help&&!drafting)||supporting||!liveAvailable) {
-        const reply=local||support||(guide && (help||drafting||/\b(?:here|page|screen|sini|halaman)\b/i.test(text))
+        const reply=support||local||(guide && (help||drafting||/\b(?:here|page|screen|sini|halaman)\b/i.test(text))
           ? {reply:guide,mood:'curious'} : {reply:phrase(
             'I’m here with you. I can help with the steps on '+locationName()+'. What would you like to do next?',
             'Saya di sini. Saya boleh bantu dengan langkah di '+locationName()+'. Apa yang awak nak buat selepas ini?'
@@ -646,7 +681,9 @@
         lastNapAttempt=now;
         if (await save({action:'nap'})&&isNapping()) {longActs=0;return;}
       }
-      play(move,activity);
+      const context = !den && pageMove(pageReactions++);
+      if (context) play(context);
+      else play(move,activity);
     }
     async function wake() {
       if (isNapping()||!profile.asleep||!await save({action:'sleep',enabled:false})) return;
@@ -715,7 +752,7 @@
       }
       section=event.detail?.section||'';
       cancelField(); field=null; fieldTip=null; displayedTip='';displayedModel=false;
-      if(bubbleKind!=='invite') hideBubble();
+      hideBubble();
       update();
     });
     document.addEventListener('regen:letter-loaded',()=>{
@@ -729,6 +766,11 @@
       if (open()&&view==='chat') seedChat();
       update();
     });
+    document.addEventListener('regen:studio-review',()=>{
+      hideBubble();
+      petPosition.park();
+    });
+    document.addEventListener('regen:document-reading',hideBubble);
     document.addEventListener('regen:editor-moment',event=>{
       if (!access||!available||!chatAllowed||!editorReactions||isSleeping()||document.hidden||Date.now()-lastReaction<7000) return;
       const {kind,section:where}=event.detail||{};
@@ -758,6 +800,14 @@
     document.addEventListener('click',async event=>{
       const button=event.target.closest('button');
       if (!button) return;
+      if (button===visibility) {
+        mascotHidden=!mascotHidden;
+        try { localStorage.setItem(visibilityKey,mascotHidden?'1':'0'); } catch {}
+        hideBubble();
+        playKit.stop(pet);
+        update();
+        return;
+      }
       if(button.matches('[data-mochi-open]')) { if(open()) close(); else show(access && chatAllowed ? 'chat' : 'support',button); return; }
       if(!button.closest('#mochi-panel, [data-mochi-float], [data-mochi-den]')) return;
       if(button.matches('[data-mochi-close]')) {close();return;}
@@ -768,7 +818,7 @@
       if(button.matches('[data-mochi-kenal]')) {show('intro',button);return;}
       if(button.matches('[data-mochi-skip]')) {
         const wasOpen=open();
-        hideBubble(); introShown=true;
+        hideBubble();
         if(await save({action:'skip'})&&wasOpen) show('chat');
         return;
       }
@@ -788,7 +838,7 @@
         return;
       }
       if (button===pet) {
-        if (access) play(event.detail>1?playKit.moves[2]:undefined);
+        if (access) play(event.detail>1?playKit.moves[2]:(!den && pageMove(pageReactions++)) || undefined);
         else if (available) { denLine=teaser; emotion('laugh'); speak(teaser,'teaser'); }
         return;
       }
@@ -798,7 +848,6 @@
         return;
       }
       if(button.matches('[data-mochi-forget]')) {
-        introShown=true;
         if(await save({action:'forget'})) {clearConversation();update();tell('I’ve cleared your saved details.');}
         return;
       }
@@ -831,15 +880,31 @@
       if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing) {event.preventDefault();composer.requestSubmit();}
     });
     panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();close();}});
-    window.addEventListener('regen:prices-updated',refresh);
+    let policyTimer;
+    window.addEventListener('regen:live-change',event=>{
+      if (!['features','store'].includes(event.detail?.topic)) return;
+      clearTimeout(policyTimer);
+      policyTimer=setTimeout(refresh,180);
+    });
+    window.addEventListener('storage',event=>{
+      if (event.key!==visibilityKey) return;
+      mascotHidden=event.newValue==='1';
+      hideBubble();
+      update();
+    });
     window.addEventListener('regen:session-expired',()=>{applyState({access:false,available:false});hideBubble();});
     window.addEventListener('regen:session-restored',refresh);
     channel?.addEventListener('message',event=>{if(event.data==='changed') refresh();});
     document.addEventListener('visibilitychange',()=>{if(document.hidden) {cancelField();hideBubble();playKit.stopSound();}});
+    reducedMotion.addEventListener('change',update);
+    document.addEventListener('regen:studio-focus',event=>{
+      if (event.detail.active) hideBubble();
+      else petPosition.constrain();
+    });
     window.addEventListener('pagehide',()=>{cancelField();cancelChat();});
     window.addEventListener('pageshow',event=>{if(event.persisted) refresh();});
     let frame=0;
-    const header=document.querySelector('.workspace-header');
+    const header=document.querySelector('.workbench-header,.workspace-header');
     const position=()=>{
       cancelAnimationFrame(frame);
       frame=requestAnimationFrame(()=>{
@@ -861,11 +926,11 @@
     position();
     update();
     refresh();
-    setInterval(()=>{if(!document.hidden)refresh();},60000);
-    playKit.idle(pet,()=>access&&autoplay&&!isSleeping()&&!open()&&!saving&&mood==='curious'&&Date.now()>=playingUntil&&Date.now()-lastPlayAt>4400
+    setInterval(()=>{if(!document.hidden&&(open()||scheduled||!window.ReGenLive?.connected))refresh();},90000);
+    playKit.idle(pet,()=>access&&(den||!mascotHidden)&&autoplay&&!isSleeping()&&!open()&&!saving&&mood==='curious'&&Date.now()>=playingUntil&&Date.now()-lastPlayAt>4400
       && !document.activeElement?.matches('input,textarea,select,[contenteditable="true"]'),idlePlay,()=>health,!!den,()=>pace);
   }
 
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  if (document.readyState!=='complete') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();

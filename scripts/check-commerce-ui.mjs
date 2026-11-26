@@ -8,7 +8,7 @@ vm.runInContext(readFileSync(new URL('../public/js/commerce-ui.js',import.meta.u
 const commerce=context.window.ReGenCommerce;
 const item={id:7,version:3,name:'A safe <package>',card_layout:'row',coin_color:'gold',features:{templates:2},template_tiers:['basic'],tokens:5,bonus_tokens:1,currency:'MYR',display_price_minor:3000,validity_days:30,claim:{enabled:true,state:'available',limit:25,remaining:24,endsAt:'2026-11-08 00:00:00'}};
 let html=commerce.card(item,{templates:{name:'Resume templates'}},false);
-check(html.includes('token-offer-row')&&html.includes('6 saved tokens')&&html.includes('offer-row-details')&&html.includes('coin-gold'),'One-line offers show quantity, price and an expandable exact-benefit area with the configured coin.');
+check(html.includes('token-offer-row')&&html.includes('6 saved Coin')&&html.includes('offer-row-details')&&html.includes('coin-gold'),'One-line offers show quantity, price and an expandable exact-benefit area with the configured coin.');
 check(html.includes('data-claim-package="7"')&&html.includes('data-package-version="3"')&&html.includes('<strong>Free</strong>'),'Free claims expose an explicit action with the current package version.');
 check(html.includes('A safe &lt;package&gt;')&&!html.includes('<package>'),'Package labels remain escaped.');
 html=commerce.card({...item,card_layout:'hero',claim:{...item.claim,state:'claimed'}},{},false,'simple');
@@ -20,6 +20,12 @@ for(const state of ['upcoming','ended','full','unavailable']){
 }
 html=commerce.card(item,{},true);
 check(html.includes('href="/store">Claim free package')&&!html.includes('data-claim-package'),'Public offers lead to the authenticated Store.');
+const featured = {...item, card_layout:'hero', highlighted:true, claim:{enabled:false},
+  features:{templates:2, cover_letters:null, pdf_download:4, ai_refine:2}};
+html=commerce.card(featured,{},false,{catalog:true});
+check(html.includes('store-featured-label')&&html.includes('store-benefits-more')&&html.includes('data-view-package="7"'),'Featured catalog cards link to checkout and disclose all benefits.');
+html=commerce.card(featured,{},false,{detail:true,checkoutAvailable:true});
+check(!html.includes('store-benefits-more')&&html.includes('data-start-checkout'),'Checkout displays every benefit without an expandable section.');
 const link={setAttribute(name,value){this[name]=value;}},total={textContent:'',closest:()=>link};
 context.ReGenCommerce=commerce;
 context.document.querySelectorAll=selector=>selector==='[data-token-total]'?[total]:[];
@@ -29,7 +35,7 @@ const tokens=context.window.ReGenTokens;
 const pending=tokens.refresh();
 tokens.updateBalance({total:45,base:10,bonus:35});
 context.respond({success:true,prices:{},balance:{total:40,base:10,bonus:30}});await pending;
-check(total.textContent==='45'&&link['aria-label'].startsWith('45 tokens'),'An older price response cannot overwrite a newly accepted wallet balance.');
+check(total.textContent==='45'&&link['aria-label']==='45 Coin available','An older price response cannot overwrite a newly accepted wallet balance.');
 const fresh=tokens.refresh();context.respond({success:true,prices:{},balance:{total:46,base:10,bonus:36}});await fresh;
 check(total.textContent==='46','A fresh balance response still updates the header.');
 console.log(`Package presentation, claim controls and balance synchronization passed (${assertions} assertions; mocked transport).`);

@@ -1,5 +1,35 @@
-/* Local navigation and troubleshooting for ReGen. */
+/* Local navigation and troubleshooting for Kerjayaku. */
 window.MochiAssist = (() => {
+  const trouble = /\b(?:why|asal|kenapa|tak|x|tk|cannot|can.t|failed|stuck|missing|unable|error|ralat|won.t|problem|masalah|tiket|ticket)\b/i;
+  const exportWords = /\b(?:download|muat[ -]?turun|export|eksport|pdf|print)\b/i;
+  const letterWords = /\b(?:cover letters?|surat iringan)\b/i;
+  const useMalay = /\b(?:asal|kenapa|camne|macam mana|tak|tk|x|boleh|nak|awak|saya|dah|tolong|wei|weh|lah|je|muat turun|temu duga|surat iringan)\b/i;
+
+  function exportHelp(message, screen, language) {
+    if (!exportWords.test(message) || !trouble.test(message)) return null;
+    const letter = letterWords.test(message) || (screen === 'cover-letters' && !/\b(?:resume|cv)\b/i.test(message));
+    const replies = {
+      en: 'Save your draft and open Preview. Once the pages load, try Download once. If you see a lock or a Coin price, check the access prompt before retrying. If it still fails, open a support request with the message on screen.',
+      ms: 'Simpan draf dan buka Pratonton. Selepas halaman dipaparkan, cuba Muat turun sekali. Jika ada ikon kunci atau harga Coin, semak makluman akses dahulu. Jika masih gagal, buka tiket dan sertakan mesej pada skrin.',
+      auto: 'Alamak, cuba save draf dulu. Buka Preview dan bila PDF dah keluar, tekan Download sekali. Kalau nampak ikon lock atau harga Coin, check makluman akses dulu. Kalau masih sangkut, buka tiket dan masukkan mesej yang keluar.',
+    };
+    return ticket(letter ? 'cover_letter' : 'resume', replies[language], language);
+  }
+
+  function ticket(topic, reply, language) {
+    return {reply,topic,mood:'curious',action:{label:language==='ms'?'Buka tiket sokongan':'Open support ticket',href:'/support?new=1&topic='+topic}};
+  }
+
+  function followUp(message, language, topic) {
+    if (!topic || !/^(?:(?:dah|sudah) cuba|masih (?:sama|tak boleh|gagal)|still (?:can.t|not working|fails)|(?:i )?already tried)\b/i.test(message)) return null;
+    const replies = {
+      en: 'Since you’ve tried that, open a support request. Include what you clicked and the exact message, or mention if nothing happened.',
+      ms: 'Jika masalah berterusan, buka tiket sokongan. Nyatakan butang yang ditekan dan mesej yang dipaparkan, atau beritahu jika tiada apa-apa berlaku.',
+      auto: 'Okay, kalau dah cuba tapi masih sangkut, buka tiket. Bagitahu butang yang awak tekan dan mesej yang keluar. Kalau senyap je, tulis tu juga.',
+    };
+    return ticket(topic,replies[language],language);
+  }
+
   const routes = [
     [/\b(?:paid|payment|billing|charged|refund|resit|receipt|bayar|tercaj|checkout|(?:coin|token) (?:hilang|tak masuk|missing))\b/i,'billing',
       'Check status dekat sejarah bayaran dalam K-Store dulu. Kalau dah bayar tapi pakej atau Coin belum masuk, buka tiket dan masukkan nombor order. Jangan kongsi nombor kad.',
@@ -19,7 +49,7 @@ window.MochiAssist = (() => {
     [/\b(?:ai offline|ai error|ai tak|ai stuck|assistant not|assistant tak|mochi not responding|mochi tak jawab)\b/i,'ai',
       'Kalau AI tengah busy, tunggu sekejap dan cuba lagi. Kalau tetap sama, buka tiket dan sebut section serta apa yang muncul.',
       'If AI is busy, wait briefly and retry. If it keeps failing, open a ticket with the section and the message you saw.'],
-    [/\b(?:support|ticket|tiket|error|bug|broken|stuck|issue|problem|masalah|tak berfungsi|tak save|not saving|help with regen)\b/i,'technical',
+    [/\b(?:support|ticket|tiket|error|bug|broken|stuck|issue|problem|masalah|tak berfungsi|tak save|not saving|help with kerjayaku)\b/i,'technical',
       'Mochi boleh bawak awak ke support. Tulis skrin mana, apa yang awak tekan, dan mesej error yang keluar. Mochi tak hantar tiket tanpa awak.',
       'I can open the support form. Include the screen, what you clicked, and any error message. You can review it before submitting.'],
   ];
@@ -44,12 +74,12 @@ window.MochiAssist = (() => {
     const issue=/\b(?:support|ticket|tiket|error|bug|broken|issue|masalah|not working|tak berfungsi)\b/i;
     if (writing&&!issue.test(text)) return null;
     const route=routes.find(([pattern])=>pattern.test(text));
-    if (route?.[1]==='technical' && !/\b(?:support|ticket|tiket|error|bug|regen|kerjayaku|app|not saving|tak save|tak berfungsi)\b/i.test(text)) return null;
+    if (route?.[1]==='technical' && !/\b(?:support|ticket|tiket|error|bug|kerjayaku|app|not saving|tak save|tak berfungsi)\b/i.test(text)) return null;
     if (!route) return null;
     const [,topic,rojak,english]=route;
-    return {reply:language==='en'?english:rojak,mood:'curious',action:{label:'Open support ticket',href:'/support?new=1&topic='+topic}};
+    return ticket(topic,language==='en'?english:rojak,language);
   }
-  const outside=text=>/\b(?:(?:write|generate|debug|fix|implement|buat|tulis|bina)\b.{0,40}\b(?:code|kod|script|skrip|sql query|python function|react component)|(?:code|program) (?:me|this|for me)|python script|javascript code|sql query|ignore (?:all |previous )?instructions)\b/i.test(text);
+  const outside=text=>/\b(?:(?:write|generate|debug|fix|implement|buat|tulis|bina)\s+(?:(?:me|some|my|the|a|an|this|satu|python|javascript)\s+){0,4}(?:code|kod|script|skrip|sql query|python function|react component)|(?:code|program) (?:me|this|for me)|ignore (?:all |previous )?instructions)\b/i.test(text);
   function needsWriting(text,sharedField,screen) {
     if (outside(text)) return false;
     if (sharedField) return true;
@@ -72,7 +102,7 @@ window.MochiAssist = (() => {
     'token-activity':'Use Coin activity to see where credits came from and what used them. Package allowances are listed separately in K-Store.',
     support:'Open a support request and include the screen, what you clicked, and any error message. Leave out passwords and payment card numbers.',
     notifications:'Open an alert to see its details or use Clear all to empty your inbox. Preferences controls optional emails.',
-    mochi:'Tap Mochi to play, choose an activity for a longer round, or ask about ReGen. Use Options in chat to change how Mochi helps.',
+    mochi:'Tap Mochi to play, choose an activity for a longer round, or ask about Kerjayaku. Use Options in chat to change how Mochi helps.',
   };
   const malayGuides={
     dashboard:'Buka Studio Resume untuk sambung menyunting. Gunakan Pratonton atau Muat turun pada kad resume di Ringkasan.',
@@ -99,8 +129,8 @@ window.MochiAssist = (() => {
       ],
       'cover-letters': [
         /\b(?:(?:open|find|switch|search|where).{0,28}(?:saved letter|letter library)|surat tersimpan)\b/i,
-        'Use Saved letters to find a draft. On a phone, tap the folder in the toolbar to open the list.',
-        'Gunakan Surat tersimpan untuk mencari draf. Pada telefon, tekan ikon folder di bar alat untuk membuka senarai.'
+        'Use Saved letters to find a draft. On a phone, tap the document list icon in the toolbar.',
+        'Gunakan Surat tersimpan untuk mencari draf. Pada telefon, tekan ikon senarai dokumen di bar alat.'
       ],
       notifications: [
         /\b(?:clear|empty|remove all|delete all|kosongkan)\b/i,
@@ -115,5 +145,5 @@ window.MochiAssist = (() => {
     }
     return null;
   }
-  return {support,navigate,needsWriting,outside,smallTalk,guide,pageHelp};
+  return {support,navigate,needsWriting,outside,smallTalk,guide,pageHelp,exportHelp,followUp,useMalay};
 })();

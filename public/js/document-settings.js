@@ -32,7 +32,15 @@ window.DocumentSettings = (() => {
 
     order=[...new Set([...(draft.sectionOrder||[]),...Object.keys(labels)])].filter(id=>labels[id]);
 
-    dialog.innerHTML=`<form method="dialog"><div class="settings-heading"><h2 id="document-settings-title">${ReGenText.get('common.appearance','Appearance')}</h2><div class="settings-actions"><button type="button" class="btn btn-primary" id="save-document-settings">${ReGenIcons.icon('check')} ${t('saveSettings')}</button><button class="btn btn-ghost btn-icon" aria-label="Close settings">${ReGenIcons.icon('close')}</button></div></div><p class="settings-status" role="status"></p></form><div class="settings-workspace">
+    const iconButton = (id, name, label) => `<button type="button" id="${id}" class="settings-command" aria-label="${ZeekeSafe.attr(label)}" title="${ZeekeSafe.attr(label)}">${ReGenIcons.icon(name)}</button>`;
+    const compact = matchMedia('(max-width: 680px)');
+    dialog.dataset.pane = 'edit';
+    dialog.innerHTML=`<header><div class="settings-heading"><div class="settings-identity"><h2 id="document-settings-title" tabindex="-1">${ReGenText.get('common.appearance','Appearance')}</h2><span>${ZeekeSafe.attr(template?.name || '')}</span></div><div class="settings-actions">
+      ${iconButton('toggle-settings-preview','eye',ReGenText.get('common.preview'))}
+      ${iconButton('reset-document-design','retry',t('resetDesign'))}
+      ${iconButton('save-document-settings','check',t('saveSettings'))}
+      ${iconButton('close-document-settings','close',ReGenText.get('common.close'))}
+      </div></div><p class="settings-status" role="status"></p></header><div class="settings-workspace">
       <section class="settings-preview" aria-labelledby="settings-preview-title"><header><h3 id="settings-preview-title">${t('pdfCanvas')}</h3><span class="studio-paper-label">${t('live')}</span></header>
         <div class="settings-preview-scroll"><div class="live-proof" id="settings-pdf-pages"></div></div></section>
       <div class="settings-body">
@@ -51,7 +59,7 @@ window.DocumentSettings = (() => {
 
       <label class="writing-job-label" for="writing-jobDescription">Job description or application requirements <span class="text-muted">(optional)</span></label><textarea class="form-textarea" id="writing-jobDescription" rows="5" maxlength="6000" placeholder="Paste the role requirements. Add only public job information, without personal contact details."></textarea><p class="settings-description">AI uses these notes to focus your existing evidence. A requirement never becomes a skill or qualification automatically.</p>
 
-      </details><div class="settings-design-note"><strong>${ZeekeSafe.attr(template?.name||'Your design')}</strong><span>${template?.photo?'Portrait layout. Your photo has a dedicated place in the masthead.':'Text-only layout. Recommended for online applications.'}</span></div>
+      </details>${isLetter ? `<p class="settings-shared">${t('sharedSettings')}</p>` : ''}
 
       <details open><summary>${ReGenText.get('studio.typeSettings')}</summary><div class="document-appearance-grid">
 
@@ -81,8 +89,6 @@ window.DocumentSettings = (() => {
 
       <p class="settings-description">${template?.photo?'This template includes a portrait. Upload your photo in Personal details.':'This is a text-only template. Choose a photo template in the gallery to include a portrait.'}</p><div class="document-photo-settings" ${template?.photo?'':'hidden'}><h3>Portrait framing</h3><div class="document-appearance-grid"><label>Photo frame<select id="document-photoShape"><option value="portrait">Portrait · 3:4</option><option value="square">Square · 1:1</option></select></label><label>Photo placement<select id="document-photoPosition"><option value="right">Right of your introduction</option><option value="left">Left of your introduction</option></select></label><label>Crop focus<select id="document-photoFocus"><option value="top">Upper area · portraits</option><option value="center">Centre of image</option><option value="bottom">Lower area</option></select></label></div><p class="settings-description">Upload or replace the photo in Personal details. The image is cropped proportionally to the frame. Use a text-only design when the employer does not request a photo.</p></div>
 
-      <button type="button" class="btn btn-secondary" id="reset-document-design">${t('resetDesign')}</button>
-
       <details data-resume-only><summary>${ReGenText.get('studio.orderSettings')}</summary><div class="writing-order-tools"><label for="writing-preset">Starting structure</label><select id="writing-preset" class="form-select"><option value="experience">Experience first</option><option value="education">Education and projects first</option><option value="hybrid">Skills first (hybrid)</option><option value="academic">Academic CV</option></select><button type="button" class="btn btn-secondary" id="writing-apply-order">Use this order</button></div><p class="settings-description">This changes section order only. Dates and work history remain visible. Empty sections are omitted.</p><ol id="document-section-order"></ol></details></div></div>`;
 
     const choices={font:'template',size:'11',spacing:'balanced',color:'black',nameSize:'template',headingSize:'template',lineHeight:'template',margins:'balanced',headingStyle:'template',dates:'right',photoShape:'portrait',photoPosition:'right',photoFocus:'top',headerAlign:'template',headingRule:'template',letterSubject:'show',letterSignoff:'formal'};
@@ -92,7 +98,7 @@ window.DocumentSettings = (() => {
     const writingValues = () => Object.fromEntries(['documentType','careerStage','profileType','dateOrder','jobDescription']
       .map(key => [key, dialog.querySelector('#writing-' + key).value]));
     function showProof(immediate = false) {
-      if (!dialog.open) return;
+      if (!dialog.open || (compact.matches && dialog.dataset.pane === 'edit')) return;
       if (!LiveDocumentPreview.allowed()) {
         proof.clear(t('settingsPreviewHelp'));
         return;
@@ -132,11 +138,27 @@ window.DocumentSettings = (() => {
     dialog.querySelectorAll('[data-letter-only]').forEach(node => { node.hidden = !isLetter; });
     if (isLetter) {
       dialog.querySelectorAll('[data-resume-only], .document-photo-settings, .document-type-sample, .settings-description').forEach(node=>node.hidden=true);
-      dialog.querySelector('.settings-design-note span').textContent=ReGenText.get('studio.sharedSettings');
     }
-    document.body.append(dialog);render();type();dialog.showModal();showProof(true);
+    const context = dialog.querySelector('.settings-body > details[data-resume-only]');
+    dialog.querySelector('#document-color').closest('details').after(context);
+    const toggle = dialog.querySelector('#toggle-settings-preview');
+    toggle.setAttribute('aria-controls', 'settings-pdf-pages');
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.onclick = () => {
+      const preview = dialog.dataset.pane !== 'preview';
+      dialog.dataset.pane = preview ? 'preview' : 'edit';
+      toggle.setAttribute('aria-pressed', String(preview));
+      showProof(true);
+    };
+    const close = dialog.querySelector('#close-document-settings');
+    close.onclick = () => dialog.close();
+    compact.addEventListener('change',updateProofAccess);
+    document.body.append(dialog);render();type();dialog.showModal();
+    dialog.querySelector('#document-settings-title').focus();
+    showProof(true);
 
     const opened=dialog;dialog.addEventListener('close',()=>{
+      compact.removeEventListener('change',updateProofAccess);
       window.removeEventListener('regen:prices-updated',updateProofAccess);
       window.removeEventListener('regen:preview-availability',updateProofAccess);
       window.removeEventListener('regen:session-expired',clearProof);
@@ -149,9 +171,12 @@ window.DocumentSettings = (() => {
 
       const settings = {sectionOrder:[...order],appearance:currentAppearance(),writing:writingValues()};
 
-      try{const result=await Api.saveSection('documentSettings',settings);if(!result.success)throw new Error(result.message||'Unable to save document settings.');config.apply(settings);dialog.close();}
-
-      catch(error){dialog.querySelector('.settings-status').textContent=error.message;}finally{button.disabled=false;}
+      opened.inert = true;
+      const preventClose = event => event.preventDefault();
+      opened.addEventListener('cancel',preventClose);
+      try{const result=await Api.saveSection('documentSettings',settings);if(!result.success)throw new Error(result.message||'Unable to save document settings.');config.apply(settings);opened.close();}
+      catch(error){opened.querySelector('.settings-status').textContent=error.message;}
+      finally{opened.removeEventListener('cancel',preventClose);opened.inert=false;button.disabled=false;if(opened.open)button.focus();}
 
     };
 

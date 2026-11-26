@@ -10,7 +10,7 @@
 
 ## Recovery scope
 
-The six responsive HTML pages, their shared stylesheet, local prototype logic and browser evidence live in [prototypes/kerjaya](../../prototypes/kerjaya/). The [visual review](visual-review.md) links each page and capture. The two concepts are pending a new design decision.
+The six responsive HTML pages, shared stylesheet, prototype logic and browser evidence are preserved in Git revision `40ed277` under `prototypes/kerjaya`. The [visual review](visual-review.md) records the comparison and the handoff links to the current workspace.
 
 The current app still uses custom PHP 8.3, native JavaScript and MySQL with the existing DirectAdmin release layout. Recovery uses standalone static HTML, CSS and JavaScript. The sample names, resume and letter content are fictional. Browser demo saves live in the current tab's session storage. The app routes, data, providers, authentication, entitlements, PDF generation and worker are outside the prototype surface.
 
